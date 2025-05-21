@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35506.116
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jullius.ServiceApi", "Jullius.ServiceApi\Jullius.ServiceApi.csproj", "{B1FED7F4-872D-4F70-B574-5B14E0451BBF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jullius.Data", "Jullius.Data\Jullius.Data.csproj", "{FC0460BE-5909-425C-81F7-48D60C010FCE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Julius.Domain", "Julius.Domain\Julius.Domain.csproj", "{77FD3530-75C4-40D6-969E-9AF7BB878F6E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B1FED7F4-872D-4F70-B574-5B14E0451BBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1FED7F4-872D-4F70-B574-5B14E0451BBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1FED7F4-872D-4F70-B574-5B14E0451BBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1FED7F4-872D-4F70-B574-5B14E0451BBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC0460BE-5909-425C-81F7-48D60C010FCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC0460BE-5909-425C-81F7-48D60C010FCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC0460BE-5909-425C-81F7-48D60C010FCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC0460BE-5909-425C-81F7-48D60C010FCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77FD3530-75C4-40D6-969E-9AF7BB878F6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77FD3530-75C4-40D6-969E-9AF7BB878F6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77FD3530-75C4-40D6-969E-9AF7BB878F6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77FD3530-75C4-40D6-969E-9AF7BB878F6E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
