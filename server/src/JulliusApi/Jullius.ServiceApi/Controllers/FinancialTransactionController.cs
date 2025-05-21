@@ -76,4 +76,14 @@ public class FinancialTransactionController : ODataController
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpPatch("{id}/payment-status")]
+    public async Task<IActionResult> UpdatePaymentStatus(Guid id, [FromBody] bool isPaid)
+    {
+        var transaction = await _service.UpdatePaymentStatusAsync(id, isPaid);
+        if (transaction == null)
+            return NotFound();
+            
+        return Ok(transaction);
+    }
 } 

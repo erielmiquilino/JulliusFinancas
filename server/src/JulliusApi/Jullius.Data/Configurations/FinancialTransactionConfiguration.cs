@@ -29,5 +29,9 @@ public class FinancialTransactionConfiguration : IEntityTypeConfiguration<Financ
         builder.Property(x => x.CreatedAt)
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+        builder.Property(x => x.IsPaid)
+            .IsRequired()
+            .HasDefaultValue(false);
     }
 } 

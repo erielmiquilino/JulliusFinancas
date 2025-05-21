@@ -8,6 +8,8 @@ import { FinancialTransactionService, FinancialTransaction, TransactionType } fr
 import { CreateTransactionDialogComponent } from '../create-transaction-dialog/create-transaction-dialog.component';
 import { DeleteTransactionDialogComponent } from '../delete-transaction-dialog/delete-transaction-dialog.component';
 import { EditTransactionDialogComponent } from '../edit-transaction-dialog/edit-transaction-dialog.component';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 @Component({
   selector: 'app-transaction-list',
@@ -15,7 +17,7 @@ import { EditTransactionDialogComponent } from '../edit-transaction-dialog/edit-
   styleUrls: ['./transaction-list.component.scss']
 })
 export class TransactionListComponent implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['description', 'amount', 'dueDate', 'type', 'actions'];
+  displayedColumns: string[] = ['description', 'amount', 'dueDate', 'type', 'isPaid', 'actions'];
   dataSource: MatTableDataSource<FinancialTransaction>;
   TransactionType = TransactionType;
   private refreshSubscription: Subscription;
@@ -41,6 +43,7 @@ export class TransactionListComponent implements OnInit, OnDestroy {
   ];
 
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(
     private transactionService: FinancialTransactionService,
@@ -70,6 +73,7 @@ export class TransactionListComponent implements OnInit, OnDestroy {
 
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
   }
 
   calculateTotal(transactions: FinancialTransaction[]): void {
@@ -135,6 +139,7 @@ export class TransactionListComponent implements OnInit, OnDestroy {
       next: (transactions) => {
         this.dataSource.data = transactions;
         this.dataSource.sort = this.sort;
+        this.dataSource.paginator = this.paginator;
         this.calculateTotal(transactions);
       },
       error: (error) => {
@@ -184,5 +189,16 @@ export class TransactionListComponent implements OnInit, OnDestroy {
           });
       }
     });
+  }
+
+  async onPaymentStatusChange(id: string, isPaid: boolean): Promise<void> {
+    try {
+      await this.transactionService.updatePaymentStatus(id, isPaid).toPromise();
+      // Opcional: Atualizar a lista após a mudança
+      this.loadTransactions();
+    } catch (error) {
+      console.error('Erro ao atualizar status de pagamento:', error);
+      // Aqui você pode adicionar uma notificação de erro para o usuário
+    }
   }
 }

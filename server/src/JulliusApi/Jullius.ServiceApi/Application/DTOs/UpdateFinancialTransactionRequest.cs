@@ -8,4 +8,5 @@ public class UpdateFinancialTransactionRequest
     public decimal Amount { get; set; }
     public DateTime DueDate { get; set; }
     public TransactionType Type { get; set; }
+    public bool IsPaid { get; set; }
 } 

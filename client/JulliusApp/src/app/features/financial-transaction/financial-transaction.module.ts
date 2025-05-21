@@ -17,27 +17,26 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 // Components
 import { CreateTransactionDialogComponent } from './components/create-transaction-dialog/create-transaction-dialog.component';
-import { TransactionListComponent } from './components/transaction-list/transaction-list.component';
 import { DeleteTransactionDialogComponent } from './components/delete-transaction-dialog/delete-transaction-dialog.component';
 import { EditTransactionDialogComponent } from './components/edit-transaction-dialog/edit-transaction-dialog.component';
 import { FinancialTransactionRoutingModule } from './financial-transaction-routing.module';
+import { TransactionListComponent } from './components/transaction-list/transaction-list.component';
 
 @NgModule({
   declarations: [
     CreateTransactionDialogComponent,
-    TransactionListComponent,
     DeleteTransactionDialogComponent,
-    EditTransactionDialogComponent
+    EditTransactionDialogComponent,
+    TransactionListComponent
   ],
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    FinancialTransactionRoutingModule,
-    // Material Modules
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -50,7 +49,9 @@ import { FinancialTransactionRoutingModule } from './financial-transaction-routi
     MatIconModule,
     MatSnackBarModule,
     MatSelectModule,
-    MatDialogModule
+    MatDialogModule,
+    MatSlideToggleModule,
+    FinancialTransactionRoutingModule
   ],
   providers: [
     { provide: MAT_DATE_LOCALE, useValue: 'pt-BR' }

@@ -52,9 +52,21 @@ public class FinancialTransactionService
             request.Description,
             request.Amount,
             request.DueDate,
-            request.Type
+            request.Type,
+            request.IsPaid
         );
 
+        await _repository.UpdateAsync(transaction);
+        return transaction;
+    }
+
+    public async Task<FinancialTransaction?> UpdatePaymentStatusAsync(Guid id, bool isPaid)
+    {
+        var transaction = await _repository.GetByIdAsync(id);
+        if (transaction == null)
+            return null;
+
+        transaction.UpdatePaymentStatus(isPaid);
         await _repository.UpdateAsync(transaction);
         return transaction;
     }

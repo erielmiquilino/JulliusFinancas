@@ -16,6 +16,7 @@ export interface FinancialTransaction {
   dueDate: Date;
   type: TransactionType;
   createdAt: Date;
+  isPaid: boolean;
 }
 
 export interface CreateFinancialTransactionRequest {
@@ -96,6 +97,13 @@ export class FinancialTransactionService {
 
   updateTransaction(id: string, request: UpdateFinancialTransactionRequest): Observable<FinancialTransaction> {
     return this.http.put<FinancialTransaction>(`${this.apiUrl}/${id}`, request)
+      .pipe(
+        tap(() => this.refreshList.next())
+      );
+  }
+
+  updatePaymentStatus(id: string, isPaid: boolean): Observable<FinancialTransaction> {
+    return this.http.patch<FinancialTransaction>(`${this.apiUrl}/${id}/payment-status`, isPaid)
       .pipe(
         tap(() => this.refreshList.next())
       );

@@ -11,6 +11,7 @@ public class FinancialTransaction
     public DateTime DueDate { get; private set; }
     public TransactionType Type { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public bool IsPaid { get; private set; }
 
     public FinancialTransaction(string description, decimal amount, DateTime dueDate, TransactionType type)
     {
@@ -20,6 +21,7 @@ public class FinancialTransaction
         DueDate = dueDate;
         Type = type;
         CreatedAt = DateTime.UtcNow;
+        IsPaid = false;
 
         Validate();
     }
@@ -33,12 +35,18 @@ public class FinancialTransaction
             throw new ArgumentException("Amount must be greater than zero");
     }
 
-    public void UpdateDetails(string description, decimal amount, DateTime dueDate, TransactionType type)
+    public void UpdateDetails(string description, decimal amount, DateTime dueDate, TransactionType type, bool isPaid)
     {
         Description = description;
         Amount = amount;
         DueDate = dueDate;
         Type = type;
+        IsPaid = isPaid;
+    }
+
+    public void UpdatePaymentStatus(bool isPaid)
+    {
+        IsPaid = isPaid;
     }
 }
 
