@@ -4,11 +4,34 @@ using Jullius.Data.Repositories;
 using Jullius.ServiceApi.Application.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Microsoft.OData.Edm;
+using Microsoft.OData.ModelBuilder;
+using Microsoft.AspNetCore.OData;
+using Julius.Domain.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configuração do modelo EDM para OData
+static IEdmModel GetEdmModel()
+{
+    var odataBuilder = new ODataConventionModelBuilder();
+    odataBuilder.EntitySet<FinancialTransaction>("FinancialTransactions");
+    var entityType = odataBuilder.EntityType<FinancialTransaction>();
+    entityType.HasKey(e => e.Id);
+    return odataBuilder.GetEdmModel();
+}
+
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddOData(options => options
+        .Select()
+        .Filter()
+        .OrderBy()
+        .SetMaxTop(100)
+        .Count()
+        .Expand()
+        .AddRouteComponents("api", GetEdmModel()));
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -34,6 +57,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Atualiza o banco de dados automaticamente
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<JulliusDbContext>();
+    dbContext.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -49,3 +79,5 @@ app.UseCors("AllowAll");
 
 app.UseAuthorization();
 app.MapControllers();
+
+app.Run();

@@ -1,7 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Julius.Domain.Domain.Entities;
 
 public class FinancialTransaction
 {
+    [Key]
     public Guid Id { get; private set; }
     public string Description { get; private set; }
     public decimal Amount { get; private set; }
@@ -28,9 +31,14 @@ public class FinancialTransaction
 
         if (Amount <= 0)
             throw new ArgumentException("Amount must be greater than zero");
+    }
 
-        if (DueDate < DateTime.Today)
-            throw new ArgumentException("Due date cannot be in the past");
+    public void UpdateDetails(string description, decimal amount, DateTime dueDate, TransactionType type)
+    {
+        Description = description;
+        Amount = amount;
+        DueDate = dueDate;
+        Type = type;
     }
 }
 

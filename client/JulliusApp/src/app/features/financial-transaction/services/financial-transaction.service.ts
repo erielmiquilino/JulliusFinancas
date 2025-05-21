@@ -1,0 +1,103 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, Subject } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
+
+export enum TransactionType {
+  PayableBill = 0,
+  ReceivableBill = 1
+}
+
+export interface FinancialTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  dueDate: Date;
+  type: TransactionType;
+  createdAt: Date;
+}
+
+export interface CreateFinancialTransactionRequest {
+  description: string;
+  amount: number;
+  dueDate: Date;
+  type: TransactionType;
+}
+
+export interface TransactionFilters {
+  month?: number;
+  year?: number;
+  type?: TransactionType;
+}
+
+export interface UpdateFinancialTransactionRequest {
+  description: string;
+  amount: number;
+  dueDate: Date;
+  type: TransactionType;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class FinancialTransactionService {
+  private apiUrl = `${environment.apiUrl}/api/FinancialTransaction`;
+  private refreshList = new Subject<void>();
+
+  constructor(private http: HttpClient) { }
+
+  get refresh$() {
+    return this.refreshList.asObservable();
+  }
+
+  createTransaction(request: CreateFinancialTransactionRequest): Observable<FinancialTransaction> {
+    return this.http.post<FinancialTransaction>(this.apiUrl, request)
+      .pipe(
+        tap(() => this.refreshList.next())
+      );
+  }
+
+  getAllTransactions(filters?: TransactionFilters): Observable<FinancialTransaction[]> {
+    let filterString = '';
+
+    if (filters) {
+      const conditions: string[] = [];
+
+      if (filters.month && filters.year) {
+        const startDate = new Date(filters.year, filters.month - 1, 1);
+        const endDate = new Date(filters.year, filters.month, 0);
+        conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
+      }
+
+      if (filters.type !== undefined) {
+        conditions.push(`Type eq '${TransactionType[filters.type]}'`);
+      }
+
+      if (conditions.length > 0) {
+        filterString = `$filter=${conditions.join(' and ')}`;
+      }
+    }
+
+    const url = filterString ? `${this.apiUrl}?${filterString}` : this.apiUrl;
+    return this.http.get<FinancialTransaction[]>(url);
+  }
+
+  getTransactionById(id: string): Observable<FinancialTransaction> {
+    return this.http.get<FinancialTransaction>(`${this.apiUrl}/${id}`);
+  }
+
+  deleteTransaction(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`)
+      .pipe(
+        tap(() => this.refreshList.next())
+      );
+  }
+
+  updateTransaction(id: string, request: UpdateFinancialTransactionRequest): Observable<FinancialTransaction> {
+    return this.http.put<FinancialTransaction>(`${this.apiUrl}/${id}`, request)
+      .pipe(
+        tap(() => this.refreshList.next())
+      );
+  }
+}

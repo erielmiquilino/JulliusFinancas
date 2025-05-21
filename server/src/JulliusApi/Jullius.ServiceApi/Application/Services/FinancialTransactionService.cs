@@ -4,8 +4,15 @@ using Jullius.ServiceApi.Application.DTOs;
 
 namespace Jullius.ServiceApi.Application.Services;
 
-public class FinancialTransactionService(IFinancialTransactionRepository repository)
+public class FinancialTransactionService
 {
+    private readonly IFinancialTransactionRepository _repository;
+
+    public FinancialTransactionService(IFinancialTransactionRepository repository)
+    {
+        _repository = repository;
+    }
+
     public async Task<FinancialTransaction> CreateTransactionAsync(CreateFinancialTransactionRequest request)
     {
         var transaction = new FinancialTransaction(
@@ -15,16 +22,40 @@ public class FinancialTransactionService(IFinancialTransactionRepository reposit
             request.Type
         );
 
-        return await repository.CreateAsync(transaction);
-    }
-
-    public async Task<FinancialTransaction?> GetTransactionByIdAsync(Guid id)
-    {
-        return await repository.GetByIdAsync(id);
+        await _repository.CreateAsync(transaction);
+        return transaction;
     }
 
     public async Task<IEnumerable<FinancialTransaction>> GetAllTransactionsAsync()
     {
-        return await repository.GetAllAsync();
+        return await _repository.GetAllAsync();
+    }
+
+    public async Task<FinancialTransaction?> GetTransactionByIdAsync(Guid id)
+    {
+        return await _repository.GetByIdAsync(id);
+    }
+
+    public async Task<bool> DeleteTransactionAsync(Guid id)
+    {
+        await _repository.DeleteAsync(id);
+        return true;
+    }
+
+    public async Task<FinancialTransaction?> UpdateTransactionAsync(Guid id, UpdateFinancialTransactionRequest request)
+    {
+        var transaction = await _repository.GetByIdAsync(id);
+        if (transaction == null)
+            return null;
+
+        transaction.UpdateDetails(
+            request.Description,
+            request.Amount,
+            request.DueDate,
+            request.Type
+        );
+
+        await _repository.UpdateAsync(transaction);
+        return transaction;
     }
 } 

@@ -1,19 +1,29 @@
 using Microsoft.AspNetCore.Mvc;
 using Jullius.ServiceApi.Application.Services;
 using Jullius.ServiceApi.Application.DTOs;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Julius.Domain.Domain.Entities;
 
 namespace Jullius.ServiceApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class FinancialTransactionController(FinancialTransactionService service) : ControllerBase
+public class FinancialTransactionController : ODataController
 {
+    private readonly FinancialTransactionService _service;
+
+    public FinancialTransactionController(FinancialTransactionService service)
+    {
+        _service = service;
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFinancialTransactionRequest request)
     {
         try
         {
-            var transaction = await service.CreateTransactionAsync(request);
+            var transaction = await _service.CreateTransactionAsync(request);
             return CreatedAtAction(nameof(GetById), new { id = transaction.Id }, transaction);
         }
         catch (ArgumentException ex)
@@ -23,19 +33,47 @@ public class FinancialTransactionController(FinancialTransactionService service)
     }
 
     [HttpGet]
+    [EnableQuery(PageSize = 50)]
     public async Task<IActionResult> GetAll()
     {
-        var transactions = await service.GetAllTransactionsAsync();
+        var transactions = await _service.GetAllTransactionsAsync();
         return Ok(transactions);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var transaction = await service.GetTransactionByIdAsync(id);
+        var transaction = await _service.GetTransactionByIdAsync(id);
         if (transaction == null)
             return NotFound();
             
         return Ok(transaction);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var result = await _service.DeleteTransactionAsync(id);
+        if (!result)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFinancialTransactionRequest request)
+    {
+        try
+        {
+            var transaction = await _service.UpdateTransactionAsync(id, request);
+            if (transaction == null)
+                return NotFound();
+                
+            return Ok(transaction);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 } 
