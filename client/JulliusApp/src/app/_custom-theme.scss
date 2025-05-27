@@ -1,0 +1,25 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$jullius-theme-light: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$green-palette,
+    tertiary: mat.$cyan-palette,
+  ),
+  typography: (
+    plain-family: 'Roboto',
+    brand-family: 'Roboto',
+    bold-weight: 500,
+    medium-weight: 400,
+    regular-weight: 400,
+  ),
+  density: (
+    scale: -1
+  )
+));
+
+html {
+  @include mat.all-component-themes($jullius-theme-light);
+}

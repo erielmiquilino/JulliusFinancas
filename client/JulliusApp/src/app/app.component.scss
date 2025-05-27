@@ -1,0 +1,25 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Previne rolagem no body/html, se possível */
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Ocupa toda a altura da viewport */
+}
+
+.app-header-flex-item {
+  flex-shrink: 0; /* O header não deve encolher */
+  /* z-index: 1000; // Descomente se o header estiver sobrepondo incorretamente */
+}
+
+.app-side-menu-flex-item {
+  flex-grow: 1; /* O side-menu (e seu mat-sidenav-container) ocupa o espaço restante */
+  overflow-y: auto; /* Permite rolagem interna no side-menu se seu conteúdo for muito grande */
+                  /* Idealmente, a rolagem granular ocorre dentro de componentes filhos como transaction-list */
+  display: flex; /* Necessário para que o .sidenav-container com height:100% dentro dele funcione bem */
+  flex-direction: column; /* Garante que o .sidenav-container possa se expandir corretamente */
+}

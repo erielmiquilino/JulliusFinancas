@@ -1,0 +1,22 @@
+.spacer {
+  flex: 1 1 auto;
+}
+
+.user-area {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  margin-right: 16px;
+  text-align: right;
+}
+
+.user-email {
+  font-size: 0.8em;
+  color: #E0E0E0;
+}
+
+mat-icon {
+  margin-left: 8px;
+}

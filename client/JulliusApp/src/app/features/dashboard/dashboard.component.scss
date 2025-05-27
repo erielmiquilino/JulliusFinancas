@@ -1,0 +1,45 @@
+.dashboard-container {
+  padding: 20px;
+
+  h1 {
+    margin-bottom: 20px;
+  }
+
+  .filter-form {
+    display: flex;
+    gap: 20px; /* Espaço entre os campos do formulário */
+    margin-bottom: 30px;
+    align-items: center;
+
+    mat-form-field {
+      width: 200px; /* Ajuste a largura conforme necessário */
+    }
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .summary-card {
+    mat-card-title {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    p {
+      margin: 8px 0;
+      font-size: 1em;
+    }
+  }
+
+  .loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    gap: 15px;
+    color: #555;
+  }
+}

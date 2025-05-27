@@ -1,0 +1,65 @@
+<div class="dashboard-container">
+  <h1>Dashboard Financeiro</h1>
+
+  <form [formGroup]="filterForm" class="filter-form">
+    <mat-form-field appearance="fill">
+      <mat-label>Mês</mat-label>
+      <mat-select formControlName="month">
+        <mat-option *ngFor="let month of months" [value]="month.value">
+          {{month.viewValue}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Ano</mat-label>
+      <mat-select formControlName="year">
+        <mat-option *ngFor="let year of years" [value]="year">
+          {{year}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </form>
+
+  <div *ngIf="summaryData; else loadingOrError" class="summary-grid">
+    <mat-card class="summary-card">
+      <mat-card-header>
+        <mat-card-title>Despesas</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Total: {{ summaryData.totalDespesas | currency:'BRL' }}</p>
+        <p>Pagas: {{ summaryData.totalDespesasPagas | currency:'BRL' }}</p>
+        <p>Em Aberto: {{ summaryData.totalDespesasEmAberto | currency:'BRL' }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="summary-card">
+      <mat-card-header>
+        <mat-card-title>Receitas</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Total: {{ summaryData.totalReceitas | currency:'BRL' }}</p>
+        <p>Recebidas: {{ summaryData.totalReceitasRecebidas | currency:'BRL' }}</p>
+        <p>A Receber: {{ summaryData.totalReceitasAReceber | currency:'BRL' }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="summary-card">
+      <mat-card-header>
+        <mat-card-title>Saldo</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Total em Conta: {{ summaryData.totalEmConta | currency:'BRL' }}</p>
+        <p>Total Previsto: {{ summaryData.totalPrevistoEmConta | currency:'BRL' }}</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <ng-template #loadingOrError>
+    <div *ngIf="!summaryData" class="loading-indicator">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>Carregando dados...</p>
+    </div>
+    <!-- Você pode adicionar uma mensagem de erro mais específica se desejar -->
+  </ng-template>
+</div>

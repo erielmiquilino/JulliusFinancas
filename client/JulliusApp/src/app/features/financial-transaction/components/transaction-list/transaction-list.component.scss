@@ -1,131 +1,96 @@
 .transaction-list-container {
-  padding: 20px;
-  height: 100vh; // Altura total menos o header
-  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Tenta ocupar a altura total do seu contêiner pai */
+  overflow: hidden; /* Evita que este componente cause rolagem na página se o pai não tiver altura definida */
+}
 
-  mat-card {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+mat-card.transaction-card {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Ocupa o espaço no transaction-list-container */
+  overflow: hidden; /* Gerencia o overflow interno */
+}
 
-    mat-card-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-  }
+mat-card.transaction-card mat-card-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Ocupa o espaço no mat-card */
+  overflow: hidden; /* A rolagem será gerenciada mais abaixo */
+  padding: 16px; /* Mantém o padding padrão, ajuste se necessário */
+}
 
-  .filters-section {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 20px;
+.card-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px; /* Adiciona espaço abaixo do cabeçalho */
+  flex-shrink: 0; /* Header não deve encolher */
+}
 
-    @media screen and (min-width: 768px) {
-      flex-direction: row;
-      align-items: flex-start;
-    }
+.filters-section {
+  display: flex;
+  align-items: center; /* Alinha os itens verticalmente no centro */
+  gap: 16px; /* Espaço entre os campos de filtro */
+  margin-bottom: 16px;
+  width: 100%;
+  flex-shrink: 0; /* Filtros não devem encolher ou crescer descontroladamente */
+}
 
-    @media screen and (max-width: 767px) {
-      flex-direction: column;
-    }
+.filter-month,
+.filter-type {
+  flex-shrink: 0;
+}
 
-    .filters-container {
-      display: flex;
-      gap: 16px;
+.search-field {
+  flex-grow: 1;
+}
 
-      @media screen and (min-width: 768px) {
-        flex: 0 0 auto;
-      }
+.table-container {
+  display: flex; /* Alterado para flex para controlar os filhos */
+  flex-direction: column; /* Empilha os filhos verticalmente */
+  flex-grow: 1; /* Faz o table-container ocupar o espaço restante no card-content */
+  overflow: hidden; /* A rolagem principal será no corpo da tabela */
+  border: 1px solid rgba(0,0,0,.12); /* Adiciona uma borda similar à da tabela */
+  border-radius: 4px; /* Arredonda as bordas */
+}
 
-      @media screen and (max-width: 767px) {
-        flex-wrap: wrap;
-      }
+/* Novo container para a tabela, que permitirá a rolagem interna */
+.table-scroll-container {
+  flex-grow: 1; /* Permite que este container cresça e ocupe o espaço disponível */
+  overflow-y: auto; /* Habilita a rolagem vertical para o corpo da tabela */
+  width: 100%;
+}
 
-      mat-form-field {
-        min-width: 200px;
-      }
-    }
+.total-container {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px;
+  font-size: 1.2em;
+  font-weight: bold;
+  flex-shrink: 0; /* Impede que o totalizador encolha */
+  border-top: 1px solid rgba(0,0,0,.12); /* Adiciona uma linha separadora */
+}
 
-    .search-field {
-      flex: 1;
-    }
-  }
+.total-label {
+  margin-right: 8px;
+}
 
-  .table-container {
-    flex: 1;
-    overflow: auto;
-    min-height: 0;
-    border-radius: 4px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
+.positive {
+  color: green;
+}
 
-    table {
-      width: 100%;
-    }
+.negative {
+  color: red;
+}
 
-    .mat-mdc-header-row {
-      background-color: #f5f5f5;
-    }
+/* Ajustes para o mat-form-field para garantir que eles não quebrem a linha desnecessariamente */
+mat-form-field {
+  display: inline-block; /* Ou flex, dependendo do contexto geral */
+  vertical-align: top; /* Alinha ao topo para consistência */
+}
 
-    .mat-mdc-row:hover {
-      background-color: #f5f5f5;
-    }
-
-    .mat-column-actions {
-      width: 120px;
-      text-align: center;
-    }
-
-    td, th {
-      white-space: nowrap;
-      padding: 0 16px;
-    }
-  }
-
-  mat-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-
-    .header-actions {
-      margin-left: auto;
-
-      button {
-        mat-icon {
-          margin-right: 8px;
-        }
-      }
-    }
-  }
-
-  .total-container {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    padding: 16px;
-    background-color: #f5f5f5;
-    border-top: 1px solid rgba(0, 0, 0, 0.12);
-    font-size: 18px;
-    font-weight: 500;
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
-
-    .total-label {
-      margin-right: 16px;
-    }
-
-    .total-value {
-      &.positive {
-        color: #4caf50;
-      }
-
-      &.negative {
-        color: #f44336;
-      }
-    }
-  }
+/* Garante que o container da tabela ocupe a largura total */
+.mat-elevation-z8 {
+  width: 100%;
 }
