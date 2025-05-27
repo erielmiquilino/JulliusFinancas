@@ -1,5 +1,4 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35506.116
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -7,7 +6,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jullius.ServiceApi", "Julli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jullius.Data", "Jullius.Data\Jullius.Data.csproj", "{FC0460BE-5909-425C-81F7-48D60C010FCE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Julius.Domain", "Julius.Domain\Julius.Domain.csproj", "{77FD3530-75C4-40D6-969E-9AF7BB878F6E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jullius.Domain", "Jullius.Domain\Jullius.Domain.csproj", "{77FD3530-75C4-40D6-969E-9AF7BB878F6E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

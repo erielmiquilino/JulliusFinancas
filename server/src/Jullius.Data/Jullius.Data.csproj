@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Julius.Domain\Julius.Domain.csproj" />
+    <ProjectReference Include="..\Jullius.Domain\Jullius.Domain.csproj" />
   </ItemGroup>
 
 </Project>
