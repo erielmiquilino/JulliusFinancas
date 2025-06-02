@@ -27,7 +27,8 @@ export class CreateTransactionDialogComponent {
       description: ['', Validators.required],
       amount: ['', [Validators.required, Validators.min(0.01)]],
       dueDate: [localToday, Validators.required],
-      type: [TransactionType.PayableBill, Validators.required]
+      type: [TransactionType.PayableBill, Validators.required],
+      isPaid: [false]
     });
   }
 

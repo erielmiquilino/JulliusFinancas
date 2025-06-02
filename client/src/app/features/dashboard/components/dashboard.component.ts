@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { DashboardService } from './services/dashboard.service';
-import { FinancialTransaction, TransactionType } from '../financial-transaction/services/financial-transaction.service';
+import { DashboardService } from '../services/dashboard.service';
+import { FinancialTransaction, TransactionType } from '../../financial-transaction/services/financial-transaction.service';
 
 interface SummaryData {
   totalDespesas: number;
@@ -62,9 +62,9 @@ export class DashboardComponent implements OnInit {
     const { month, year } = this.filterForm.value;
     if (!month || !year) return;
 
-    this.dashboardService.getTransactions({ month, year }).subscribe(transactions => {
+    this.dashboardService.getTransactions({ month, year }).subscribe((transactions: FinancialTransaction[]) => {
       this.calculateSummary(transactions);
-    }, error => {
+    }, (error: any) => {
       console.error('Erro ao buscar transações:', error);
       this.summaryData = null; // Reseta em caso de erro
     });

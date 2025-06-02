@@ -74,6 +74,11 @@ export class TransactionListComponent implements OnInit, OnDestroy {
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
     this.dataSource.paginator = this.paginator;
+    // Define a ordenação inicial
+    if (this.sort) {
+      this.sort.active = 'dueDate';
+      this.sort.direction = 'desc'
+    }
   }
 
   calculateTotal(transactions: FinancialTransaction[]): void {
@@ -138,8 +143,17 @@ export class TransactionListComponent implements OnInit, OnDestroy {
     this.transactionService.getAllTransactions(filters).subscribe({
       next: (transactions) => {
         this.dataSource.data = transactions;
-        this.dataSource.sort = this.sort;
         this.dataSource.paginator = this.paginator;
+        this.dataSource.sort = this.sort; // Garante que o sort está associado
+
+        // Se uma ordenação ativa não estiver definida (ex: primeiro carregamento sem interação do usuário),
+        // aplica a ordenação padrão por 'dueDate'.
+        if (this.sort && !this.sort.active) {
+            this.sort.active = 'dueDate';
+            this.sort.direction = 'asc';
+            // O MatTableDataSource aplicará esta ordenação automaticamente
+            // ao detectar a mudança em `active` e `direction` em conjunto com novos dados.
+        }
         this.calculateTotal(transactions);
       },
       error: (error) => {

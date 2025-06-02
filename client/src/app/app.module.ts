@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
@@ -39,7 +39,6 @@ const MY_DATE_FORMATS = {
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
-    HttpClientModule,
     RouterModule.forRoot(routes),
     MatToolbarModule,
     MatIconModule,
@@ -47,6 +46,7 @@ const MY_DATE_FORMATS = {
     MatListModule
   ],
   providers: [
+    provideHttpClient(),
     { provide: MAT_DATE_LOCALE, useValue: 'pt-BR' },
     { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS }
   ],

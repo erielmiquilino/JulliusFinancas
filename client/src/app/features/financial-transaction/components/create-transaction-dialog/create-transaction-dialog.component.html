@@ -3,25 +3,25 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <mat-dialog-content>
-      <div class="form-container">
-        <mat-form-field appearance="fill">
+      <div class="form-container" style="display: flex; flex-direction: column;">
+        <mat-form-field appearance="outline" style="width: 100%;">
           <mat-label>Descrição</mat-label>
           <input matInput formControlName="description" required>
         </mat-form-field>
 
-        <mat-form-field appearance="fill">
+        <mat-form-field appearance="outline" style="width: 100%;">
           <mat-label>Valor</mat-label>
           <input matInput type="number" formControlName="amount" required>
         </mat-form-field>
 
-        <mat-form-field appearance="fill">
+        <mat-form-field appearance="outline" style="width: 100%;">
           <mat-label>Data de Vencimento</mat-label>
           <input matInput [matDatepicker]="picker" formControlName="dueDate" required>
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
 
-        <mat-form-field appearance="fill">
+        <mat-form-field appearance="outline" style="width: 100%;">
           <mat-label>Tipo</mat-label>
           <mat-select formControlName="type" required>
             <mat-option *ngFor="let type of transactionTypes" [value]="type.value">
@@ -29,6 +29,10 @@
             </mat-option>
           </mat-select>
         </mat-form-field>
+
+        <mat-slide-toggle formControlName="isPaid" class="mat-form-field-should-float" style="width: 100%; margin-bottom: 1em;">
+          Lançar pago?
+        </mat-slide-toggle>
       </div>
     </mat-dialog-content>
 

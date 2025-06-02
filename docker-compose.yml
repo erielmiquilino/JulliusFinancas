@@ -5,12 +5,37 @@ services:
     image: postgres:latest
     container_name: postgres_server
     environment:
-      POSTGRES_USER: jullius  # Substitua pelo nome de usuário desejado
-      POSTGRES_PASSWORD: P@ssw0rd # Substitua pela senha desejada
+      POSTGRES_USER: jullius
+      POSTGRES_PASSWORD: P@ssw0rd
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  jullius_api:
+    container_name: jullius_api_service
+    build:
+      context: ./server/src
+      dockerfile: Jullius.ServiceApi/Dockerfile
+    ports:
+      - "8081:8080" 
+    depends_on:
+      - postgres
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=JulliusFinancasDb;Username=jullius;Password=P@ssw0rd"
+      ASPNETCORE_URLS: http://+:8080 
+    restart: unless-stopped
+
+  jullius_client:
+    container_name: jullius_client_app
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "8082:80"
+    depends_on:
+      - jullius_api
     restart: unless-stopped
 
 volumes:

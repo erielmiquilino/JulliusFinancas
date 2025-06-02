@@ -19,7 +19,8 @@ public class FinancialTransactionService
             request.Description,
             request.Amount,
             request.DueDate,
-            request.Type
+            request.Type,
+            request.IsPaid
         );
 
         await _repository.CreateAsync(transaction);

@@ -25,7 +25,8 @@ export class EditTransactionDialogComponent {
       description: [data.description, Validators.required],
       amount: [data.amount, [Validators.required, Validators.min(0.01)]],
       dueDate: [localDueDate, Validators.required],
-      type: [data.type, Validators.required]
+      type: [data.type, Validators.required],
+      isPaid: [data.isPaid || false]
     });
   }
 
@@ -37,6 +38,7 @@ export class EditTransactionDialogComponent {
       const utcDueDate = new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60000);
 
       this.dialogRef.close({
+        ...this.data,
         ...formValue,
         dueDate: utcDueDate
       });

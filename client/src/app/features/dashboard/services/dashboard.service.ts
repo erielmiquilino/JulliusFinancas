@@ -8,7 +8,7 @@ import { FinancialTransaction, TransactionFilters, TransactionType } from '../..
   providedIn: 'root'
 })
 export class DashboardService {
-  private apiUrl = `${environment.apiUrl}/api/FinancialTransaction`;
+  private apiUrl = `${environment.apiUrl}/FinancialTransaction`;
 
   constructor(private http: HttpClient) { }
 
@@ -19,12 +19,12 @@ export class DashboardService {
       const conditions: string[] = [];
 
       if (filters.month && filters.year) {
-        const startDate = new Date(filters.year, filters.month - 1, 1);
+        const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
         const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999); // Final do dia
         conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
       } else if (filters.year) { // Adicionado para filtrar apenas por ano se o mês não for fornecido
-        const startDate = new Date(filters.year, 0, 1);
-        const endDate = new Date(filters.year, 11, 31, 23, 59, 59, 999);
+        const startDate = new Date(Date.UTC(filters.year, 0, 1));
+        const endDate = new Date(Date.UTC(filters.year, 11, 31, 23, 59, 59, 999));
         conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
       }
 

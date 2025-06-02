@@ -13,7 +13,7 @@ public class FinancialTransaction
     public DateTime CreatedAt { get; private set; }
     public bool IsPaid { get; private set; }
 
-    public FinancialTransaction(string description, decimal amount, DateTime dueDate, TransactionType type)
+    public FinancialTransaction(string description, decimal amount, DateTime dueDate, TransactionType type, bool isPaid = false)
     {
         Id = Guid.NewGuid();
         Description = description;
@@ -21,7 +21,7 @@ public class FinancialTransaction
         DueDate = dueDate;
         Type = type;
         CreatedAt = DateTime.UtcNow;
-        IsPaid = false;
+        IsPaid = isPaid;
 
         Validate();
     }

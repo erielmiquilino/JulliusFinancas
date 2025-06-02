@@ -43,7 +43,7 @@ export interface UpdateFinancialTransactionRequest {
   providedIn: 'root'
 })
 export class FinancialTransactionService {
-  private apiUrl = `${environment.apiUrl}/api/FinancialTransaction`;
+  private apiUrl = `${environment.apiUrl}/FinancialTransaction`;
   private refreshList = new Subject<void>();
 
   constructor(private http: HttpClient) { }
@@ -66,8 +66,8 @@ export class FinancialTransactionService {
       const conditions: string[] = [];
 
       if (filters.month && filters.year) {
-        const startDate = new Date(filters.year, filters.month - 1, 1);
-        const endDate = new Date(filters.year, filters.month, 0);
+        const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
+        const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999);
         conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
       }
 
