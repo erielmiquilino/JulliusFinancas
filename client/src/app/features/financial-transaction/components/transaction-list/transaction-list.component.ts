@@ -4,12 +4,11 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
-import { FinancialTransactionService, FinancialTransaction, TransactionType } from '../../services/financial-transaction.service';
+import { FinancialTransactionService, FinancialTransaction, TransactionType, TransactionFilters } from '../../services/financial-transaction.service';
 import { CreateTransactionDialogComponent } from '../create-transaction-dialog/create-transaction-dialog.component';
 import { DeleteTransactionDialogComponent } from '../delete-transaction-dialog/delete-transaction-dialog.component';
 import { EditTransactionDialogComponent } from '../edit-transaction-dialog/edit-transaction-dialog.component';
 import { MatPaginator } from '@angular/material/paginator';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 @Component({
   selector: 'app-transaction-list',
@@ -27,6 +26,12 @@ export class TransactionListComponent implements OnInit, OnDestroy {
   selectedMonth: number;
   selectedYear: number;
   selectedType: TransactionType = TransactionType.PayableBill;
+  selectedDateRangeType: 'Today' | 'ThisWeek' | 'Month' | 'Custom' = 'Month';
+  startDate?: Date;
+  endDate?: Date;
+  selectedPaymentStatus: 'Paid' | 'Pending' | 'All' = 'All';
+  currentYear: number;
+
   months = [
     { value: 1, label: 'Janeiro' },
     { value: 2, label: 'Fevereiro' },
@@ -55,10 +60,10 @@ export class TransactionListComponent implements OnInit, OnDestroy {
       this.loadTransactions();
     });
 
-    // Inicializa com o mês e ano atual
     const currentDate = new Date();
     this.selectedMonth = currentDate.getMonth() + 1;
     this.selectedYear = currentDate.getFullYear();
+    this.currentYear = currentDate.getFullYear();
   }
 
   ngOnInit(): void {
@@ -74,20 +79,116 @@ export class TransactionListComponent implements OnInit, OnDestroy {
   ngAfterViewInit() {
     this.dataSource.sort = this.sort;
     this.dataSource.paginator = this.paginator;
-    // Define a ordenação inicial
     if (this.sort) {
       this.sort.active = 'dueDate';
-      this.sort.direction = 'desc'
+      this.sort.direction = 'desc';
     }
   }
 
   calculateTotal(transactions: FinancialTransaction[]): void {
     this.totalAmount = transactions.reduce((total, transaction) => {
-      // Soma positiva para Contas a Receber e negativa para Contas a Pagar
       const value = transaction.type === TransactionType.ReceivableBill ?
         transaction.amount : -transaction.amount;
       return total + value;
     }, 0);
+  }
+
+  loadTransactions(): void {
+    const filters: TransactionFilters = {
+      type: this.selectedType,
+      dateRangeType: this.selectedDateRangeType,
+      paymentStatus: this.selectedPaymentStatus
+    };
+
+    if (this.selectedDateRangeType === 'Month') {
+      filters.month = this.selectedMonth;
+      filters.year = this.selectedYear;
+    } else if (this.selectedDateRangeType === 'Custom' && this.startDate && this.endDate) {
+      filters.startDate = this.startDate;
+      filters.endDate = this.endDate;
+    }
+
+    this.transactionService.getAllTransactions(filters).subscribe({
+      next: (transactions) => {
+        this.dataSource.data = transactions;
+        this.dataSource.paginator = this.paginator;
+        this.dataSource.sort = this.sort;
+
+        if (this.sort && !this.sort.active) {
+            this.sort.active = 'dueDate';
+            this.sort.direction = 'asc';
+        }
+        this.calculateTotal(transactions);
+      },
+      error: (error) => {
+        console.error('Erro ao carregar transações:', error);
+        this.snackBar.open('Erro ao carregar transações: ' + error.message, 'Fechar', {
+          duration: 5000
+        });
+      }
+    });
+  }
+
+  onMonthChange(month: number): void {
+    this.selectedMonth = month;
+    this.selectedDateRangeType = 'Month';
+    this.loadTransactions();
+  }
+
+  onYearChange(year: number): void {
+    this.selectedYear = year;
+    this.selectedDateRangeType = 'Month';
+    this.loadTransactions();
+  }
+
+  onDateRangeTypeChange(type: 'Today' | 'ThisWeek' | 'Month' | 'Custom'): void {
+    this.selectedDateRangeType = type;
+    if (type !== 'Month') {
+    } else {
+      if (!this.selectedMonth || !this.selectedYear) {
+        const currentDate = new Date();
+        this.selectedMonth = currentDate.getMonth() + 1;
+        this.selectedYear = currentDate.getFullYear();
+      }
+    }
+    if (type !== 'Custom') {
+      this.startDate = undefined;
+      this.endDate = undefined;
+    }
+    this.loadTransactions();
+  }
+
+  onStartDateChange(event: any): void {
+    this.startDate = event.value;
+    if (this.startDate && this.endDate && this.selectedDateRangeType === 'Custom') {
+      this.loadTransactions();
+    }
+  }
+
+  onEndDateChange(event: any): void {
+    this.endDate = event.value;
+    if (this.startDate && this.endDate && this.selectedDateRangeType === 'Custom') {
+      this.loadTransactions();
+    }
+  }
+
+  onPaymentStatusChange(status: 'Paid' | 'Pending' | 'All'): void {
+    this.selectedPaymentStatus = status;
+    this.loadTransactions();
+  }
+
+  onTypeChange(type: TransactionType): void {
+    this.selectedType = type;
+    this.loadTransactions();
+  }
+
+  getTransactionTypeLabel(type: TransactionType): string {
+    return type === TransactionType.PayableBill ? 'Conta a Pagar' : 'Conta a Receber';
+  }
+
+  applyFilter(event: Event): void {
+    const filterValue = (event.target as HTMLInputElement).value;
+    this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
   openCreateDialog(): void {
@@ -133,57 +234,6 @@ export class TransactionListComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadTransactions(): void {
-    const filters = {
-      month: this.selectedMonth,
-      year: this.selectedYear,
-      type: this.selectedType
-    };
-
-    this.transactionService.getAllTransactions(filters).subscribe({
-      next: (transactions) => {
-        this.dataSource.data = transactions;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort; // Garante que o sort está associado
-
-        // Se uma ordenação ativa não estiver definida (ex: primeiro carregamento sem interação do usuário),
-        // aplica a ordenação padrão por 'dueDate'.
-        if (this.sort && !this.sort.active) {
-            this.sort.active = 'dueDate';
-            this.sort.direction = 'asc';
-            // O MatTableDataSource aplicará esta ordenação automaticamente
-            // ao detectar a mudança em `active` e `direction` em conjunto com novos dados.
-        }
-        this.calculateTotal(transactions);
-      },
-      error: (error) => {
-        console.error('Erro ao carregar transações:', error);
-        this.snackBar.open('Erro ao carregar transações: ' + error.message, 'Fechar', {
-          duration: 5000
-        });
-      }
-    });
-  }
-
-  onMonthChange(month: number): void {
-    this.selectedMonth = month;
-    this.loadTransactions();
-  }
-
-  onTypeChange(type: TransactionType): void {
-    this.selectedType = type;
-    this.loadTransactions();
-  }
-
-  getTransactionTypeLabel(type: TransactionType): string {
-    return type === TransactionType.PayableBill ? 'Conta a Pagar' : 'Conta a Receber';
-  }
-
-  applyFilter(event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value;
-    this.dataSource.filter = filterValue.trim().toLowerCase();
-  }
-
   onEdit(transaction: FinancialTransaction): void {
     const dialogRef = this.dialog.open(EditTransactionDialogComponent, {
       width: '500px',
@@ -195,24 +245,33 @@ export class TransactionListComponent implements OnInit, OnDestroy {
         this.transactionService.updateTransaction(transaction.id, result)
           .subscribe({
             next: () => {
-              this.loadTransactions();
+              this.snackBar.open('Transação atualizada com sucesso!', 'Fechar', {
+                duration: 3000
+              });
             },
             error: (error) => {
               console.error('Erro ao atualizar transação:', error);
+              this.snackBar.open('Erro ao atualizar transação.', 'Fechar', {
+                duration: 3000
+              });
             }
           });
       }
     });
   }
 
-  async onPaymentStatusChange(id: string, isPaid: boolean): Promise<void> {
+  async onPaymentStatusChangeToggle(id: string, isPaid: boolean): Promise<void> {
     try {
       await this.transactionService.updatePaymentStatus(id, isPaid).toPromise();
-      // Opcional: Atualizar a lista após a mudança
-      this.loadTransactions();
+      this.snackBar.open(`Status de pagamento atualizado para ${isPaid ? 'Pago' : 'Pendente'}!`, 'Fechar', {
+        duration: 2000
+      });
     } catch (error) {
       console.error('Erro ao atualizar status de pagamento:', error);
-      // Aqui você pode adicionar uma notificação de erro para o usuário
+      this.snackBar.open('Erro ao atualizar status de pagamento.', 'Fechar', {
+        duration: 3000
+      });
+      this.loadTransactions();
     }
   }
 }

@@ -12,8 +12,19 @@
 
     <mat-card-content>
       <!-- Filtros -->
-      <div class="filters-section">
-        <mat-form-field class="filter-month">
+      <div class="filters-section" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="16px grid">
+
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Período</mat-label>
+          <mat-select [(ngModel)]="selectedDateRangeType" (selectionChange)="onDateRangeTypeChange($event.value)">
+            <mat-option value="Today">Hoje</mat-option>
+            <mat-option value="ThisWeek">Esta Semana</mat-option>
+            <mat-option value="Month">Por Mês</mat-option>
+            <mat-option value="Custom">Personalizado</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field" *ngIf="selectedDateRangeType === 'Month'">
           <mat-label>Mês</mat-label>
           <mat-select [(ngModel)]="selectedMonth" (selectionChange)="onMonthChange($event.value)">
             <mat-option *ngFor="let month of months" [value]="month.value">
@@ -22,7 +33,26 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field class="filter-type">
+        <mat-form-field appearance="outline" class="filter-field" *ngIf="selectedDateRangeType === 'Month'">
+          <mat-label>Ano</mat-label>
+          <input matInput type="number" [(ngModel)]="selectedYear" (ngModelChange)="onYearChange($event)" [placeholder]="selectedYear?.toString() || currentYear.toString()">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field" *ngIf="selectedDateRangeType === 'Custom'">
+          <mat-label>Data Início</mat-label>
+          <input matInput [matDatepicker]="startDatePicker" [(ngModel)]="startDate" (dateChange)="onStartDateChange($event)" placeholder="DD/MM/AAAA">
+          <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #startDatePicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field" *ngIf="selectedDateRangeType === 'Custom'">
+          <mat-label>Data Fim</mat-label>
+          <input matInput [matDatepicker]="endDatePicker" [(ngModel)]="endDate" (dateChange)="onEndDateChange($event)" placeholder="DD/MM/AAAA">
+          <mat-datepicker-toggle matSuffix [for]="endDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #endDatePicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
           <mat-label>Tipo de Conta</mat-label>
           <mat-select [(ngModel)]="selectedType" (selectionChange)="onTypeChange($event.value)">
             <mat-option [value]="TransactionType.PayableBill">Contas a Pagar</mat-option>
@@ -30,9 +60,18 @@
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field class="search-field">
-          <mat-label>Filtrar</mat-label>
-          <input matInput (keyup)="applyFilter($event)" placeholder="Ex. descrição, valor..." #input>
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Status Pagamento</mat-label>
+          <mat-select [(ngModel)]="selectedPaymentStatus" (selectionChange)="onPaymentStatusChange($event.value)">
+            <mat-option value="All">Todas</mat-option>
+            <mat-option value="Paid">Pagas</mat-option>
+            <mat-option value="Pending">Pendentes</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field class="search-field filter-field" appearance="outline">
+          <mat-label>Filtrar Descrição</mat-label>
+          <input matInput (keyup)="applyFilter($event)" placeholder="Ex. Salário" #input>
         </mat-form-field>
       </div>
 
@@ -69,7 +108,7 @@
               <td mat-cell *matCellDef="let row">
                 <mat-slide-toggle
                   [checked]="row.isPaid"
-                  (change)="onPaymentStatusChange(row.id, $event.checked)"
+                  (change)="onPaymentStatusChangeToggle(row.id, $event.checked)"
                   color="primary">
                   {{row.isPaid ? 'Pago' : 'Pendente'}}
                 </mat-slide-toggle>

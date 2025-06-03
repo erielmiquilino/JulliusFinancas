@@ -30,6 +30,10 @@ export interface TransactionFilters {
   month?: number;
   year?: number;
   type?: TransactionType;
+  dateRangeType?: 'Today' | 'ThisWeek' | 'Month' | 'Custom';
+  startDate?: Date;
+  endDate?: Date;
+  paymentStatus?: 'Paid' | 'Pending' | 'All';
 }
 
 export interface UpdateFinancialTransactionRequest {
@@ -65,7 +69,46 @@ export class FinancialTransactionService {
     if (filters) {
       const conditions: string[] = [];
 
-      if (filters.month && filters.year) {
+      if (filters.dateRangeType) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        switch (filters.dateRangeType) {
+          case 'Today':
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            conditions.push(`(DueDate ge ${today.toISOString()} and DueDate lt ${tomorrow.toISOString()})`);
+            break;
+          case 'ThisWeek':
+            const firstDayOfWeek = new Date(today);
+            const dayOfWeek = today.getDay();
+            const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when day is sunday
+            firstDayOfWeek.setDate(diff);
+
+            const lastDayOfWeek = new Date(firstDayOfWeek);
+            lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+            lastDayOfWeek.setHours(23, 59, 59, 999);
+
+            conditions.push(`(DueDate ge ${firstDayOfWeek.toISOString()} and DueDate le ${lastDayOfWeek.toISOString()})`);
+            break;
+          case 'Month':
+            if (filters.month && filters.year) {
+              const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
+              const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999);
+              conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
+            }
+            break;
+          case 'Custom':
+            if (filters.startDate && filters.endDate) {
+              const startDate = new Date(filters.startDate);
+              startDate.setHours(0, 0, 0, 0);
+              const endDate = new Date(filters.endDate);
+              endDate.setHours(23, 59, 59, 999);
+              conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
+            }
+            break;
+        }
+      } else if (filters.month && filters.year) { // Fallback to old month/year filter if dateRangeType is not set
         const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
         const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999);
         conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
@@ -73,6 +116,10 @@ export class FinancialTransactionService {
 
       if (filters.type !== undefined) {
         conditions.push(`Type eq '${TransactionType[filters.type]}'`);
+      }
+
+      if (filters.paymentStatus && filters.paymentStatus !== 'All') {
+        conditions.push(`IsPaid eq ${filters.paymentStatus === 'Paid' ? 'true' : 'false'}`);
       }
 
       if (conditions.length > 0) {
