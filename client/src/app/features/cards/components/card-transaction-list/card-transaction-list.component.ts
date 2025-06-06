@@ -1,0 +1,175 @@
+import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatPaginator } from '@angular/material/paginator';
+import { Subscription } from 'rxjs';
+import { CardService, Card, CardTransaction } from '../../services/card.service';
+import { CreateCardTransactionDialogComponent } from '../create-card-transaction-dialog/create-card-transaction-dialog.component';
+import { EditCardTransactionDialogComponent } from '../edit-card-transaction-dialog/edit-card-transaction-dialog.component';
+import { DeleteCardTransactionDialogComponent } from '../delete-card-transaction-dialog/delete-card-transaction-dialog.component';
+
+@Component({
+  selector: 'app-card-transaction-list',
+  templateUrl: './card-transaction-list.component.html',
+  styleUrls: ['./card-transaction-list.component.scss']
+})
+export class CardTransactionListComponent implements OnInit, OnDestroy, AfterViewInit {
+  displayedColumns: string[] = ['descricao', 'valor', 'data', 'parcela', 'actions'];
+  dataSource: MatTableDataSource<CardTransaction>;
+  private refreshSubscription: Subscription;
+
+  cardId: string = '';
+  card: Card | null = null;
+  loading: boolean = true;
+
+  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private cardService: CardService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {
+    this.dataSource = new MatTableDataSource<CardTransaction>();
+    this.refreshSubscription = this.cardService.refresh$.subscribe(() => {
+      this.loadTransactions();
+    });
+  }
+
+  ngOnInit(): void {
+    this.route.paramMap.subscribe(params => {
+      this.cardId = params.get('id') || '';
+      if (this.cardId) {
+        this.loadCard();
+        this.loadTransactions();
+      } else {
+        this.snackBar.open('ID do cartão não encontrado', 'Fechar', { duration: 3000 });
+        this.router.navigate(['/cards']);
+      }
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
+    if (this.sort) {
+      this.sort.active = 'data';
+      this.sort.direction = 'desc';
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshSubscription) {
+      this.refreshSubscription.unsubscribe();
+    }
+  }
+
+  loadCard(): void {
+    this.cardService.getCardById(this.cardId).subscribe({
+      next: (card) => {
+        this.card = card;
+      },
+      error: (error) => {
+        console.error('Erro ao carregar cartão:', error);
+        this.snackBar.open('Erro ao carregar informações do cartão: ' + error.message, 'Fechar', {
+          duration: 5000
+        });
+        this.router.navigate(['/cards']);
+      }
+    });
+  }
+
+  loadTransactions(): void {
+    this.loading = true;
+    this.cardService.getTransactionsByCardId(this.cardId).subscribe({
+      next: (transactions) => {
+        this.dataSource.data = transactions;
+        this.dataSource.paginator = this.paginator;
+        this.dataSource.sort = this.sort;
+
+        if (this.sort && !this.sort.active) {
+          this.sort.active = 'data';
+          this.sort.direction = 'desc';
+        }
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Erro ao carregar transações:', error);
+        this.snackBar.open('Erro ao carregar transações: ' + error.message, 'Fechar', {
+          duration: 5000
+        });
+        this.loading = false;
+      }
+    });
+  }
+
+  openCreateDialog(): void {
+    const dialogRef = this.dialog.open(CreateCardTransactionDialogComponent, {
+      width: '500px',
+      disableClose: true,
+      data: { cardId: this.cardId }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.snackBar.open('Lançamento criado com sucesso!', 'Fechar', {
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  openEditDialog(transaction: CardTransaction): void {
+    const dialogRef = this.dialog.open(EditCardTransactionDialogComponent, {
+      width: '500px',
+      disableClose: true,
+      data: transaction
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.snackBar.open('Lançamento atualizado com sucesso!', 'Fechar', {
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  openDeleteDialog(transaction: CardTransaction): void {
+    const dialogRef = this.dialog.open(DeleteCardTransactionDialogComponent, {
+      width: '400px',
+      data: transaction
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.deleteTransaction(transaction.id);
+      }
+    });
+  }
+
+  private deleteTransaction(id: string): void {
+    this.cardService.deleteCardTransaction(id).subscribe({
+      next: () => {
+        this.snackBar.open('Lançamento excluído com sucesso!', 'Fechar', {
+          duration: 3000
+        });
+      },
+      error: (error) => {
+        console.error('Erro ao excluir lançamento:', error);
+        this.snackBar.open('Erro ao excluir lançamento: ' + error.message, 'Fechar', {
+          duration: 5000
+        });
+      }
+    });
+  }
+
+  goBack(): void {
+    this.router.navigate(['/cards']);
+  }
+}

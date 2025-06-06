@@ -1,0 +1,74 @@
+.card-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+mat-card.card-card {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+mat-card.card-card mat-card-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.card-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.table-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 4px;
+}
+
+.table-scroll-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.mat-elevation-z8 {
+  width: 100%;
+}
+
+// Estilos específicos para ações dos cartões
+.mat-column-actions {
+  text-align: center;
+  width: 200px;
+
+  button {
+    margin: 0 4px;
+  }
+}
+
+.mat-column-final {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+.mat-column-limite {
+  text-align: right;
+  font-weight: bold;
+  color: #2e7d32;
+
+  // Destaque visual para valores altos
+  &:has(td:contains("15.000")) {
+    background-color: #e8f5e8;
+  }
+}

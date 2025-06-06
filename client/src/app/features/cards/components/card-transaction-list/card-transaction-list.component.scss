@@ -1,0 +1,96 @@
+.card-transaction-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+mat-card.transaction-card {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+mat-card.transaction-card mat-card-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.card-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .card-info {
+      font-size: 0.9em;
+      font-weight: normal;
+      color: #666;
+    }
+  }
+}
+
+.table-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 4px;
+}
+
+.table-scroll-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.mat-elevation-z8 {
+  width: 100%;
+}
+
+// Estilos específicos para ações das transações
+.mat-column-actions {
+  text-align: center;
+  width: 120px;
+
+  button {
+    margin: 0 4px;
+  }
+}
+
+.mat-column-valor {
+  text-align: right;
+  font-weight: bold;
+}
+
+.mat-column-parcela {
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
+// Estados de loading e no-data
+.loading-message,
+.no-data-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #666;
+
+  mat-spinner {
+    margin-bottom: 16px;
+  }
+}

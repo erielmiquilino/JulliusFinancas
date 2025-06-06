@@ -11,5 +11,10 @@ export const routes: Routes = [
     path: 'transactions',
     loadChildren: () => import('./features/financial-transaction/financial-transaction.module')
       .then(m => m.FinancialTransactionModule)
+  },
+  {
+    path: 'cards',
+    loadChildren: () => import('./features/cards/card.module')
+      .then(m => m.CardModule)
   }
 ];

@@ -1,0 +1,45 @@
+<div class="edit-card-transaction-container">
+  <h2 mat-dialog-title>Editar Lançamento</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <mat-dialog-content>
+      <div class="form-container" style="display: flex; flex-direction: column;">
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Descrição</mat-label>
+          <input matInput formControlName="descricao" required placeholder="Ex: Supermercado Extra">
+          <mat-error *ngIf="form.get('descricao')?.hasError('required')">Descrição é obrigatória</mat-error>
+          <mat-error *ngIf="form.get('descricao')?.hasError('maxlength')">Descrição deve ter no máximo 100 caracteres</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Valor</mat-label>
+          <input matInput type="number" formControlName="valor" required step="0.01" min="0.01">
+          <span matPrefix>R$&nbsp;</span>
+          <mat-error *ngIf="form.get('valor')?.hasError('required')">Valor é obrigatório</mat-error>
+          <mat-error *ngIf="form.get('valor')?.hasError('min')">Valor deve ser maior que zero</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Data da Compra</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="data" required>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="form.get('data')?.hasError('required')">Data é obrigatória</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Parcela</mat-label>
+          <input matInput formControlName="parcela" required readonly>
+          <mat-hint>A informação de parcela não pode ser alterada</mat-hint>
+        </mat-form-field>
+
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" (click)="onCancel()">Cancelar</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="!form.valid">Salvar</button>
+    </mat-dialog-actions>
+  </form>
+</div>

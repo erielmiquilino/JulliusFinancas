@@ -35,7 +35,7 @@
 
         <mat-form-field appearance="outline" class="filter-field" *ngIf="selectedDateRangeType === 'Month'">
           <mat-label>Ano</mat-label>
-          <input matInput type="number" [(ngModel)]="selectedYear" (ngModelChange)="onYearChange($event)" [placeholder]="selectedYear?.toString() || currentYear.toString()">
+          <input matInput type="number" [(ngModel)]="selectedYear" (ngModelChange)="onYearChange($event)" [placeholder]="selectedYear.toString() || currentYear.toString()">
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="filter-field" *ngIf="selectedDateRangeType === 'Custom'">
