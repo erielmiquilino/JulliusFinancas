@@ -9,7 +9,6 @@ export interface Card {
   nome: string;
   bancoEmissor: string;
   bandeira: string;
-  final: string;
   diaFechamento: number;
   limite: number;
   createdAt: Date;
@@ -19,7 +18,6 @@ export interface CreateCardRequest {
   nome: string;
   bancoEmissor: string;
   bandeira: string;
-  final: string;
   diaFechamento: number;
   limite: number;
 }
@@ -28,7 +26,6 @@ export interface UpdateCardRequest {
   nome: string;
   bancoEmissor: string;
   bandeira: string;
-  final: string;
   diaFechamento: number;
   limite: number;
 }
@@ -74,7 +71,6 @@ export class CardService {
       nome: 'Cartão Principal',
       bancoEmissor: 'Banco do Brasil',
       bandeira: 'Visa',
-      final: '1234',
       diaFechamento: 15,
       limite: 5000.00,
       createdAt: new Date('2024-01-01')
@@ -84,7 +80,6 @@ export class CardService {
       nome: 'Cartão Corporativo',
       bancoEmissor: 'Itaú',
       bandeira: 'Mastercard',
-      final: '5678',
       diaFechamento: 10,
       limite: 15000.00,
       createdAt: new Date('2024-01-05')
@@ -94,7 +89,6 @@ export class CardService {
       nome: 'Cartão Reserva',
       bancoEmissor: 'Santander',
       bandeira: 'Elo',
-      final: '9012',
       diaFechamento: 25,
       limite: 2000.00,
       createdAt: new Date('2024-01-10')
@@ -102,6 +96,7 @@ export class CardService {
   ];
 
   private mockTransactions: CardTransaction[] = [
+    // Transações do Cartão 1 - Janeiro 2024
     {
       id: '1',
       cardId: '1',
@@ -129,6 +124,48 @@ export class CardService {
       parcela: '1/1',
       createdAt: new Date('2024-01-20')
     },
+
+    // Transações do Cartão 1 - Fevereiro 2024
+    {
+      id: '8',
+      cardId: '1',
+      descricao: 'Supermercado Carrefour',
+      valor: 180.30,
+      data: new Date('2024-02-08'),
+      parcela: '1/1',
+      createdAt: new Date('2024-02-08')
+    },
+    {
+      id: '9',
+      cardId: '1',
+      descricao: 'Netflix Assinatura',
+      valor: 29.90,
+      data: new Date('2024-02-10'),
+      parcela: '1/1',
+      createdAt: new Date('2024-02-10')
+    },
+
+    // Transações do Cartão 1 - Dezembro 2024 (atual)
+    {
+      id: '10',
+      cardId: '1',
+      descricao: 'Compras de Natal',
+      valor: 450.80,
+      data: new Date('2024-12-15'),
+      parcela: '1/1',
+      createdAt: new Date('2024-12-15')
+    },
+    {
+      id: '11',
+      cardId: '1',
+      descricao: 'Netflix Assinatura',
+      valor: 29.90,
+      data: new Date('2024-12-10'),
+      parcela: '1/1',
+      createdAt: new Date('2024-12-10')
+    },
+
+    // Transações do Cartão 2 - Janeiro 2024
     {
       id: '4',
       cardId: '2',
@@ -138,6 +175,8 @@ export class CardService {
       parcela: '1/12',
       createdAt: new Date('2024-01-12')
     },
+
+    // Transações do Cartão 2 - Fevereiro 2024
     {
       id: '5',
       cardId: '2',
@@ -147,6 +186,28 @@ export class CardService {
       parcela: '2/12',
       createdAt: new Date('2024-01-12')
     },
+
+    // Transações do Cartão 2 - Dezembro 2024
+    {
+      id: '12',
+      cardId: '2',
+      descricao: 'Notebook Dell',
+      valor: 2500.00,
+      data: new Date('2024-12-12'),
+      parcela: '12/12',
+      createdAt: new Date('2024-01-12')
+    },
+    {
+      id: '13',
+      cardId: '2',
+      descricao: 'Mouse Logitech',
+      valor: 150.00,
+      data: new Date('2024-12-05'),
+      parcela: '1/1',
+      createdAt: new Date('2024-12-05')
+    },
+
+    // Transações do Cartão 3 - Janeiro 2024
     {
       id: '6',
       cardId: '3',
@@ -156,6 +217,8 @@ export class CardService {
       parcela: '1/2',
       createdAt: new Date('2024-01-13')
     },
+
+    // Transações do Cartão 3 - Fevereiro 2024
     {
       id: '7',
       cardId: '3',
@@ -164,6 +227,17 @@ export class CardService {
       data: new Date('2024-02-13'),
       parcela: '2/2',
       createdAt: new Date('2024-01-13')
+    },
+
+    // Transações do Cartão 3 - Dezembro 2024
+    {
+      id: '14',
+      cardId: '3',
+      descricao: 'Ceia de Natal',
+      valor: 280.50,
+      data: new Date('2024-12-23'),
+      parcela: '1/1',
+      createdAt: new Date('2024-12-23')
     }
   ];
 
@@ -228,6 +302,20 @@ export class CardService {
   // Métodos para transações de cartão
   getTransactionsByCardId(cardId: string): Observable<CardTransaction[]> {
     const transactions = this.mockTransactions.filter(t => t.cardId === cardId);
+    return of([...transactions]).pipe(delay(300));
+  }
+
+  getTransactionsForInvoice(cardId: string, month: number, year: number): Observable<CardTransaction[]> {
+    const transactions = this.mockTransactions.filter(t => {
+      if (t.cardId !== cardId) return false;
+
+      const transactionDate = new Date(t.data);
+      const transactionMonth = transactionDate.getMonth() + 1; // getMonth() retorna 0-11
+      const transactionYear = transactionDate.getFullYear();
+
+      return transactionMonth === month && transactionYear === year;
+    });
+
     return of([...transactions]).pipe(delay(300));
   }
 

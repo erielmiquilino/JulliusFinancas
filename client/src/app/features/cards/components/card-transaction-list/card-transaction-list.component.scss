@@ -40,6 +40,15 @@ mat-card.transaction-card mat-card-content {
   }
 }
 
+// Estilos para o seletor de faturas
+.invoice-selector {
+  margin-bottom: 20px;
+
+  mat-form-field {
+    width: 250px;
+  }
+}
+
 .table-container {
   display: flex;
   flex-direction: column;
@@ -70,13 +79,12 @@ mat-card.transaction-card mat-card-content {
 }
 
 .mat-column-valor {
-  text-align: right;
+  text-align: left;
   font-weight: bold;
 }
 
 .mat-column-parcela {
-  text-align: center;
-  font-family: 'Courier New', monospace;
+  text-align: left;
 }
 
 // Estados de loading e no-data

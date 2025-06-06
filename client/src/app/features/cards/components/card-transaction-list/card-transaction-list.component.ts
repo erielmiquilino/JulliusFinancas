@@ -4,7 +4,6 @@ import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatPaginator } from '@angular/material/paginator';
 import { Subscription } from 'rxjs';
 import { CardService, Card, CardTransaction } from '../../services/card.service';
 import { CreateCardTransactionDialogComponent } from '../create-card-transaction-dialog/create-card-transaction-dialog.component';
@@ -25,8 +24,11 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   card: Card | null = null;
   loading: boolean = true;
 
+  // Propriedades para o sistema de faturas
+  invoiceOptions: { display: string, value: { month: number, year: number } }[] = [];
+  selectedInvoice: { month: number, year: number } = { month: 0, year: 0 };
+
   @ViewChild(MatSort) sort!: MatSort;
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(
     private route: ActivatedRoute,
@@ -37,7 +39,7 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   ) {
     this.dataSource = new MatTableDataSource<CardTransaction>();
     this.refreshSubscription = this.cardService.refresh$.subscribe(() => {
-      this.loadTransactions();
+      this.fetchTransactions();
     });
   }
 
@@ -45,8 +47,9 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     this.route.paramMap.subscribe(params => {
       this.cardId = params.get('id') || '';
       if (this.cardId) {
+        this.generateInvoiceOptions();
         this.loadCard();
-        this.loadTransactions();
+        this.fetchTransactions();
       } else {
         this.snackBar.open('ID do cartão não encontrado', 'Fechar', { duration: 3000 });
         this.router.navigate(['/cards']);
@@ -56,7 +59,6 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
     if (this.sort) {
       this.sort.active = 'data';
       this.sort.direction = 'desc';
@@ -84,12 +86,72 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     });
   }
 
+  generateInvoiceOptions(): void {
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+
+    this.invoiceOptions = [];
+
+    // Gera 12 meses para o passado + atual + 12 meses para o futuro (25 opções)
+    for (let i = -12; i <= 12; i++) {
+      const date = new Date(currentYear, currentMonth - 1 + i, 1);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+
+      const monthNames = [
+        'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+      ];
+
+      const display = `${monthNames[date.getMonth()]}/${year}`;
+
+      this.invoiceOptions.push({
+        display,
+        value: { month, year }
+      });
+    }
+
+    // Define o mês/ano atual como selecionado por padrão
+    this.selectedInvoice = { month: currentMonth, year: currentYear };
+  }
+
+  fetchTransactions(): void {
+    this.loading = true;
+    this.cardService.getTransactionsForInvoice(
+      this.cardId,
+      this.selectedInvoice.month,
+      this.selectedInvoice.year
+    ).subscribe({
+      next: (transactions) => {
+        this.dataSource.data = transactions;
+        this.dataSource.sort = this.sort;
+
+        if (this.sort && !this.sort.active) {
+          this.sort.active = 'data';
+          this.sort.direction = 'desc';
+        }
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Erro ao carregar transações:', error);
+        this.snackBar.open('Erro ao carregar transações: ' + error.message, 'Fechar', {
+          duration: 5000
+        });
+        this.loading = false;
+      }
+    });
+  }
+
+  onInvoiceChange(): void {
+    this.fetchTransactions();
+  }
+
   loadTransactions(): void {
     this.loading = true;
     this.cardService.getTransactionsByCardId(this.cardId).subscribe({
       next: (transactions) => {
         this.dataSource.data = transactions;
-        this.dataSource.paginator = this.paginator;
         this.dataSource.sort = this.sort;
 
         if (this.sort && !this.sort.active) {

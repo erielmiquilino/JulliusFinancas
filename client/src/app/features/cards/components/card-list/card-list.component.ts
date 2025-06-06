@@ -3,7 +3,6 @@ import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatPaginator } from '@angular/material/paginator';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CardService, Card } from '../../services/card.service';
@@ -15,12 +14,11 @@ import { CreateCardDialogComponent } from '../create-card-dialog/create-card-dia
   styleUrls: ['./card-list.component.scss']
 })
 export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
-  displayedColumns: string[] = ['nome', 'bancoEmissor', 'bandeira', 'final', 'limite', 'actions'];
+  displayedColumns: string[] = ['nome', 'bancoEmissor', 'bandeira', 'limite', 'actions'];
   dataSource: MatTableDataSource<Card>;
   private refreshSubscription: Subscription;
 
   @ViewChild(MatSort) sort!: MatSort;
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   constructor(
     private cardService: CardService,
@@ -40,7 +38,6 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
     if (this.sort) {
       this.sort.active = 'nome';
       this.sort.direction = 'asc';
@@ -57,7 +54,6 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cardService.getCards().subscribe({
       next: (cards) => {
         this.dataSource.data = cards;
-        this.dataSource.paginator = this.paginator;
         this.dataSource.sort = this.sort;
 
         if (this.sort && !this.sort.active) {

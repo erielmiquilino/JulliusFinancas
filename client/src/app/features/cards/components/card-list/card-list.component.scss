@@ -50,25 +50,14 @@ mat-card.card-card mat-card-content {
 // Estilos específicos para ações dos cartões
 .mat-column-actions {
   text-align: center;
-  width: 200px;
+  width: 120px;
 
   button {
     margin: 0 4px;
   }
 }
 
-.mat-column-final {
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-}
-
 .mat-column-limite {
-  text-align: right;
+  text-align: left;
   font-weight: bold;
-  color: #2e7d32;
-
-  // Destaque visual para valores altos
-  &:has(td:contains("15.000")) {
-    background-color: #e8f5e8;
-  }
 }

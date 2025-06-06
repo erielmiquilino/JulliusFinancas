@@ -34,7 +34,6 @@ export class CreateCardDialogComponent {
       nome: ['', [Validators.required, Validators.maxLength(50)]],
       bancoEmissor: ['', [Validators.required, Validators.maxLength(50)]],
       bandeira: ['', Validators.required],
-      final: ['', [Validators.required, Validators.pattern(/^\d{4}$/)]],
       diaFechamento: ['', [Validators.required, Validators.min(1), Validators.max(28)]],
       limite: ['', [Validators.required, Validators.min(1)]]
     });
@@ -48,7 +47,6 @@ export class CreateCardDialogComponent {
         nome: formValue.nome,
         bancoEmissor: formValue.bancoEmissor,
         bandeira: formValue.bandeira,
-        final: formValue.final,
         diaFechamento: Number(formValue.diaFechamento),
         limite: Number(formValue.limite)
       })
