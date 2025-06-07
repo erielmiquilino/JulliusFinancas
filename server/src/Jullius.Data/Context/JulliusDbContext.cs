@@ -8,6 +8,7 @@ public class JulliusDbContext(DbContextOptions<JulliusDbContext> options) : DbCo
 {
     public DbSet<FinancialTransaction> FinancialTransactions { get; set; } = null!;
     public DbSet<Card> Cards { get; set; } = null!;
+    public DbSet<CardTransaction> CardTransactions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -15,5 +16,6 @@ public class JulliusDbContext(DbContextOptions<JulliusDbContext> options) : DbCo
         
         modelBuilder.ApplyConfiguration(new FinancialTransactionConfiguration());
         modelBuilder.ApplyConfiguration(new CardConfiguration());
+        modelBuilder.ApplyConfiguration(new CardTransactionConfiguration());
     }
 }

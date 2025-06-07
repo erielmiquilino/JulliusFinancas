@@ -15,9 +15,9 @@
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Banco Emissor</mat-label>
-          <input matInput formControlName="issuingBank" required placeholder="Ex: Banco do Brasil">
-          <mat-error *ngIf="form.get('issuingBank')?.hasError('required')">Banco emissor é obrigatório</mat-error>
-          <mat-error *ngIf="form.get('issuingBank')?.hasError('maxlength')">Banco emissor deve ter no máximo 50 caracteres</mat-error>
+          <input matInput formControlName="IssuingBank" required placeholder="Ex: Banco do Brasil">
+          <mat-error *ngIf="form.get('IssuingBank')?.hasError('required')">Banco emissor é obrigatório</mat-error>
+          <mat-error *ngIf="form.get('IssuingBank')?.hasError('maxlength')">Banco emissor deve ter no máximo 50 caracteres</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">

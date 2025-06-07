@@ -24,6 +24,10 @@ static IEdmModel GetEdmModel()
     var cardType = odataBuilder.EntityType<Card>();
     cardType.HasKey(e => e.Id);
     
+    odataBuilder.EntitySet<CardTransaction>("CardTransactions");
+    var cardTransactionType = odataBuilder.EntityType<CardTransaction>();
+    cardTransactionType.HasKey(e => e.Id);
+    
     return odataBuilder.GetEdmModel();
 }
 
@@ -53,6 +57,8 @@ builder.Services.AddScoped<IFinancialTransactionRepository, FinancialTransaction
 builder.Services.AddScoped<FinancialTransactionService>();
 builder.Services.AddScoped<ICardRepository, CardRepository>();
 builder.Services.AddScoped<CardService>();
+builder.Services.AddScoped<ICardTransactionRepository, CardTransactionRepository>();
+builder.Services.AddScoped<CardTransactionService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>

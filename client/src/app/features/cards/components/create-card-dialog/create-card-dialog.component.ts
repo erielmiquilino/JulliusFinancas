@@ -25,7 +25,7 @@ export class CreateCardDialogComponent {
   ) {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(50)]],
-      issuingBank: ['', [Validators.required, Validators.maxLength(50)]],
+      IssuingBank: ['', [Validators.required, Validators.maxLength(50)]],
       closingDay: ['', [Validators.required, Validators.min(1), Validators.max(28)]],
       limit: ['', [Validators.required, Validators.min(1)]]
     });
@@ -37,7 +37,7 @@ export class CreateCardDialogComponent {
 
       this.cardService.createCard({
         name: formValue.name,
-        issuingBank: formValue.issuingBank,
+        issuingBank: formValue.IssuingBank,
         closingDay: Number(formValue.closingDay),
         limit: Number(formValue.limit)
       })

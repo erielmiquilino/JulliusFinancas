@@ -33,7 +33,7 @@ export class EditCardDialogComponent {
   ) {
     this.form = this.fb.group({
       name: [data.name, [Validators.required, Validators.maxLength(50)]],
-      issuingBank: [data.issuingBank, [Validators.required, Validators.maxLength(50)]],
+      IssuingBank: [data.issuingBank, [Validators.required, Validators.maxLength(50)]],
       closingDay: [data.closingDay, [Validators.required, Validators.min(1), Validators.max(28)]],
       limit: [data.limit, [Validators.required, Validators.min(1)]]
     });
@@ -45,7 +45,7 @@ export class EditCardDialogComponent {
 
       const updateRequest: UpdateCardRequest = {
         name: formValue.name,
-        issuingBank: formValue.issuingBank,
+        issuingBank: formValue.IssuingBank,
         closingDay: Number(formValue.closingDay),
         limit: Number(formValue.limit)
       };
