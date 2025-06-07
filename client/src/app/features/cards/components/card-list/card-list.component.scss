@@ -50,10 +50,13 @@ mat-card.card-card mat-card-content {
 // Estilos específicos para ações dos cartões
 .mat-column-actions {
   text-align: center;
-  width: 120px;
+  width: 170px;
+  min-width: 170px;
 
   button {
-    margin: 0 4px;
+    margin: 0 2px;
+    min-width: 40px;
+    height: 40px;
   }
 }
 

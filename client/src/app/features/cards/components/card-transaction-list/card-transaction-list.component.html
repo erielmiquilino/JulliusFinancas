@@ -1,18 +1,17 @@
 <div class="card-transaction-list-container">
   <mat-card class="transaction-card">
     <mat-card-header class="card-header-container">
-      <div class="header-info">
-        <mat-card-title>
-          Lançamentos do Cartão
+      <div class="title-section">
+        <button mat-icon-button (click)="goBack()" matTooltip="Voltar à lista de cartões" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <mat-card-title>Transações do Cartão
           <span *ngIf="card" class="card-info">
             - {{card.name}}
           </span>
         </mat-card-title>
-        <button mat-icon-button (click)="goBack()" matTooltip="Voltar à lista de cartões">
-          <mat-icon>arrow_back</mat-icon>
-        </button>
       </div>
-      <mat-card-actions align="end">
+      <mat-card-actions>
         <button mat-raised-button color="primary" (click)="openCreateDialog()">
           <mat-icon>add</mat-icon>
           Adicionar Lançamento
