@@ -33,6 +33,10 @@ static IEdmModel GetEdmModel()
 
 // Add services to the container
 builder.Services.AddControllers()
+ .AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+})
 .AddOData(options => options
     .Select()
     .Filter()

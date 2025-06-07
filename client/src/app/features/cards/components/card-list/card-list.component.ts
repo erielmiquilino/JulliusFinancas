@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
@@ -16,7 +16,7 @@ import { DeleteCardDialogComponent } from '../delete-card-dialog/delete-card-dia
   styleUrls: ['./card-list.component.scss']
 })
 export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
-  displayedColumns: string[] = ['name', 'IssuingBank', 'closingDay', 'limit', 'actions'];
+  displayedColumns: string[] = ['name', 'issuingBank', 'closingDay', 'limit', 'actions'];
   dataSource: MatTableDataSource<Card>;
   private refreshSubscription: Subscription;
 
@@ -26,7 +26,8 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
     private cardService: CardService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.dataSource = new MatTableDataSource<Card>();
     this.refreshSubscription = this.cardService.refresh$.subscribe(() => {
@@ -39,11 +40,14 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.sort = this.sort;
-    if (this.sort) {
-      this.sort.active = 'name';
-      this.sort.direction = 'asc';
-    }
+    setTimeout(() => {
+      this.dataSource.sort = this.sort;
+      if (this.sort) {
+        this.sort.active = 'name';
+        this.sort.direction = 'asc';
+      }
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
@@ -56,11 +60,8 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cardService.getCards().subscribe({
       next: (cards) => {
         this.dataSource.data = cards;
-        this.dataSource.sort = this.sort;
-
-        if (this.sort && !this.sort.active) {
-          this.sort.active = 'name';
-          this.sort.direction = 'asc';
+        if (this.sort) {
+          this.dataSource.sort = this.sort;
         }
       },
       error: (error) => {

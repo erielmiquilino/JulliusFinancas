@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
@@ -15,7 +15,7 @@ import { MatPaginator } from '@angular/material/paginator';
   templateUrl: './transaction-list.component.html',
   styleUrls: ['./transaction-list.component.scss']
 })
-export class TransactionListComponent implements OnInit, OnDestroy {
+export class TransactionListComponent implements OnInit, OnDestroy, AfterViewInit {
   displayedColumns: string[] = ['description', 'amount', 'dueDate', 'type', 'isPaid', 'actions'];
   dataSource: MatTableDataSource<FinancialTransaction>;
   TransactionType = TransactionType;
@@ -53,7 +53,8 @@ export class TransactionListComponent implements OnInit, OnDestroy {
   constructor(
     private transactionService: FinancialTransactionService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {
     this.dataSource = new MatTableDataSource<FinancialTransaction>();
     this.refreshSubscription = this.transactionService.refresh$.subscribe(() => {
@@ -77,12 +78,15 @@ export class TransactionListComponent implements OnInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
-    if (this.sort) {
-      this.sort.active = 'dueDate';
-      this.sort.direction = 'desc';
-    }
+    setTimeout(() => {
+      this.dataSource.sort = this.sort;
+      this.dataSource.paginator = this.paginator;
+      if (this.sort) {
+        this.sort.active = 'dueDate';
+        this.sort.direction = 'desc';
+      }
+      this.cdr.detectChanges();
+    });
   }
 
   calculateTotal(transactions: FinancialTransaction[]): void {
@@ -111,12 +115,11 @@ export class TransactionListComponent implements OnInit, OnDestroy {
     this.transactionService.getAllTransactions(filters).subscribe({
       next: (transactions) => {
         this.dataSource.data = transactions;
-        this.dataSource.paginator = this.paginator;
-        this.dataSource.sort = this.sort;
-
-        if (this.sort && !this.sort.active) {
-            this.sort.active = 'dueDate';
-            this.sort.direction = 'asc';
+        if (this.paginator) {
+          this.dataSource.paginator = this.paginator;
+        }
+        if (this.sort) {
+          this.dataSource.sort = this.sort;
         }
         this.calculateTotal(transactions);
       },

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
@@ -35,7 +35,8 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     private router: Router,
     private cardService: CardService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {
     this.dataSource = new MatTableDataSource<CardTransaction>();
     this.refreshSubscription = this.cardService.refresh$.subscribe(() => {
@@ -58,11 +59,14 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.sort = this.sort;
-    if (this.sort) {
-      this.sort.active = 'date';
-      this.sort.direction = 'desc';
-    }
+    setTimeout(() => {
+      this.dataSource.sort = this.sort;
+      if (this.sort) {
+        this.sort.active = 'date';
+        this.sort.direction = 'desc';
+      }
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
@@ -125,7 +129,9 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     this.cardService.getTransactionsForInvoice(this.cardId, month - 1, year).subscribe({
       next: (transactions) => {
         this.dataSource.data = transactions;
-        this.dataSource.sort = this.sort;
+        if (this.sort) {
+          this.dataSource.sort = this.sort;
+        }
         this.isLoading = false;
       },
       error: (error) => {
@@ -147,7 +153,9 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     this.cardService.getTransactionsByCardId(this.cardId).subscribe({
       next: (transactions) => {
         this.dataSource.data = transactions;
-        this.dataSource.sort = this.sort;
+        if (this.sort) {
+          this.dataSource.sort = this.sort;
+        }
         this.isLoading = false;
       },
       error: (error) => {
