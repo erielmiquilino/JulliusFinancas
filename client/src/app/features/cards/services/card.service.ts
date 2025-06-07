@@ -8,7 +8,6 @@ export interface Card {
   id: string;
   nome: string;
   bancoEmissor: string;
-  bandeira: string;
   diaFechamento: number;
   limite: number;
   createdAt: Date;
@@ -17,7 +16,6 @@ export interface Card {
 export interface CreateCardRequest {
   nome: string;
   bancoEmissor: string;
-  bandeira: string;
   diaFechamento: number;
   limite: number;
 }
@@ -25,7 +23,6 @@ export interface CreateCardRequest {
 export interface UpdateCardRequest {
   nome: string;
   bancoEmissor: string;
-  bandeira: string;
   diaFechamento: number;
   limite: number;
 }
@@ -70,7 +67,6 @@ export class CardService {
       id: '1',
       nome: 'Cartão Principal',
       bancoEmissor: 'Banco do Brasil',
-      bandeira: 'Visa',
       diaFechamento: 15,
       limite: 5000.00,
       createdAt: new Date('2024-01-01')
@@ -79,7 +75,6 @@ export class CardService {
       id: '2',
       nome: 'Cartão Corporativo',
       bancoEmissor: 'Itaú',
-      bandeira: 'Mastercard',
       diaFechamento: 10,
       limite: 15000.00,
       createdAt: new Date('2024-01-05')
@@ -88,7 +83,6 @@ export class CardService {
       id: '3',
       nome: 'Cartão Reserva',
       bancoEmissor: 'Santander',
-      bandeira: 'Elo',
       diaFechamento: 25,
       limite: 2000.00,
       createdAt: new Date('2024-01-10')

@@ -11,14 +11,7 @@ import { CardService } from '../../services/card.service';
 export class CreateCardDialogComponent {
   form: FormGroup;
 
-  bandeiraOptions = [
-    { value: 'Visa', label: 'Visa' },
-    { value: 'Mastercard', label: 'Mastercard' },
-    { value: 'American Express', label: 'American Express' },
-    { value: 'Elo', label: 'Elo' },
-    { value: 'Hipercard', label: 'Hipercard' },
-    { value: 'Outro', label: 'Outro' }
-  ];
+
 
   diaFechamentoOptions = Array.from({ length: 28 }, (_, i) => ({
     value: i + 1,
@@ -33,7 +26,6 @@ export class CreateCardDialogComponent {
     this.form = this.fb.group({
       nome: ['', [Validators.required, Validators.maxLength(50)]],
       bancoEmissor: ['', [Validators.required, Validators.maxLength(50)]],
-      bandeira: ['', Validators.required],
       diaFechamento: ['', [Validators.required, Validators.min(1), Validators.max(28)]],
       limite: ['', [Validators.required, Validators.min(1)]]
     });
@@ -46,7 +38,6 @@ export class CreateCardDialogComponent {
       this.cardService.createCard({
         nome: formValue.nome,
         bancoEmissor: formValue.bancoEmissor,
-        bandeira: formValue.bandeira,
         diaFechamento: Number(formValue.diaFechamento),
         limite: Number(formValue.limite)
       })

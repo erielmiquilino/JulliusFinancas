@@ -14,7 +14,7 @@ import { CreateCardDialogComponent } from '../create-card-dialog/create-card-dia
   styleUrls: ['./card-list.component.scss']
 })
 export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
-  displayedColumns: string[] = ['nome', 'bancoEmissor', 'bandeira', 'limite', 'actions'];
+  displayedColumns: string[] = ['nome', 'bancoEmissor', 'diaFechamento', 'limite', 'actions'];
   dataSource: MatTableDataSource<Card>;
   private refreshSubscription: Subscription;
 
