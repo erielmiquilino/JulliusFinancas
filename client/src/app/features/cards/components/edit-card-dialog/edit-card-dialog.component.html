@@ -1,4 +1,47 @@
 <div class="dialog-container">
-  <h3>Editar Cartão</h3>
-  <!-- Conteúdo será implementado posteriormente -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="dialog-header">
+      <h2 mat-dialog-title>Editar Cartão</h2>
+    </div>
+
+    <mat-dialog-content>
+      <div class="form-container" style="display: flex; flex-direction: column;">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nome do Cartão</mat-label>
+          <input matInput formControlName="name" required placeholder="Ex: Cartão Principal">
+          <mat-error *ngIf="form.get('name')?.hasError('required')">Nome é obrigatório</mat-error>
+          <mat-error *ngIf="form.get('name')?.hasError('maxlength')">Nome deve ter no máximo 50 caracteres</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Banco Emissor</mat-label>
+          <input matInput formControlName="issuingBank" required placeholder="Ex: Banco do Brasil">
+          <mat-error *ngIf="form.get('issuingBank')?.hasError('required')">Banco emissor é obrigatório</mat-error>
+          <mat-error *ngIf="form.get('issuingBank')?.hasError('maxlength')">Banco emissor deve ter no máximo 50 caracteres</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Limite do Cartão</mat-label>
+          <input matInput type="number" formControlName="limit" required placeholder="5000" step="100" min="1">
+          <mat-error *ngIf="form.get('limit')?.hasError('required')">Limite é obrigatório</mat-error>
+          <mat-error *ngIf="form.get('limit')?.hasError('min')">Limite deve ser maior que zero</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Dia de Fechamento da Fatura</mat-label>
+          <mat-select formControlName="closingDay" required>
+            <mat-option *ngFor="let dia of diaFechamentoOptions" [value]="dia.value">
+              {{dia.label}}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.get('closingDay')?.hasError('required')">Dia de fechamento é obrigatório</mat-error>
+        </mat-form-field>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" (click)="onCancel()">Cancelar</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="!form.valid">Salvar</button>
+    </mat-dialog-actions>
+  </form>
 </div>

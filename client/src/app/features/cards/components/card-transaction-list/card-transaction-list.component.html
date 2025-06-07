@@ -5,7 +5,7 @@
         <mat-card-title>
           Lançamentos do Cartão
           <span *ngIf="card" class="card-info">
-            - {{card.nome}}
+            - {{card.name}}
           </span>
         </mat-card-title>
         <button mat-icon-button (click)="goBack()" matTooltip="Voltar à lista de cartões">
@@ -27,7 +27,7 @@
           <mat-label>Selecionar Fatura</mat-label>
           <mat-select [(ngModel)]="selectedInvoice" (selectionChange)="onInvoiceChange()">
             <mat-option *ngFor="let option of invoiceOptions" [value]="option.value">
-              {{option.display}}
+              {{option.label}}
             </mat-option>
           </mat-select>
         </mat-form-field>
@@ -37,27 +37,27 @@
         <div class="table-scroll-container mat-elevation-z8">
           <table mat-table [dataSource]="dataSource" matSort>
             <!-- Descrição Column -->
-            <ng-container matColumnDef="descricao">
+            <ng-container matColumnDef="description">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Descrição </th>
-              <td mat-cell *matCellDef="let row"> {{row.descricao}} </td>
+              <td mat-cell *matCellDef="let row"> {{row.description}} </td>
             </ng-container>
 
             <!-- Valor Column -->
-            <ng-container matColumnDef="valor">
+            <ng-container matColumnDef="amount">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Valor </th>
-              <td mat-cell *matCellDef="let row"> {{row.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR'}} </td>
+              <td mat-cell *matCellDef="let row"> {{row.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR'}} </td>
             </ng-container>
 
             <!-- Data Column -->
-            <ng-container matColumnDef="data">
+            <ng-container matColumnDef="date">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Data </th>
-              <td mat-cell *matCellDef="let row"> {{row.data | date:'dd/MM/yyyy':'GMT':'pt-BR'}} </td>
+              <td mat-cell *matCellDef="let row"> {{row.date | date:'shortDate':'pt-BR'}} </td>
             </ng-container>
 
             <!-- Parcela Column -->
-            <ng-container matColumnDef="parcela">
+            <ng-container matColumnDef="installment">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Parcela </th>
-              <td mat-cell *matCellDef="let row"> {{row.parcela}} </td>
+              <td mat-cell *matCellDef="let row"> {{row.installment}} </td>
             </ng-container>
 
             <!-- Actions Column -->
@@ -79,11 +79,11 @@
             <!-- Row shown when there is no matching data. -->
             <tr class="mat-row" *matNoDataRow>
               <td class="mat-cell" colspan="5">
-                <div *ngIf="loading" class="loading-message">
+                <div *ngIf="isLoading" class="loading-message">
                   <mat-spinner diameter="30"></mat-spinner>
                   <span>Carregando lançamentos...</span>
                 </div>
-                <div *ngIf="!loading" class="no-data-message">
+                <div *ngIf="!isLoading" class="no-data-message">
                   Nenhum lançamento encontrado para este cartão
                 </div>
               </td>

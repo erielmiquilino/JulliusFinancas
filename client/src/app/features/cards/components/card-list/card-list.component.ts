@@ -7,6 +7,8 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CardService, Card } from '../../services/card.service';
 import { CreateCardDialogComponent } from '../create-card-dialog/create-card-dialog.component';
+import { EditCardDialogComponent } from '../edit-card-dialog/edit-card-dialog.component';
+import { DeleteCardDialogComponent } from '../delete-card-dialog/delete-card-dialog.component';
 
 @Component({
   selector: 'app-card-list',
@@ -14,7 +16,7 @@ import { CreateCardDialogComponent } from '../create-card-dialog/create-card-dia
   styleUrls: ['./card-list.component.scss']
 })
 export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
-  displayedColumns: string[] = ['nome', 'bancoEmissor', 'diaFechamento', 'limite', 'actions'];
+  displayedColumns: string[] = ['name', 'issuingBank', 'closingDay', 'limit', 'actions'];
   dataSource: MatTableDataSource<Card>;
   private refreshSubscription: Subscription;
 
@@ -39,7 +41,7 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
     if (this.sort) {
-      this.sort.active = 'nome';
+      this.sort.active = 'name';
       this.sort.direction = 'asc';
     }
   }
@@ -57,7 +59,7 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
         this.dataSource.sort = this.sort;
 
         if (this.sort && !this.sort.active) {
-          this.sort.active = 'nome';
+          this.sort.active = 'name';
           this.sort.direction = 'asc';
         }
       },
@@ -80,6 +82,47 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
       if (result) {
         this.snackBar.open('Cartão criado com sucesso!', 'Fechar', {
           duration: 3000
+        });
+      }
+    });
+  }
+
+  openEditDialog(card: Card): void {
+    const dialogRef = this.dialog.open(EditCardDialogComponent, {
+      width: '500px',
+      disableClose: true,
+      data: card
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.snackBar.open('Cartão atualizado com sucesso!', 'Fechar', {
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  openDeleteDialog(card: Card): void {
+    const dialogRef = this.dialog.open(DeleteCardDialogComponent, {
+      width: '400px',
+      data: card
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.cardService.deleteCard(card.id).subscribe({
+          next: () => {
+            this.snackBar.open('Cartão excluído com sucesso!', 'Fechar', {
+              duration: 3000
+            });
+          },
+          error: (error) => {
+            console.error('Erro ao excluir cartão:', error);
+            this.snackBar.open('Erro ao excluir cartão: ' + error.message, 'Fechar', {
+              duration: 5000
+            });
+          }
         });
       }
     });

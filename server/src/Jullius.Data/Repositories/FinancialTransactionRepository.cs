@@ -1,5 +1,5 @@
-using Julius.Domain.Domain.Entities;
-using Julius.Domain.Domain.Repositories;
+using Jullius.Domain.Domain.Entities;
+using Jullius.Domain.Domain.Repositories;
 using Jullius.Data.Context;
 using Microsoft.EntityFrameworkCore;
 

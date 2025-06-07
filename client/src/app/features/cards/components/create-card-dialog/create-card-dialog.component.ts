@@ -24,10 +24,10 @@ export class CreateCardDialogComponent {
     private dialogRef: MatDialogRef<CreateCardDialogComponent>
   ) {
     this.form = this.fb.group({
-      nome: ['', [Validators.required, Validators.maxLength(50)]],
-      bancoEmissor: ['', [Validators.required, Validators.maxLength(50)]],
-      diaFechamento: ['', [Validators.required, Validators.min(1), Validators.max(28)]],
-      limite: ['', [Validators.required, Validators.min(1)]]
+      name: ['', [Validators.required, Validators.maxLength(50)]],
+      issuingBank: ['', [Validators.required, Validators.maxLength(50)]],
+      closingDay: ['', [Validators.required, Validators.min(1), Validators.max(28)]],
+      limit: ['', [Validators.required, Validators.min(1)]]
     });
   }
 
@@ -36,10 +36,10 @@ export class CreateCardDialogComponent {
       const formValue = this.form.value;
 
       this.cardService.createCard({
-        nome: formValue.nome,
-        bancoEmissor: formValue.bancoEmissor,
-        diaFechamento: Number(formValue.diaFechamento),
-        limite: Number(formValue.limite)
+        name: formValue.name,
+        issuingBank: formValue.issuingBank,
+        closingDay: Number(formValue.closingDay),
+        limit: Number(formValue.limit)
       })
         .subscribe({
           next: () => {

@@ -1,4 +1,4 @@
-using Julius.Domain.Domain.Entities;
+using Jullius.Domain.Domain.Entities;
 
 namespace Jullius.ServiceApi.Application.DTOs;
 

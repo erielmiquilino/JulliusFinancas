@@ -17,29 +17,31 @@ export class EditCardTransactionDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: CardTransaction
   ) {
     // Ajusta a data para o timezone local mantendo o mesmo dia
-    const dataTransacao = new Date(data.data);
+    const dataTransacao = new Date(data.date);
     const localData = new Date(dataTransacao.getTime() + dataTransacao.getTimezoneOffset() * 60000);
 
     this.form = this.fb.group({
-      descricao: [data.descricao, [Validators.required, Validators.maxLength(100)]],
-      valor: [data.valor, [Validators.required, Validators.min(0.01)]],
-      data: [localData, Validators.required],
-      parcela: [data.parcela, Validators.required]
+      description: [data.description, [Validators.required, Validators.maxLength(100)]],
+      amount: [data.amount, [Validators.required, Validators.min(0.01)]],
+      date: [localData, Validators.required],
+      installment: [data.installment, Validators.required]
     });
   }
 
   onSubmit(): void {
     if (this.form.valid) {
-      // Ajusta a data de volta para UTC antes de enviar
       const formValue = this.form.value;
-      const data = new Date(formValue.data);
-      const utcData = new Date(data.getTime() - data.getTimezoneOffset() * 60000);
+      const localDate = new Date(formValue.date);
+      const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
 
-      this.dialogRef.close({
-        ...this.data,
-        ...formValue,
-        data: utcData
-      });
+      const updatedTransaction = {
+        description: formValue.description,
+        amount: formValue.amount,
+        date: utcDate,
+        installment: formValue.installment
+      };
+
+      this.dialogRef.close(updatedTransaction);
     }
   }
 

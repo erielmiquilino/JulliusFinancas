@@ -5,31 +5,31 @@
     <mat-dialog-content>
       <div class="form-container" style="display: flex; flex-direction: column;">
 
-        <mat-form-field appearance="outline" style="width: 100%;">
+        <mat-form-field appearance="outline" class="full-width">
           <mat-label>Descrição</mat-label>
-          <input matInput formControlName="descricao" required placeholder="Ex: Supermercado Extra">
-          <mat-error *ngIf="form.get('descricao')?.hasError('required')">Descrição é obrigatória</mat-error>
-          <mat-error *ngIf="form.get('descricao')?.hasError('maxlength')">Descrição deve ter no máximo 100 caracteres</mat-error>
+          <input matInput formControlName="description" required placeholder="Ex: Supermercado Extra">
+          <mat-error *ngIf="form.get('description')?.hasError('required')">Descrição é obrigatória</mat-error>
+          <mat-error *ngIf="form.get('description')?.hasError('maxlength')">Descrição deve ter no máximo 100 caracteres</mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" style="width: 100%;">
+        <mat-form-field appearance="outline" class="full-width">
           <mat-label>Valor</mat-label>
-          <input matInput type="number" formControlName="valor" required step="0.01" min="0.01">
-          <mat-error *ngIf="form.get('valor')?.hasError('required')">Valor é obrigatório</mat-error>
-          <mat-error *ngIf="form.get('valor')?.hasError('min')">Valor deve ser maior que zero</mat-error>
+          <input matInput type="number" formControlName="amount" required step="0.01" min="0.01">
+          <mat-error *ngIf="form.get('amount')?.hasError('required')">Valor é obrigatório</mat-error>
+          <mat-error *ngIf="form.get('amount')?.hasError('min')">Valor deve ser maior que zero</mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" style="width: 100%;">
-          <mat-label>Data da Compra</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="data" required>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Data</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="date" required>
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
-          <mat-error *ngIf="form.get('data')?.hasError('required')">Data é obrigatória</mat-error>
+          <mat-error *ngIf="form.get('date')?.hasError('required')">Data é obrigatória</mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" style="width: 100%;">
+        <mat-form-field appearance="outline" class="full-width">
           <mat-label>Parcela</mat-label>
-          <input matInput formControlName="parcela" required readonly>
+          <input matInput formControlName="installment" required readonly>
           <mat-hint>A informação de parcela não pode ser alterada</mat-hint>
         </mat-form-field>
 

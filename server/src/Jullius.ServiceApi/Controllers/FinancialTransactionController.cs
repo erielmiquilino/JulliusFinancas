@@ -3,7 +3,7 @@ using Jullius.ServiceApi.Application.Services;
 using Jullius.ServiceApi.Application.DTOs;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
-using Julius.Domain.Domain.Entities;
+using Jullius.Domain.Domain.Entities;
 
 namespace Jullius.ServiceApi.Controllers;
 

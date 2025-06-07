@@ -1,6 +1,6 @@
-using Julius.Domain.Domain.Entities;
+using Jullius.Domain.Domain.Entities;
 
-namespace Julius.Domain.Domain.Repositories;
+namespace Jullius.Domain.Domain.Repositories;
 
 public interface IFinancialTransactionRepository
 {

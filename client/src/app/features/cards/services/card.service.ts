@@ -6,116 +6,90 @@ import { environment } from '../../../../environments/environment';
 
 export interface Card {
   id: string;
-  nome: string;
-  bancoEmissor: string;
-  diaFechamento: number;
-  limite: number;
+  name: string;
+  issuingBank: string;
+  closingDay: number;
+  limit: number;
   createdAt: Date;
 }
 
 export interface CreateCardRequest {
-  nome: string;
-  bancoEmissor: string;
-  diaFechamento: number;
-  limite: number;
+  name: string;
+  issuingBank: string;
+  closingDay: number;
+  limit: number;
 }
 
 export interface UpdateCardRequest {
-  nome: string;
-  bancoEmissor: string;
-  diaFechamento: number;
-  limite: number;
+  name: string;
+  issuingBank: string;
+  closingDay: number;
+  limit: number;
 }
 
 export interface CardTransaction {
   id: string;
   cardId: string;
-  descricao: string;
-  valor: number;
-  data: Date;
-  parcela: string; // Ex: "1/1", "2/12", etc.
+  description: string;
+  amount: number;
+  date: Date;
+  installment: string; // Ex: "1/1", "2/12", etc.
   createdAt: Date;
 }
 
 export interface CreateCardTransactionRequest {
   cardId: string;
-  descricao: string;
-  valor: number;
-  data: Date;
-  parcela: string;
+  description: string;
+  amount: number;
+  date: Date;
+  installment: string;
 }
 
 export interface UpdateCardTransactionRequest {
-  descricao: string;
-  valor: number;
-  data: Date;
-  parcela: string;
+  description: string;
+  amount: number;
+  date: Date;
+  installment: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class CardService {
-  private readonly apiUrl = `${environment.apiUrl}/cards`;
+  private readonly apiUrl = `${environment.apiUrl}/Card`;
   private refreshSubject = new Subject<void>();
 
   public refresh$ = this.refreshSubject.asObservable();
 
-  // Dados mockados para teste
-  private mockCards: Card[] = [
-    {
-      id: '1',
-      nome: 'Cartão Principal',
-      bancoEmissor: 'Banco do Brasil',
-      diaFechamento: 15,
-      limite: 5000.00,
-      createdAt: new Date('2024-01-01')
-    },
-    {
-      id: '2',
-      nome: 'Cartão Corporativo',
-      bancoEmissor: 'Itaú',
-      diaFechamento: 10,
-      limite: 15000.00,
-      createdAt: new Date('2024-01-05')
-    },
-    {
-      id: '3',
-      nome: 'Cartão Reserva',
-      bancoEmissor: 'Santander',
-      diaFechamento: 25,
-      limite: 2000.00,
-      createdAt: new Date('2024-01-10')
-    }
-  ];
+
 
   private mockTransactions: CardTransaction[] = [
     // Transações do Cartão 1 - Janeiro 2024
     {
       id: '1',
       cardId: '1',
-      descricao: 'Supermercado Extra',
-      valor: 150.75,
-      data: new Date('2024-01-15'),
-      parcela: '1/1',
+      description: 'Supermercado Extra',
+      amount: 150.75,
+      date: new Date('2024-01-15'),
+      installment: '1/1',
       createdAt: new Date('2024-01-15')
     },
     {
       id: '2',
       cardId: '1',
-      descricao: 'Netflix Assinatura',
-      valor: 29.90,
-      data: new Date('2024-01-10'),
-      parcela: '1/1',
+      description: 'Netflix Assinatura',
+      amount: 29.90,
+      date: new Date('2024-01-10'),
+      installment: '1/1',
       createdAt: new Date('2024-01-10')
     },
     {
       id: '3',
       cardId: '1',
-      descricao: 'Combustível Posto Shell',
-      valor: 85.40,
-      data: new Date('2024-01-20'),
-      parcela: '1/1',
+      description: 'Combustível Posto Shell',
+      amount: 85.40,
+      date: new Date('2024-01-20'),
+      installment: '1/1',
       createdAt: new Date('2024-01-20')
     },
 
@@ -123,19 +97,19 @@ export class CardService {
     {
       id: '8',
       cardId: '1',
-      descricao: 'Supermercado Carrefour',
-      valor: 180.30,
-      data: new Date('2024-02-08'),
-      parcela: '1/1',
+      description: 'Supermercado Carrefour',
+      amount: 180.30,
+      date: new Date('2024-02-08'),
+      installment: '1/1',
       createdAt: new Date('2024-02-08')
     },
     {
       id: '9',
       cardId: '1',
-      descricao: 'Netflix Assinatura',
-      valor: 29.90,
-      data: new Date('2024-02-10'),
-      parcela: '1/1',
+      description: 'Netflix Assinatura',
+      amount: 29.90,
+      date: new Date('2024-02-10'),
+      installment: '1/1',
       createdAt: new Date('2024-02-10')
     },
 
@@ -143,19 +117,19 @@ export class CardService {
     {
       id: '10',
       cardId: '1',
-      descricao: 'Compras de Natal',
-      valor: 450.80,
-      data: new Date('2024-12-15'),
-      parcela: '1/1',
+      description: 'Compras de Natal',
+      amount: 450.80,
+      date: new Date('2024-12-15'),
+      installment: '1/1',
       createdAt: new Date('2024-12-15')
     },
     {
       id: '11',
       cardId: '1',
-      descricao: 'Netflix Assinatura',
-      valor: 29.90,
-      data: new Date('2024-12-10'),
-      parcela: '1/1',
+      description: 'Netflix Assinatura',
+      amount: 29.90,
+      date: new Date('2024-12-10'),
+      installment: '1/1',
       createdAt: new Date('2024-12-10')
     },
 
@@ -163,10 +137,10 @@ export class CardService {
     {
       id: '4',
       cardId: '2',
-      descricao: 'Notebook Dell',
-      valor: 2500.00,
-      data: new Date('2024-01-12'),
-      parcela: '1/12',
+      description: 'Notebook Dell',
+      amount: 2500.00,
+      date: new Date('2024-01-12'),
+      installment: '1/12',
       createdAt: new Date('2024-01-12')
     },
 
@@ -174,10 +148,10 @@ export class CardService {
     {
       id: '5',
       cardId: '2',
-      descricao: 'Notebook Dell',
-      valor: 2500.00,
-      data: new Date('2024-02-12'),
-      parcela: '2/12',
+      description: 'Notebook Dell',
+      amount: 2500.00,
+      date: new Date('2024-02-12'),
+      installment: '2/12',
       createdAt: new Date('2024-01-12')
     },
 
@@ -185,19 +159,19 @@ export class CardService {
     {
       id: '12',
       cardId: '2',
-      descricao: 'Notebook Dell',
-      valor: 2500.00,
-      data: new Date('2024-12-12'),
-      parcela: '12/12',
+      description: 'Notebook Dell',
+      amount: 2500.00,
+      date: new Date('2024-12-12'),
+      installment: '12/12',
       createdAt: new Date('2024-01-12')
     },
     {
       id: '13',
       cardId: '2',
-      descricao: 'Mouse Logitech',
-      valor: 150.00,
-      data: new Date('2024-12-05'),
-      parcela: '1/1',
+      description: 'Mouse Logitech',
+      amount: 150.00,
+      date: new Date('2024-12-05'),
+      installment: '1/1',
       createdAt: new Date('2024-12-05')
     },
 
@@ -205,10 +179,10 @@ export class CardService {
     {
       id: '6',
       cardId: '3',
-      descricao: 'Restaurante Outback',
-      valor: 120.00,
-      data: new Date('2024-01-13'),
-      parcela: '1/2',
+      description: 'Restaurante Outback',
+      amount: 120.00,
+      date: new Date('2024-01-13'),
+      installment: '1/2',
       createdAt: new Date('2024-01-13')
     },
 
@@ -216,10 +190,10 @@ export class CardService {
     {
       id: '7',
       cardId: '3',
-      descricao: 'Restaurante Outback',
-      valor: 120.00,
-      data: new Date('2024-02-13'),
-      parcela: '2/2',
+      description: 'Restaurante Outback',
+      amount: 120.00,
+      date: new Date('2024-02-13'),
+      installment: '2/2',
       createdAt: new Date('2024-01-13')
     },
 
@@ -227,73 +201,42 @@ export class CardService {
     {
       id: '14',
       cardId: '3',
-      descricao: 'Ceia de Natal',
-      valor: 280.50,
-      data: new Date('2024-12-23'),
-      parcela: '1/1',
-      createdAt: new Date('2024-12-23')
+      description: 'Ceia de Natal',
+      amount: 280.50,
+      date: new Date('2024-12-24'),
+      installment: '1/1',
+      createdAt: new Date('2024-12-24')
     }
   ];
 
   constructor(private http: HttpClient) { }
 
   getCards(): Observable<Card[]> {
-    // Retorna dados mockados em vez da API
-    return of([...this.mockCards]).pipe(delay(300));
+    return this.http.get<Card[]>(`${this.apiUrl}`);
   }
 
   getCardById(id: string): Observable<Card> {
-    const card = this.mockCards.find(c => c.id === id);
-    if (!card) {
-      throw new Error(`Cartão com ID ${id} não encontrado`);
-    }
-    return of({ ...card }).pipe(delay(300));
+    return this.http.get<Card>(`${this.apiUrl}/${id}`);
   }
 
   createCard(card: CreateCardRequest): Observable<Card> {
-    const newCard: Card = {
-      ...card,
-      id: (this.mockCards.length + 1).toString(),
-      createdAt: new Date()
-    };
-    this.mockCards.push(newCard);
-    return of(newCard).pipe(
-      delay(300),
+    return this.http.post<Card>(`${this.apiUrl}`, card).pipe(
       tap(() => this.refreshSubject.next())
     );
   }
 
   updateCard(id: string, card: UpdateCardRequest): Observable<Card> {
-    const cardIndex = this.mockCards.findIndex(c => c.id === id);
-    if (cardIndex === -1) {
-      throw new Error(`Cartão com ID ${id} não encontrado`);
-    }
-
-    this.mockCards[cardIndex] = {
-      ...this.mockCards[cardIndex],
-      ...card
-    };
-
-    return of(this.mockCards[cardIndex]).pipe(
-      delay(300),
+    return this.http.put<Card>(`${this.apiUrl}/${id}`, card).pipe(
       tap(() => this.refreshSubject.next())
     );
   }
 
   deleteCard(id: string): Observable<void> {
-    const cardIndex = this.mockCards.findIndex(c => c.id === id);
-    if (cardIndex === -1) {
-      throw new Error(`Cartão com ID ${id} não encontrado`);
-    }
-
-    this.mockCards.splice(cardIndex, 1);
-    return of(void 0).pipe(
-      delay(300),
+    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       tap(() => this.refreshSubject.next())
     );
   }
 
-  // Métodos para transações de cartão
   getTransactionsByCardId(cardId: string): Observable<CardTransaction[]> {
     const transactions = this.mockTransactions.filter(t => t.cardId === cardId);
     return of([...transactions]).pipe(delay(300));
@@ -303,7 +246,7 @@ export class CardService {
     const transactions = this.mockTransactions.filter(t => {
       if (t.cardId !== cardId) return false;
 
-      const transactionDate = new Date(t.data);
+      const transactionDate = new Date(t.date);
       const transactionMonth = transactionDate.getMonth() + 1; // getMonth() retorna 0-11
       const transactionYear = transactionDate.getFullYear();
 

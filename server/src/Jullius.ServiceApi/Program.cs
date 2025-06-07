@@ -1,4 +1,4 @@
-using Julius.Domain.Domain.Repositories;
+using Jullius.Domain.Domain.Repositories;
 using Jullius.Data.Context;
 using Jullius.Data.Repositories;
 using Jullius.ServiceApi.Application.Services;
@@ -7,7 +7,8 @@ using Microsoft.OpenApi.Models;
 using Microsoft.OData.Edm;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.AspNetCore.OData;
-using Julius.Domain.Domain.Entities;
+using Jullius.Domain.Domain.Entities;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,21 +17,26 @@ static IEdmModel GetEdmModel()
 {
     var odataBuilder = new ODataConventionModelBuilder();
     odataBuilder.EntitySet<FinancialTransaction>("FinancialTransactions");
-    var entityType = odataBuilder.EntityType<FinancialTransaction>();
-    entityType.HasKey(e => e.Id);
+    var financialTransactionType = odataBuilder.EntityType<FinancialTransaction>();
+    financialTransactionType.HasKey(e => e.Id);
+    
+    odataBuilder.EntitySet<Card>("Cards");
+    var cardType = odataBuilder.EntityType<Card>();
+    cardType.HasKey(e => e.Id);
+    
     return odataBuilder.GetEdmModel();
 }
 
 // Add services to the container
 builder.Services.AddControllers()
-    .AddOData(options => options
-        .Select()
-        .Filter()
-        .OrderBy()
-        .SetMaxTop(100)
-        .Count()
-        .Expand()
-        .AddRouteComponents("api", GetEdmModel()));
+.AddOData(options => options
+    .Select()
+    .Filter()
+    .OrderBy()
+    .SetMaxTop(100)
+    .Count()
+    .Expand()
+    .AddRouteComponents("api", GetEdmModel()));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -45,6 +51,8 @@ builder.Services.AddDbContext<JulliusDbContext>(options =>
 // Register services
 builder.Services.AddScoped<IFinancialTransactionRepository, FinancialTransactionRepository>();
 builder.Services.AddScoped<FinancialTransactionService>();
+builder.Services.AddScoped<ICardRepository, CardRepository>();
+builder.Services.AddScoped<CardService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>

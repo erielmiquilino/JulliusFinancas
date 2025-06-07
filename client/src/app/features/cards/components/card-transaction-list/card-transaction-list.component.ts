@@ -16,17 +16,17 @@ import { DeleteCardTransactionDialogComponent } from '../delete-card-transaction
   styleUrls: ['./card-transaction-list.component.scss']
 })
 export class CardTransactionListComponent implements OnInit, OnDestroy, AfterViewInit {
-  displayedColumns: string[] = ['descricao', 'valor', 'data', 'parcela', 'actions'];
+  displayedColumns: string[] = ['description', 'amount', 'date', 'installment', 'actions'];
   dataSource: MatTableDataSource<CardTransaction>;
   private refreshSubscription: Subscription;
 
   cardId: string = '';
   card: Card | null = null;
-  loading: boolean = true;
+  isLoading = false;
 
   // Propriedades para o sistema de faturas
-  invoiceOptions: { display: string, value: { month: number, year: number } }[] = [];
-  selectedInvoice: { month: number, year: number } = { month: 0, year: 0 };
+  invoiceOptions: { value: string, label: string }[] = [];
+  selectedInvoice: string = '';
 
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -44,8 +44,8 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   }
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
-      this.cardId = params.get('id') || '';
+    this.route.params.subscribe(params => {
+      this.cardId = params['id'];
       if (this.cardId) {
         this.generateInvoiceOptions();
         this.loadCard();
@@ -60,7 +60,7 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
     if (this.sort) {
-      this.sort.active = 'data';
+      this.sort.active = 'date';
       this.sort.direction = 'desc';
     }
   }
@@ -107,38 +107,33 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
       const display = `${monthNames[date.getMonth()]}/${year}`;
 
       this.invoiceOptions.push({
-        display,
-        value: { month, year }
+        value: `${month}-${year}`,
+        label: display
       });
     }
 
     // Define o mês/ano atual como selecionado por padrão
-    this.selectedInvoice = { month: currentMonth, year: currentYear };
+    this.selectedInvoice = `${currentMonth}-${currentYear}`;
   }
 
   fetchTransactions(): void {
-    this.loading = true;
-    this.cardService.getTransactionsForInvoice(
-      this.cardId,
-      this.selectedInvoice.month,
-      this.selectedInvoice.year
-    ).subscribe({
+    if (!this.cardId || !this.selectedInvoice) return;
+
+    this.isLoading = true;
+    const [month, year] = this.selectedInvoice.split('-').map(Number);
+
+    this.cardService.getTransactionsForInvoice(this.cardId, month - 1, year).subscribe({
       next: (transactions) => {
         this.dataSource.data = transactions;
         this.dataSource.sort = this.sort;
-
-        if (this.sort && !this.sort.active) {
-          this.sort.active = 'data';
-          this.sort.direction = 'desc';
-        }
-        this.loading = false;
+        this.isLoading = false;
       },
       error: (error) => {
         console.error('Erro ao carregar transações:', error);
         this.snackBar.open('Erro ao carregar transações: ' + error.message, 'Fechar', {
           duration: 5000
         });
-        this.loading = false;
+        this.isLoading = false;
       }
     });
   }
@@ -148,24 +143,19 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   }
 
   loadTransactions(): void {
-    this.loading = true;
+    this.isLoading = true;
     this.cardService.getTransactionsByCardId(this.cardId).subscribe({
       next: (transactions) => {
         this.dataSource.data = transactions;
         this.dataSource.sort = this.sort;
-
-        if (this.sort && !this.sort.active) {
-          this.sort.active = 'data';
-          this.sort.direction = 'desc';
-        }
-        this.loading = false;
+        this.isLoading = false;
       },
       error: (error) => {
         console.error('Erro ao carregar transações:', error);
         this.snackBar.open('Erro ao carregar transações: ' + error.message, 'Fechar', {
           duration: 5000
         });
-        this.loading = false;
+        this.isLoading = false;
       }
     });
   }

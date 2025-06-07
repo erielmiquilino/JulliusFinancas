@@ -1,5 +1,5 @@
-using Julius.Domain.Domain.Entities;
-using Julius.Domain.Domain.Repositories;
+using Jullius.Domain.Domain.Entities;
+using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
 
 namespace Jullius.ServiceApi.Application.Services;

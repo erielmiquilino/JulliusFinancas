@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Julius.Domain.Domain.Entities;
+namespace Jullius.Domain.Domain.Entities;
 
 public class FinancialTransaction
 {

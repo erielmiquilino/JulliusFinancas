@@ -1,7 +1,7 @@
 import { Component, Inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { CardService } from '../../services/card.service';
+import { CardService, CreateCardTransactionRequest } from '../../services/card.service';
 
 @Component({
   selector: 'app-create-card-transaction-dialog',
@@ -24,9 +24,9 @@ export class CreateCardTransactionDialogComponent {
     const localToday = new Date(today.getTime() + today.getTimezoneOffset() * 60000);
 
     this.form = this.fb.group({
-      descricao: ['', [Validators.required, Validators.maxLength(100)]],
-      valor: ['', [Validators.required, Validators.min(0.01)]],
-      data: [localToday, Validators.required],
+      description: ['', [Validators.required, Validators.maxLength(100)]],
+      amount: ['', [Validators.required, Validators.min(0.01)]],
+      date: [localToday, Validators.required],
       parcelado: [false],
       numeroParcelas: [1, [Validators.min(1), Validators.max(24)]]
     });
@@ -48,7 +48,7 @@ export class CreateCardTransactionDialogComponent {
   onSubmit(): void {
     if (this.form.valid) {
       const formValue = this.form.value;
-      const data = new Date(formValue.data);
+      const data = new Date(formValue.date);
       const utcData = new Date(data.getTime() - data.getTimezoneOffset() * 60000);
 
       const isParcelado = formValue.parcelado;
@@ -64,19 +64,21 @@ export class CreateCardTransactionDialogComponent {
     }
   }
 
-  private createSingleTransaction(formValue: any, data: Date, parcela: string): void {
-    this.cardService.createCardTransaction({
-      cardId: this.cardId,
-      descricao: formValue.descricao,
-      valor: formValue.valor,
-      data: data,
-      parcela: parcela
-    }).subscribe({
+  private createSingleTransaction(formValue: any, data: Date, installment: string): void {
+    const transaction: CreateCardTransactionRequest = {
+      cardId: this.data.cardId,
+      description: formValue.description,
+      amount: formValue.amount,
+      date: data,
+      installment: installment
+    };
+
+    this.cardService.createCardTransaction(transaction).subscribe({
       next: () => {
         this.dialogRef.close(true);
       },
       error: (error) => {
-        console.error('Erro ao criar lançamento:', error);
+        console.error('Erro ao criar transação:', error);
       }
     });
   }
@@ -91,10 +93,10 @@ export class CreateCardTransactionDialogComponent {
 
       transactions.push({
         cardId: this.cardId,
-        descricao: formValue.descricao,
-        valor: formValue.valor,
-        data: dataVencimento,
-        parcela: `${i + 1}/${numeroParcelas}`
+        description: formValue.description,
+        amount: formValue.amount,
+        date: dataVencimento,
+        installment: `${i + 1}/${numeroParcelas}`
       });
     }
 

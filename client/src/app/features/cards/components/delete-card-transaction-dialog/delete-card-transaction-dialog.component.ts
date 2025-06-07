@@ -7,11 +7,11 @@ import { CardTransaction } from '../../services/card.service';
   template: `
     <h2 mat-dialog-title>Confirmar Exclusão</h2>
     <mat-dialog-content>
-      <p>Tem certeza que deseja excluir o lançamento "{{ data.descricao }}"?</p>
+      <p>Tem certeza que deseja excluir o lançamento "{{ data.description }}"?</p>
       <p class="transaction-details">
-        <strong>Valor:</strong> {{ data.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}<br>
-        <strong>Data:</strong> {{ data.data | date:'dd/MM/yyyy':'GMT':'pt-BR' }}<br>
-        <strong>Parcela:</strong> {{ data.parcela }}
+        <strong>Valor:</strong> {{ data.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}<br>
+        <strong>Data:</strong> {{ data.date | date:'dd/MM/yyyy':'GMT':'pt-BR' }}<br>
+        <strong>Parcela:</strong> {{ data.installment }}
       </p>
       <p class="warning-text">Esta ação não pode ser desfeita.</p>
     </mat-dialog-content>

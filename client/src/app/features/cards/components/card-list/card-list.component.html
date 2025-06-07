@@ -15,27 +15,27 @@
         <div class="table-scroll-container mat-elevation-z8">
           <table mat-table [dataSource]="dataSource" matSort>
             <!-- Nome Column -->
-            <ng-container matColumnDef="nome">
+            <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Nome </th>
-              <td mat-cell *matCellDef="let row"> {{row.nome}} </td>
+              <td mat-cell *matCellDef="let row"> {{row.name}} </td>
             </ng-container>
 
             <!-- Banco Emissor Column -->
-            <ng-container matColumnDef="bancoEmissor">
+            <ng-container matColumnDef="issuingBank">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Banco Emissor </th>
-              <td mat-cell *matCellDef="let row"> {{row.bancoEmissor}} </td>
+              <td mat-cell *matCellDef="let row"> {{row.issuingBank}} </td>
             </ng-container>
 
             <!-- Dia de Fechamento Column -->
-            <ng-container matColumnDef="diaFechamento">
+            <ng-container matColumnDef="closingDay">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Dia de Fechamento </th>
-              <td mat-cell *matCellDef="let row"> Dia {{row.diaFechamento}} </td>
+              <td mat-cell *matCellDef="let row"> Dia {{row.closingDay}} </td>
             </ng-container>
 
             <!-- Limite Column -->
-            <ng-container matColumnDef="limite">
+            <ng-container matColumnDef="limit">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Limite </th>
-              <td mat-cell *matCellDef="let row"> {{row.limite | currency:'BRL':'symbol':'1.2-2':'pt-BR'}} </td>
+              <td mat-cell *matCellDef="let row"> {{row.limit | currency:'BRL':'symbol':'1.2-2':'pt-BR'}} </td>
             </ng-container>
 
             <!-- Actions Column -->
@@ -44,6 +44,12 @@
               <td mat-cell *matCellDef="let card">
                 <button mat-icon-button color="primary" (click)="viewTransactions(card)" matTooltip="Ver Lançamentos">
                   <mat-icon>credit_card</mat-icon>
+                </button>
+                <button mat-icon-button color="accent" (click)="openEditDialog(card)" matTooltip="Editar Cartão">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" (click)="openDeleteDialog(card)" matTooltip="Excluir Cartão">
+                  <mat-icon>delete</mat-icon>
                 </button>
               </td>
             </ng-container>
