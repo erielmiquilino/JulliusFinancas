@@ -13,17 +13,52 @@ public class CardTransactionService
         _repository = repository;
     }
 
-    public async Task<CardTransaction> CreateCardTransactionAsync(CreateCardTransactionRequest request)
+    public async Task<IEnumerable<CardTransaction>> CreateCardTransactionAsync(CreateCardTransactionRequest request)
     {
-        var cardTransaction = new CardTransaction(
-            request.CardId,
-            request.Description,
-            request.Amount,
-            request.Date,
-            request.Installment
-        );
+        var transactions = new List<CardTransaction>();
 
-        return await _repository.CreateAsync(cardTransaction);
+        if (request.IsInstallment && request.InstallmentCount > 1)
+        {
+            // Calcula o valor de cada parcela
+            var installmentAmount = Math.Round(request.Amount / request.InstallmentCount, 2);
+            
+            // Cria múltiplas transações parceladas
+            for (int i = 0; i < request.InstallmentCount; i++)
+            {
+                // Calcula a data de cada parcela (adiciona meses)
+                var installmentDate = request.Date.AddMonths(i);
+                
+                // Cria o texto da parcela (ex: "1/3", "2/3", "3/3")
+                var installmentText = $"{i + 1}/{request.InstallmentCount}";
+
+                var cardTransaction = new CardTransaction(
+                    request.CardId,
+                    request.Description,
+                    installmentAmount,
+                    installmentDate,
+                    installmentText
+                );
+
+                var createdTransaction = await _repository.CreateAsync(cardTransaction);
+                transactions.Add(createdTransaction);
+            }
+        }
+        else
+        {
+            // Cria uma única transação
+            var cardTransaction = new CardTransaction(
+                request.CardId,
+                request.Description,
+                request.Amount,
+                request.Date,
+                "1/1"
+            );
+
+            var createdTransaction = await _repository.CreateAsync(cardTransaction);
+            transactions.Add(createdTransaction);
+        }
+
+        return transactions;
     }
 
     public async Task<CardTransaction?> GetCardTransactionByIdAsync(Guid id)

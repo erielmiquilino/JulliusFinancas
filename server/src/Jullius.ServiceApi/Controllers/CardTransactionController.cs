@@ -22,8 +22,22 @@ public class CardTransactionController : ODataController
     {
         try
         {
-            var cardTransaction = await _service.CreateCardTransactionAsync(request);
-            return CreatedAtAction(nameof(GetById), new { id = cardTransaction.Id }, cardTransaction);
+            var cardTransactions = await _service.CreateCardTransactionAsync(request);
+            var transactionsList = cardTransactions.ToList();
+            
+            if (transactionsList.Count == 1)
+            {
+                // Retorna uma única transação
+                return CreatedAtAction(nameof(GetById), new { id = transactionsList.First().Id }, transactionsList.First());
+            }
+            else
+            {
+                // Retorna múltiplas transações (parceladas)
+                return Ok(new { 
+                    message = $"{transactionsList.Count} installments created successfully",
+                    transactions = transactionsList 
+                });
+            }
         }
         catch (ArgumentException ex)
         {

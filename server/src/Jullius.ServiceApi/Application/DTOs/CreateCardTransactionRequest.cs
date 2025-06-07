@@ -6,5 +6,6 @@ public class CreateCardTransactionRequest
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public DateTime Date { get; set; }
-    public string Installment { get; set; } = string.Empty;
+    public bool IsInstallment { get; set; } = false;
+    public int InstallmentCount { get; set; } = 1;
 } 

@@ -51,77 +51,25 @@ export class CreateCardTransactionDialogComponent {
       const data = new Date(formValue.date);
       const utcData = new Date(data.getTime() - data.getTimezoneOffset() * 60000);
 
-      const isParcelado = formValue.parcelado;
-      const numeroParcelas = isParcelado ? formValue.numeroParcelas : 1;
-
-      // Se for parcelado, cria múltiplas transações
-      if (isParcelado && numeroParcelas > 1) {
-        this.createParceledTransactions(formValue, utcData, numeroParcelas);
-      } else {
-        // Cria uma única transação
-        this.createSingleTransaction(formValue, utcData, '1/1');
-      }
-    }
-  }
-
-  private createSingleTransaction(formValue: any, data: Date, installment: string): void {
-    const transaction: CreateCardTransactionRequest = {
-      cardId: this.data.cardId,
-      description: formValue.description,
-      amount: formValue.amount,
-      date: data,
-      installment: installment
-    };
-
-    this.cardService.createCardTransaction(transaction).subscribe({
-      next: () => {
-        this.dialogRef.close(true);
-      },
-      error: (error) => {
-        console.error('Erro ao criar transação:', error);
-      }
-    });
-  }
-
-  private createParceledTransactions(formValue: any, dataInicial: Date, numeroParcelas: number): void {
-    const transactions: any[] = [];
-
-    // Cria as transações para cada parcela
-    for (let i = 0; i < numeroParcelas; i++) {
-      const dataVencimento = new Date(dataInicial);
-      dataVencimento.setMonth(dataVencimento.getMonth() + i);
-
-      transactions.push({
-        cardId: this.cardId,
+      const transaction: CreateCardTransactionRequest = {
+        cardId: this.data.cardId,
         description: formValue.description,
         amount: formValue.amount,
-        date: dataVencimento,
-        installment: `${i + 1}/${numeroParcelas}`
+        date: utcData,
+        isInstallment: formValue.parcelado,
+        installmentCount: formValue.parcelado ? formValue.numeroParcelas : 1
+      };
+
+      this.cardService.createCardTransaction(transaction).subscribe({
+        next: (response) => {
+          console.log('Transação(ões) criada(s) com sucesso:', response);
+          this.dialogRef.close(true);
+        },
+        error: (error) => {
+          console.error('Erro ao criar transação:', error);
+        }
       });
     }
-
-    // Cria todas as transações em sequência
-    this.createTransactionsSequentially(transactions, 0);
-  }
-
-  private createTransactionsSequentially(transactions: any[], index: number): void {
-    if (index >= transactions.length) {
-      // Todas as transações foram criadas
-      this.dialogRef.close(true);
-      return;
-    }
-
-    this.cardService.createCardTransaction(transactions[index]).subscribe({
-      next: () => {
-        // Cria a próxima transação
-        this.createTransactionsSequentially(transactions, index + 1);
-      },
-      error: (error) => {
-        console.error('Erro ao criar lançamento parcelado:', error);
-        // Continua mesmo com erro para tentar criar as demais
-        this.createTransactionsSequentially(transactions, index + 1);
-      }
-    });
   }
 
   onCancel(): void {

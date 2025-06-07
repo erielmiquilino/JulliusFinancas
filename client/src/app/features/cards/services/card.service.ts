@@ -45,7 +45,8 @@ export interface CreateCardTransactionRequest {
   description: string;
   amount: number;
   date: Date;
-  installment: string;
+  isInstallment: boolean;
+  installmentCount: number;
 }
 
 export interface UpdateCardTransactionRequest {
@@ -103,8 +104,8 @@ export class CardService {
     return this.http.get<CardTransaction[]>(`${this.transactionApiUrl}/card/${cardId}/invoice/${year}/${month}`);
   }
 
-  createCardTransaction(transaction: CreateCardTransactionRequest): Observable<CardTransaction> {
-    return this.http.post<CardTransaction>(`${this.transactionApiUrl}`, transaction).pipe(
+  createCardTransaction(transaction: CreateCardTransactionRequest): Observable<any> {
+    return this.http.post<any>(`${this.transactionApiUrl}`, transaction).pipe(
       tap(() => this.refreshSubject.next())
     );
   }
