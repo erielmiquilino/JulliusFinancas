@@ -36,7 +36,7 @@ export interface CardTransaction {
   description: string;
   amount: number;
   date: Date;
-  installment: string; // Ex: "1/1", "2/12", etc.
+  installment: string;
   createdAt: Date;
 }
 

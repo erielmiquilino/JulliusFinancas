@@ -7,14 +7,20 @@ namespace Jullius.ServiceApi.Application.Services;
 public class CardTransactionService
 {
     private readonly ICardTransactionRepository _repository;
+    private readonly ICardRepository _cardRepository;
 
-    public CardTransactionService(ICardTransactionRepository repository)
+    public CardTransactionService(ICardTransactionRepository repository, ICardRepository cardRepository)
     {
         _repository = repository;
+        _cardRepository = cardRepository;
     }
 
     public async Task<IEnumerable<CardTransaction>> CreateCardTransactionAsync(CreateCardTransactionRequest request)
     {
+        var card = await _cardRepository.GetByIdAsync(request.CardId);
+        if (card == null)
+            throw new ArgumentException("Card not found");
+
         var transactions = new List<CardTransaction>();
 
         if (request.IsInstallment && request.InstallmentCount > 1)
@@ -28,6 +34,9 @@ public class CardTransactionService
                 // Calcula a data de cada parcela (adiciona meses)
                 var installmentDate = request.Date.AddMonths(i);
                 
+                // Calcula a qual fatura essa parcela pertence
+                var (invoiceYear, invoiceMonth) = CalculateInvoicePeriod(installmentDate, card.ClosingDay, card.DueDay);
+                
                 // Cria o texto da parcela (ex: "1/3", "2/3", "3/3")
                 var installmentText = $"{i + 1}/{request.InstallmentCount}";
 
@@ -36,7 +45,9 @@ public class CardTransactionService
                     request.Description,
                     installmentAmount,
                     installmentDate,
-                    installmentText
+                    installmentText,
+                    invoiceYear,
+                    invoiceMonth
                 );
 
                 var createdTransaction = await _repository.CreateAsync(cardTransaction);
@@ -45,13 +56,18 @@ public class CardTransactionService
         }
         else
         {
+            // Calcula a qual fatura essa transação pertence
+            var (invoiceYear, invoiceMonth) = CalculateInvoicePeriod(request.Date, card.ClosingDay, card.DueDay);
+            
             // Cria uma única transação
             var cardTransaction = new CardTransaction(
                 request.CardId,
                 request.Description,
                 request.Amount,
                 request.Date,
-                "1/1"
+                "1/1",
+                invoiceYear,
+                invoiceMonth
             );
 
             var createdTransaction = await _repository.CreateAsync(cardTransaction);
@@ -59,6 +75,27 @@ public class CardTransactionService
         }
 
         return transactions;
+    }
+
+    private (int Year, int Month) CalculateInvoicePeriod(DateTime transactionDate, int closingDay, int dueDay)
+    {
+        DateTime effectiveClosingDate;
+
+        if (transactionDate.Day > closingDay)
+            effectiveClosingDate = new DateTime(transactionDate.Year, transactionDate.Month, closingDay).AddMonths(1);
+        else
+            effectiveClosingDate = new DateTime(transactionDate.Year, transactionDate.Month, closingDay);
+
+        DateTime invoiceDueDate;
+        if (dueDay <= closingDay)
+        {
+            var monthOfDueDate = effectiveClosingDate.AddMonths(1);
+            invoiceDueDate = new DateTime(monthOfDueDate.Year, monthOfDueDate.Month, dueDay);
+        }
+        else 
+            invoiceDueDate = new DateTime(effectiveClosingDate.Year, effectiveClosingDate.Month, dueDay);
+
+        return (invoiceDueDate.Year, invoiceDueDate.Month);
     }
 
     public async Task<CardTransaction?> GetCardTransactionByIdAsync(Guid id)
@@ -87,11 +124,21 @@ public class CardTransactionService
         if (cardTransaction == null)
             return null;
 
+        // Busca o cartão para calcular a nova fatura
+        var card = await _cardRepository.GetByIdAsync(cardTransaction.CardId);
+        if (card == null)
+            throw new ArgumentException("Card not found");
+
+        // Calcula a qual fatura essa transação pertence
+        var (invoiceYear, invoiceMonth) = CalculateInvoicePeriod(request.Date, card.ClosingDay, card.DueDay);
+
         cardTransaction.UpdateDetails(
             request.Description,
             request.Amount,
             request.Date,
-            request.Installment
+            request.Installment,
+            invoiceYear,
+            invoiceMonth
         );
 
         await _repository.UpdateAsync(cardTransaction);

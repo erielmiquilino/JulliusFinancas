@@ -44,8 +44,8 @@ public class CardTransactionRepository(JulliusDbContext context) : ICardTransact
     {
         return await context.Set<CardTransaction>()
             .Where(ct => ct.CardId == cardId && 
-                        ct.Date.Month == month && 
-                        ct.Date.Year == year)
+                        ct.InvoiceMonth == month && 
+                        ct.InvoiceYear == year)
             .Include(ct => ct.Card)
             .OrderByDescending(ct => ct.Date)
             .ToListAsync();

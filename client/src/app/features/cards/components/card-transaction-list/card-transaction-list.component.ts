@@ -126,7 +126,7 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     this.isLoading = true;
     const [month, year] = this.selectedInvoice.split('-').map(Number);
 
-    this.cardService.getTransactionsForInvoice(this.cardId, month - 1, year).subscribe({
+    this.cardService.getTransactionsForInvoice(this.cardId, month, year).subscribe({
       next: (transactions) => {
         this.dataSource.data = transactions;
         if (this.sort) {

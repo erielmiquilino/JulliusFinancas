@@ -30,6 +30,12 @@ public class CardTransactionConfiguration : IEntityTypeConfiguration<CardTransac
             .IsRequired()
             .HasMaxLength(20);
 
+        builder.Property(x => x.InvoiceYear)
+            .IsRequired();
+
+        builder.Property(x => x.InvoiceMonth)
+            .IsRequired();
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 
