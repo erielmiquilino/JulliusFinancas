@@ -16,7 +16,7 @@ import { DeleteCardDialogComponent } from '../delete-card-dialog/delete-card-dia
   styleUrls: ['./card-list.component.scss']
 })
 export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
-  displayedColumns: string[] = ['name', 'issuingBank', 'closingDay', 'limit', 'actions'];
+  displayedColumns: string[] = ['name', 'issuingBank', 'closingDay', 'dueDay', 'limit', 'actions'];
   dataSource: MatTableDataSource<Card>;
   private refreshSubscription: Subscription;
 

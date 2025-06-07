@@ -27,15 +27,27 @@
           <mat-error *ngIf="form.get('limit')?.hasError('min')">Limite deve ser maior que zero</mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Dia de Fechamento da Fatura</mat-label>
-          <mat-select formControlName="closingDay" required>
-            <mat-option *ngFor="let dia of diaFechamentoOptions" [value]="dia.value">
-              {{dia.label}}
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="form.get('closingDay')?.hasError('required')">Dia de fechamento é obrigatório</mat-error>
-        </mat-form-field>
+        <div class="days-row" style="display: flex; gap: 16px;">
+          <mat-form-field appearance="outline" style="flex: 1;">
+            <mat-label>Dia de Fechamento da Fatura</mat-label>
+            <mat-select formControlName="closingDay" required>
+              <mat-option *ngFor="let dia of diaFechamentoOptions" [value]="dia.value">
+                {{dia.label}}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('closingDay')?.hasError('required')">Dia de fechamento é obrigatório</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="flex: 1;">
+            <mat-label>Dia do Vencimento da Fatura</mat-label>
+            <mat-select formControlName="dueDay" required>
+              <mat-option *ngFor="let dia of diaVencimentoOptions" [value]="dia.value">
+                {{dia.label}}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('dueDay')?.hasError('required')">Dia do vencimento é obrigatório</mat-error>
+          </mat-form-field>
+        </div>
       </div>
     </mat-dialog-content>
 

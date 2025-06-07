@@ -9,15 +9,17 @@ public class Card
     public string Name { get; private set; }
     public string IssuingBank { get; private set; }
     public int ClosingDay { get; private set; }
+    public int DueDay { get; private set; }
     public decimal Limit { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
-    public Card(string name, string issuingBank, int closingDay, decimal limit)
+    public Card(string name, string issuingBank, int closingDay, int dueDay, decimal limit)
     {
         Id = Guid.NewGuid();
         Name = name;
         IssuingBank = issuingBank;
         ClosingDay = closingDay;
+        DueDay = dueDay;
         Limit = limit;
         CreatedAt = DateTime.UtcNow;
 
@@ -38,15 +40,19 @@ public class Card
         if (ClosingDay < 1 || ClosingDay > 31)
             throw new ArgumentException("ClosingDay must be between 1 and 31");
 
+        if (DueDay < 1 || DueDay > 31)
+            throw new ArgumentException("DueDay must be between 1 and 31");
+
         if (Limit <= 0)
             throw new ArgumentException("Limit must be greater than zero");
     }
 
-    public void UpdateDetails(string name, string issuingBank, int closingDay, decimal limit)
+    public void UpdateDetails(string name, string issuingBank, int closingDay, int dueDay, decimal limit)
     {
         Name = name;
         IssuingBank = issuingBank;
         ClosingDay = closingDay;
+        DueDay = dueDay;
         Limit = limit;
 
         Validate();

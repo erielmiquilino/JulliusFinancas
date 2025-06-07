@@ -23,6 +23,9 @@ public class CardConfiguration : IEntityTypeConfiguration<Card>
         builder.Property(x => x.ClosingDay)
             .IsRequired();
 
+        builder.Property(x => x.DueDay)
+            .IsRequired();
+
         builder.Property(x => x.Limit)
             .IsRequired()
             .HasColumnType("decimal(18,2)");

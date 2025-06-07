@@ -9,6 +9,7 @@ export interface Card {
   name: string;
   issuingBank: string;
   closingDay: number;
+  dueDay: number;
   limit: number;
   createdAt: Date;
 }
@@ -17,6 +18,7 @@ export interface CreateCardRequest {
   name: string;
   issuingBank: string;
   closingDay: number;
+  dueDay: number;
   limit: number;
 }
 
@@ -24,6 +26,7 @@ export interface UpdateCardRequest {
   name: string;
   issuingBank: string;
   closingDay: number;
+  dueDay: number;
   limit: number;
 }
 

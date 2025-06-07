@@ -19,6 +19,7 @@ public class CardService
             request.Name,
             request.IssuingBank,
             request.ClosingDay,
+            request.DueDay,
             request.Limit
         );
 
@@ -45,6 +46,7 @@ public class CardService
             request.Name,
             request.IssuingBank,
             request.ClosingDay,
+            request.DueDay,
             request.Limit
         );
 

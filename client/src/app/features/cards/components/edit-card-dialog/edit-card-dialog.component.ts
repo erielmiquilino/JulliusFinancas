@@ -20,7 +20,12 @@ export class EditCardDialogComponent {
     { value: 'Outro', label: 'Outro' }
   ];
 
-  diaFechamentoOptions = Array.from({ length: 28 }, (_, i) => ({
+  diaFechamentoOptions = Array.from({ length: 31 }, (_, i) => ({
+    value: i + 1,
+    label: `Dia ${i + 1}`
+  }));
+
+  diaVencimentoOptions = Array.from({ length: 31 }, (_, i) => ({
     value: i + 1,
     label: `Dia ${i + 1}`
   }));
@@ -34,7 +39,8 @@ export class EditCardDialogComponent {
     this.form = this.fb.group({
       name: [data.name, [Validators.required, Validators.maxLength(50)]],
       IssuingBank: [data.issuingBank, [Validators.required, Validators.maxLength(50)]],
-      closingDay: [data.closingDay, [Validators.required, Validators.min(1), Validators.max(28)]],
+      closingDay: [data.closingDay, [Validators.required, Validators.min(1), Validators.max(31)]],
+      dueDay: [data.dueDay, [Validators.required, Validators.min(1), Validators.max(31)]],
       limit: [data.limit, [Validators.required, Validators.min(1)]]
     });
   }
@@ -47,6 +53,7 @@ export class EditCardDialogComponent {
         name: formValue.name,
         issuingBank: formValue.IssuingBank,
         closingDay: Number(formValue.closingDay),
+        dueDay: Number(formValue.dueDay),
         limit: Number(formValue.limit)
       };
 

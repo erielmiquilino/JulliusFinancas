@@ -11,9 +11,12 @@ import { CardService } from '../../services/card.service';
 export class CreateCardDialogComponent {
   form: FormGroup;
 
+  diaFechamentoOptions = Array.from({ length: 31 }, (_, i) => ({
+    value: i + 1,
+    label: `Dia ${i + 1}`
+  }));
 
-
-  diaFechamentoOptions = Array.from({ length: 28 }, (_, i) => ({
+  diaVencimentoOptions = Array.from({ length: 31 }, (_, i) => ({
     value: i + 1,
     label: `Dia ${i + 1}`
   }));
@@ -26,7 +29,8 @@ export class CreateCardDialogComponent {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(50)]],
       IssuingBank: ['', [Validators.required, Validators.maxLength(50)]],
-      closingDay: ['', [Validators.required, Validators.min(1), Validators.max(28)]],
+      closingDay: ['', [Validators.required, Validators.min(1), Validators.max(31)]],
+      dueDay: ['', [Validators.required, Validators.min(1), Validators.max(31)]],
       limit: ['', [Validators.required, Validators.min(1)]]
     });
   }
@@ -39,6 +43,7 @@ export class CreateCardDialogComponent {
         name: formValue.name,
         issuingBank: formValue.IssuingBank,
         closingDay: Number(formValue.closingDay),
+        dueDay: Number(formValue.dueDay),
         limit: Number(formValue.limit)
       })
         .subscribe({
