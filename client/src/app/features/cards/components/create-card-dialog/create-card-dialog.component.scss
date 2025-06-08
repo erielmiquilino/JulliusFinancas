@@ -6,29 +6,3 @@
     color: #333;
   }
 }
-
-.create-card-container {
-  min-width: 400px;
-  max-width: 500px;
-}
-
-.form-container {
-  padding: 20px 0;
-
-  mat-form-field {
-    margin-bottom: 16px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-}
-
-mat-dialog-content {
-  padding: 0 24px;
-}
-
-mat-dialog-actions {
-  padding: 16px 24px;
-  gap: 8px;
-}
