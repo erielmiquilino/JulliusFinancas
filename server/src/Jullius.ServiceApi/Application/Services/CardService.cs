@@ -63,19 +63,17 @@ public class CardService
             return false;
 
         // Exclui todas as faturas relacionadas ao cartão
-        await DeleteCardInvoicesAsync(card.Name);
+        await DeleteCardInvoicesAsync(id);
 
         // Exclui o cartão (as CardTransactions serão excluídas automaticamente por cascade)
         await _repository.DeleteAsync(id);
         return true;
     }
 
-    private async Task DeleteCardInvoicesAsync(string cardName)
+    private async Task DeleteCardInvoicesAsync(Guid cardId)
     {
-        var invoiceDescription = $"Fatura {cardName}";
-        
-        // Busca todas as faturas relacionadas ao cartão
-        var cardInvoices = await _financialTransactionRepository.GetByDescriptionAsync(invoiceDescription);
+        // Busca todas as faturas relacionadas ao cartão usando CardId
+        var cardInvoices = await _financialTransactionRepository.GetByCardIdAsync(cardId);
 
         // Exclui cada fatura encontrada
         foreach (var invoice in cardInvoices)

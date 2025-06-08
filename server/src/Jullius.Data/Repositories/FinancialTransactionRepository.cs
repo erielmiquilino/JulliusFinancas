@@ -31,18 +31,19 @@ public class FinancialTransactionRepository(JulliusDbContext context) : IFinanci
         return await context.Set<FinancialTransaction>().FindAsync(id);
     }
 
-    public async Task<FinancialTransaction?> GetByDescriptionAndPeriodAsync(string description, int year, int month)
+
+    public async Task<FinancialTransaction?> GetByCardIdAndPeriodAsync(Guid cardId, int year, int month)
     {
         return await context.Set<FinancialTransaction>()
-            .FirstOrDefaultAsync(ft => ft.Description == description && 
+            .FirstOrDefaultAsync(ft => ft.CardId == cardId && 
                                       ft.DueDate.Year == year && 
                                       ft.DueDate.Month == month);
     }
 
-    public async Task<IEnumerable<FinancialTransaction>> GetByDescriptionAsync(string description)
+    public async Task<IEnumerable<FinancialTransaction>> GetByCardIdAsync(Guid cardId)
     {
         return await context.Set<FinancialTransaction>()
-            .Where(ft => ft.Description == description)
+            .Where(ft => ft.CardId == cardId)
             .ToListAsync();
     }
 

@@ -12,8 +12,9 @@ public class FinancialTransaction
     public TransactionType Type { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public bool IsPaid { get; private set; }
+    public Guid? CardId { get; private set; } // Relacionamento opcional com cartão
 
-    public FinancialTransaction(string description, decimal amount, DateTime dueDate, TransactionType type, bool isPaid = false)
+    public FinancialTransaction(string description, decimal amount, DateTime dueDate, TransactionType type, bool isPaid = false, Guid? cardId = null)
     {
         Id = Guid.NewGuid();
         Description = description;
@@ -22,6 +23,7 @@ public class FinancialTransaction
         Type = type;
         CreatedAt = DateTime.UtcNow;
         IsPaid = isPaid;
+        CardId = cardId;
 
         Validate();
     }
@@ -35,13 +37,14 @@ public class FinancialTransaction
             throw new ArgumentException("Amount must be greater than zero");
     }
 
-    public void UpdateDetails(string description, decimal amount, DateTime dueDate, TransactionType type, bool isPaid)
+    public void UpdateDetails(string description, decimal amount, DateTime dueDate, TransactionType type, bool isPaid, Guid? cardId = null)
     {
         Description = description;
         Amount = amount;
         DueDate = dueDate;
         Type = type;
         IsPaid = isPaid;
+        CardId = cardId;
     }
 
     public void UpdatePaymentStatus(bool isPaid)

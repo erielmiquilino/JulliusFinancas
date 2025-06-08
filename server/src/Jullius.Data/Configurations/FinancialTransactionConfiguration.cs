@@ -33,5 +33,8 @@ public class FinancialTransactionConfiguration : IEntityTypeConfiguration<Financ
         builder.Property(x => x.IsPaid)
             .IsRequired()
             .HasDefaultValue(false);
+
+        builder.Property(x => x.CardId)
+            .IsRequired(false); // Campo opcional
     }
 } 

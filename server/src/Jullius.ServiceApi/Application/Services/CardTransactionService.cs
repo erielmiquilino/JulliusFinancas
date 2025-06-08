@@ -104,9 +104,9 @@ public class CardTransactionService
     {
         var invoiceDescription = $"Fatura {card.Name}";
         
-        // Busca se já existe uma fatura para esse cartão no período
+        // Busca se já existe uma fatura para esse cartão no período usando o CardId
         var existingInvoice = await _financialTransactionRepository
-            .GetByDescriptionAndPeriodAsync(invoiceDescription, invoiceYear, invoiceMonth);
+            .GetByCardIdAndPeriodAsync(card.Id, invoiceYear, invoiceMonth);
 
         if (existingInvoice != null)
         {
@@ -119,7 +119,8 @@ public class CardTransactionService
                 newAmount,
                 dueDate,
                 TransactionType.PayableBill,
-                false // isPaid sempre false
+                false, // isPaid sempre false
+                card.Id // cardId
             );
 
             await _financialTransactionRepository.UpdateAsync(existingInvoice);
@@ -134,7 +135,8 @@ public class CardTransactionService
                 amount,
                 dueDate,
                 TransactionType.PayableBill,
-                false // isPaid sempre false
+                false, // isPaid sempre false
+                card.Id // cardId
             );
 
             await _financialTransactionRepository.CreateAsync(newInvoice);
@@ -145,9 +147,9 @@ public class CardTransactionService
     {
         var invoiceDescription = $"Fatura {card.Name}";
         
-        // Busca a fatura existente
+        // Busca a fatura existente usando o CardId
         var existingInvoice = await _financialTransactionRepository
-            .GetByDescriptionAndPeriodAsync(invoiceDescription, invoiceYear, invoiceMonth);
+            .GetByCardIdAndPeriodAsync(card.Id, invoiceYear, invoiceMonth);
 
         if (existingInvoice != null)
         {
@@ -168,7 +170,8 @@ public class CardTransactionService
                     newAmount,
                     dueDate,
                     TransactionType.PayableBill,
-                    false // isPaid sempre false
+                    false, // isPaid sempre false
+                    card.Id // cardId
                 );
 
                 await _financialTransactionRepository.UpdateAsync(existingInvoice);
