@@ -11,6 +11,7 @@ public class Card
     public int ClosingDay { get; private set; }
     public int DueDay { get; private set; }
     public decimal Limit { get; private set; }
+    public decimal CurrentLimit { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
     public Card(string name, string issuingBank, int closingDay, int dueDay, decimal limit)
@@ -21,6 +22,7 @@ public class Card
         ClosingDay = closingDay;
         DueDay = dueDay;
         Limit = limit;
+        CurrentLimit = limit; // Inicializa com o limite total
         CreatedAt = DateTime.UtcNow;
 
         Validate();
@@ -56,5 +58,15 @@ public class Card
         Limit = limit;
 
         Validate();
+    }
+
+    public void UpdateCurrentLimit(decimal amount)
+    {
+        CurrentLimit += amount;
+    }
+
+    public void SetCurrentLimit(decimal currentLimit)
+    {
+        CurrentLimit = currentLimit;
     }
 } 

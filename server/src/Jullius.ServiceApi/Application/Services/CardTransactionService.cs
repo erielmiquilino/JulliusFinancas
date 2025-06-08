@@ -59,6 +59,9 @@ public class CardTransactionService
                 var createdTransaction = await _repository.CreateAsync(cardTransaction);
                 transactions.Add(createdTransaction);
 
+                // Atualiza o CurrentLimit do cartão para cada parcela
+                await UpdateCardCurrentLimitAsync(card, installmentAmount, request.Type);
+
                 // Cria/atualiza a fatura para cada parcela
                 // Se for receita, subtrai da fatura; se for despesa, adiciona
                 var amountToApply = request.Type == CardTransactionType.Income ? -installmentAmount : installmentAmount;
@@ -84,6 +87,9 @@ public class CardTransactionService
 
             var createdTransaction = await _repository.CreateAsync(cardTransaction);
             transactions.Add(createdTransaction);
+
+            // Atualiza o CurrentLimit do cartão
+            await UpdateCardCurrentLimitAsync(card, request.Amount, request.Type);
 
             // Cria/atualiza a fatura com o valor total da transação
             // Se for receita, subtrai da fatura; se for despesa, adiciona
@@ -191,6 +197,16 @@ public class CardTransactionService
         return (invoiceDueDate.Year, invoiceDueDate.Month);
     }
 
+    private async Task UpdateCardCurrentLimitAsync(Card card, decimal amount, CardTransactionType type)
+    {
+        // Para receitas (Income), soma ao current limit (aumenta limite disponível)
+        // Para despesas (Expense), subtrai do current limit (diminui limite disponível)
+        var amountToUpdate = type == CardTransactionType.Income ? amount : -amount;
+        
+        card.UpdateCurrentLimit(amountToUpdate);
+        await _cardRepository.UpdateAsync(card);
+    }
+
     public async Task<CardTransaction?> GetCardTransactionByIdAsync(Guid id)
     {
         return await _repository.GetByIdAsync(id);
@@ -243,9 +259,17 @@ public class CardTransactionService
 
         await _repository.UpdateAsync(cardTransaction);
 
+        // Atualiza o CurrentLimit do cartão
+        // Primeiro reverte o valor antigo
+        var oldAmountToRevert = oldType == CardTransactionType.Income ? -oldAmount : oldAmount;
+        card.UpdateCurrentLimit(oldAmountToRevert);
+        
+        // Depois aplica o novo valor
+        await UpdateCardCurrentLimitAsync(card, request.Amount, request.Type);
+
         // Remove o valor antigo da fatura anterior (considerando o tipo antigo)
-        var oldAmountToRevert = oldType == CardTransactionType.Income ? oldAmount : -oldAmount;
-        await UpdateInvoiceAmountAsync(card, oldInvoiceYear, oldInvoiceMonth, oldAmountToRevert);
+        var oldAmountToRevertFromInvoice = oldType == CardTransactionType.Income ? oldAmount : -oldAmount;
+        await UpdateInvoiceAmountAsync(card, oldInvoiceYear, oldInvoiceMonth, oldAmountToRevertFromInvoice);
 
         // Adiciona o novo valor na fatura nova/atual (considerando o novo tipo)
         var newAmountToApply = request.Type == CardTransactionType.Income ? -request.Amount : request.Amount;
@@ -264,6 +288,11 @@ public class CardTransactionService
         var card = await _cardRepository.GetByIdAsync(cardTransaction.CardId);
         if (card == null)
             throw new ArgumentException("Card not found");
+
+        // Reverte o valor do CurrentLimit do cartão (operação inversa)
+        var amountToRevertFromLimit = cardTransaction.Type == CardTransactionType.Income ? -cardTransaction.Amount : cardTransaction.Amount;
+        card.UpdateCurrentLimit(amountToRevertFromLimit);
+        await _cardRepository.UpdateAsync(card);
 
         // Remove o valor da fatura antes de excluir a transação (considerando o tipo)
         var amountToRevert = cardTransaction.Type == CardTransactionType.Income ? cardTransaction.Amount : -cardTransaction.Amount;

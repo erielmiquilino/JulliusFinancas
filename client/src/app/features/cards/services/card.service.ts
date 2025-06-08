@@ -16,6 +16,7 @@ export interface Card {
   closingDay: number;
   dueDay: number;
   limit: number;
+  currentLimit: number;
   createdAt: Date;
 }
 

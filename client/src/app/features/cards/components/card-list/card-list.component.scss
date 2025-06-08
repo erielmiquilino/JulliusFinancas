@@ -75,3 +75,27 @@ mat-card.card-card mat-card-content {
   text-align: center;
   color: #666;
 }
+
+// Estilos para o status do limite
+.limit-ok {
+  color: #4caf50; // Verde
+  font-weight: 500;
+}
+
+.limit-warning {
+  color: #ff9800; // Laranja
+  font-weight: 500;
+}
+
+.limit-critical {
+  color: #f44336; // Vermelho
+  font-weight: 600;
+}
+
+.limit-exceeded {
+  color: #d32f2f; // Vermelho escuro
+  font-weight: 600;
+  background-color: #ffebee; // Fundo vermelho claro
+  padding: 4px 8px;
+  border-radius: 4px;
+}

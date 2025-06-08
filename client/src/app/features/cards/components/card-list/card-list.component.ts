@@ -16,7 +16,7 @@ import { DeleteCardDialogComponent } from '../delete-card-dialog/delete-card-dia
   styleUrls: ['./card-list.component.scss']
 })
 export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
-  displayedColumns: string[] = ['name', 'issuingBank', 'closingDay', 'dueDay', 'limit', 'actions'];
+  displayedColumns: string[] = ['name', 'issuingBank', 'closingDay', 'dueDay', 'limit', 'currentLimit', 'actions'];
   dataSource: MatTableDataSource<Card>;
   private refreshSubscription: Subscription;
 
@@ -131,5 +131,19 @@ export class CardListComponent implements OnInit, OnDestroy, AfterViewInit {
 
   viewTransactions(card: Card): void {
     this.router.navigate(['/cards', card.id, 'transactions']);
+  }
+
+  getLimitClass(card: Card): string {
+    const percentageUsed = ((card.limit - card.currentLimit) / card.limit) * 100;
+
+    if (percentageUsed >= 90) {
+      return 'limit-critical'; // Vermelho - mais de 90% usado
+    } else if (percentageUsed >= 70) {
+      return 'limit-warning'; // Amarelo - 70-89% usado
+    } else if (card.currentLimit < 0) {
+      return 'limit-exceeded'; // Vermelho - limite excedido
+    } else {
+      return 'limit-ok'; // Verde - menos de 70% usado
+    }
   }
 }

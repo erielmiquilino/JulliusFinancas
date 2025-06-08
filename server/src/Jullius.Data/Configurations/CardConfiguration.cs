@@ -30,6 +30,10 @@ public class CardConfiguration : IEntityTypeConfiguration<Card>
             .IsRequired()
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(x => x.CurrentLimit)
+            .IsRequired()
+            .HasColumnType("decimal(18,2)");
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
     }
