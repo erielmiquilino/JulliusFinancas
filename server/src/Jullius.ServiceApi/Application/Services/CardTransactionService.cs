@@ -8,11 +8,16 @@ public class CardTransactionService
 {
     private readonly ICardTransactionRepository _repository;
     private readonly ICardRepository _cardRepository;
+    private readonly IFinancialTransactionRepository _financialTransactionRepository;
 
-    public CardTransactionService(ICardTransactionRepository repository, ICardRepository cardRepository)
+    public CardTransactionService(
+        ICardTransactionRepository repository, 
+        ICardRepository cardRepository,
+        IFinancialTransactionRepository financialTransactionRepository)
     {
         _repository = repository;
         _cardRepository = cardRepository;
+        _financialTransactionRepository = financialTransactionRepository;
     }
 
     public async Task<IEnumerable<CardTransaction>> CreateCardTransactionAsync(CreateCardTransactionRequest request)
@@ -52,6 +57,9 @@ public class CardTransactionService
 
                 var createdTransaction = await _repository.CreateAsync(cardTransaction);
                 transactions.Add(createdTransaction);
+
+                // Cria/atualiza a fatura para cada parcela (apenas com o valor da parcela)
+                await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, installmentAmount);
             }
         }
         else
@@ -72,9 +80,88 @@ public class CardTransactionService
 
             var createdTransaction = await _repository.CreateAsync(cardTransaction);
             transactions.Add(createdTransaction);
+
+            // Cria/atualiza a fatura com o valor total da transação
+            await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, request.Amount);
         }
 
         return transactions;
+    }
+
+    private async Task CreateOrUpdateInvoiceAsync(Card card, int invoiceYear, int invoiceMonth, decimal amount)
+    {
+        var invoiceDescription = $"Fatura {card.Name}";
+        
+        // Busca se já existe uma fatura para esse cartão no período
+        var existingInvoice = await _financialTransactionRepository
+            .GetByDescriptionAndPeriodAsync(invoiceDescription, invoiceYear, invoiceMonth);
+
+        if (existingInvoice != null)
+        {
+            // Se já existe, soma o valor no total existente
+            var newAmount = existingInvoice.Amount + amount;
+            var dueDate = DateTime.SpecifyKind(new DateTime(invoiceYear, invoiceMonth, card.DueDay), DateTimeKind.Utc);
+            
+            existingInvoice.UpdateDetails(
+                invoiceDescription,
+                newAmount,
+                dueDate,
+                TransactionType.PayableBill,
+                false // isPaid sempre false
+            );
+
+            await _financialTransactionRepository.UpdateAsync(existingInvoice);
+        }
+        else
+        {
+            // Se não existe, cria uma nova fatura
+            var dueDate = DateTime.SpecifyKind(new DateTime(invoiceYear, invoiceMonth, card.DueDay), DateTimeKind.Utc);
+            
+            var newInvoice = new FinancialTransaction(
+                invoiceDescription,
+                amount,
+                dueDate,
+                TransactionType.PayableBill,
+                false // isPaid sempre false
+            );
+
+            await _financialTransactionRepository.CreateAsync(newInvoice);
+        }
+    }
+
+    private async Task UpdateInvoiceAmountAsync(Card card, int invoiceYear, int invoiceMonth, decimal amountChange)
+    {
+        var invoiceDescription = $"Fatura {card.Name}";
+        
+        // Busca a fatura existente
+        var existingInvoice = await _financialTransactionRepository
+            .GetByDescriptionAndPeriodAsync(invoiceDescription, invoiceYear, invoiceMonth);
+
+        if (existingInvoice != null)
+        {
+            var newAmount = existingInvoice.Amount + amountChange;
+            
+            // Se o novo valor for zero ou negativo, remove a fatura
+            if (newAmount <= 0)
+            {
+                await _financialTransactionRepository.DeleteAsync(existingInvoice.Id);
+            }
+            else
+            {
+                // Atualiza o valor da fatura
+                var dueDate = DateTime.SpecifyKind(new DateTime(invoiceYear, invoiceMonth, card.DueDay), DateTimeKind.Utc);
+                
+                existingInvoice.UpdateDetails(
+                    invoiceDescription,
+                    newAmount,
+                    dueDate,
+                    TransactionType.PayableBill,
+                    false // isPaid sempre false
+                );
+
+                await _financialTransactionRepository.UpdateAsync(existingInvoice);
+            }
+        }
     }
 
     private (int Year, int Month) CalculateInvoicePeriod(DateTime transactionDate, int closingDay, int dueDay)
@@ -129,6 +216,11 @@ public class CardTransactionService
         if (card == null)
             throw new ArgumentException("Card not found");
 
+        // Guarda os valores antigos para reverter da fatura anterior
+        var oldAmount = cardTransaction.Amount;
+        var oldInvoiceYear = cardTransaction.InvoiceYear;
+        var oldInvoiceMonth = cardTransaction.InvoiceMonth;
+
         // Calcula a qual fatura essa transação pertence
         var (invoiceYear, invoiceMonth) = CalculateInvoicePeriod(request.Date, card.ClosingDay, card.DueDay);
 
@@ -142,6 +234,13 @@ public class CardTransactionService
         );
 
         await _repository.UpdateAsync(cardTransaction);
+
+        // Remove o valor antigo da fatura anterior
+        await UpdateInvoiceAmountAsync(card, oldInvoiceYear, oldInvoiceMonth, -oldAmount);
+
+        // Adiciona o novo valor na fatura nova/atual
+        await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, request.Amount);
+
         return cardTransaction;
     }
 
@@ -150,6 +249,14 @@ public class CardTransactionService
         var cardTransaction = await _repository.GetByIdAsync(id);
         if (cardTransaction == null)
             return false;
+
+        // Busca o cartão para calcular a fatura
+        var card = await _cardRepository.GetByIdAsync(cardTransaction.CardId);
+        if (card == null)
+            throw new ArgumentException("Card not found");
+
+        // Remove o valor da fatura antes de excluir a transação
+        await UpdateInvoiceAmountAsync(card, cardTransaction.InvoiceYear, cardTransaction.InvoiceMonth, -cardTransaction.Amount);
 
         await _repository.DeleteAsync(id);
         return true;
