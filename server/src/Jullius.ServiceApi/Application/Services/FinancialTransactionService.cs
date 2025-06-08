@@ -7,10 +7,14 @@ namespace Jullius.ServiceApi.Application.Services;
 public class FinancialTransactionService
 {
     private readonly IFinancialTransactionRepository _repository;
+    private readonly ICardRepository _cardRepository;
 
-    public FinancialTransactionService(IFinancialTransactionRepository repository)
+    public FinancialTransactionService(
+        IFinancialTransactionRepository repository,
+        ICardRepository cardRepository)
     {
         _repository = repository;
+        _cardRepository = cardRepository;
     }
 
     public async Task<FinancialTransaction> CreateTransactionAsync(CreateFinancialTransactionRequest request)
@@ -67,8 +71,47 @@ public class FinancialTransactionService
         if (transaction == null)
             return null;
 
+        // Armazena o status anterior para verificar se houve mudança
+        var previousIsPaid = transaction.IsPaid;
+
+        // Atualiza o status de pagamento
         transaction.UpdatePaymentStatus(isPaid);
         await _repository.UpdateAsync(transaction);
+
+        // Se a transação possui CardId vinculado e houve mudança no status de pagamento
+        if (transaction.CardId.HasValue && previousIsPaid != isPaid)
+        {
+            await UpdateCardCurrentLimitForPaymentAsync(transaction.CardId.Value, transaction.Amount, isPaid, previousIsPaid);
+        }
+
         return transaction;
+    }
+
+    private async Task UpdateCardCurrentLimitForPaymentAsync(Guid cardId, decimal amount, bool isPaid, bool previousIsPaid)
+    {
+        var card = await _cardRepository.GetByIdAsync(cardId);
+        if (card == null)
+            return;
+
+        decimal amountToUpdate = 0;
+
+        // Lógica de atualização do limite baseada na mudança de status
+        if (isPaid && !previousIsPaid)
+        {
+            // Fatura foi paga: soma o valor ao limite atual (aumenta limite disponível)
+            amountToUpdate = amount;
+        }
+        else if (!isPaid && previousIsPaid)
+        {
+            // Fatura deixou de estar paga: subtrai o valor do limite atual (diminui limite disponível)
+            amountToUpdate = -amount;
+        }
+
+        // Aplica a mudança no limite atual do cartão
+        if (amountToUpdate != 0)
+        {
+            card.UpdateCurrentLimit(amountToUpdate);
+            await _cardRepository.UpdateAsync(card);
+        }
     }
 } 
