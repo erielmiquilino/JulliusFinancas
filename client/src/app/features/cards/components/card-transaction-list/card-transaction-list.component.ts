@@ -5,7 +5,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
-import { CardService, Card, CardTransaction, CardTransactionType } from '../../services/card.service';
+import { CardService, Card, CardTransaction, CardTransactionType, UpdateCardTransactionRequest } from '../../services/card.service';
 import { CreateCardTransactionDialogComponent } from '../create-card-transaction-dialog/create-card-transaction-dialog.component';
 import { EditCardTransactionDialogComponent } from '../edit-card-transaction-dialog/edit-card-transaction-dialog.component';
 import { DeleteCardTransactionDialogComponent } from '../delete-card-transaction-dialog/delete-card-transaction-dialog.component';
@@ -226,6 +226,7 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
         this.snackBar.open('Lançamento criado com sucesso!', 'Fechar', {
           duration: 3000
         });
+        this.fetchTransactions(); // Recarrega a lista de transações
       }
     });
   }
@@ -239,9 +240,7 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.snackBar.open('Lançamento atualizado com sucesso!', 'Fechar', {
-          duration: 3000
-        });
+        this.updateTransaction(transaction.id, result);
       }
     });
   }
@@ -259,12 +258,30 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     });
   }
 
+  private updateTransaction(id: string, updateData: UpdateCardTransactionRequest): void {
+    this.cardService.updateCardTransaction(id, updateData).subscribe({
+      next: () => {
+        this.snackBar.open('Lançamento atualizado com sucesso!', 'Fechar', {
+          duration: 3000
+        });
+        this.fetchTransactions(); // Recarrega a lista de transações
+      },
+      error: (error) => {
+        console.error('Erro ao atualizar lançamento:', error);
+        this.snackBar.open('Erro ao atualizar lançamento: ' + error.message, 'Fechar', {
+          duration: 5000
+        });
+      }
+    });
+  }
+
   private deleteTransaction(id: string): void {
     this.cardService.deleteCardTransaction(id).subscribe({
       next: () => {
         this.snackBar.open('Lançamento excluído com sucesso!', 'Fechar', {
           duration: 3000
         });
+        this.fetchTransactions(); // Recarrega a lista de transações
       },
       error: (error) => {
         console.error('Erro ao excluir lançamento:', error);

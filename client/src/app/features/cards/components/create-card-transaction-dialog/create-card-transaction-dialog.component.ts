@@ -45,6 +45,15 @@ export class CreateCardTransactionDialogComponent {
       }
       numeroParcelasControl?.updateValueAndValidity();
     });
+
+    // Observa mudanças no campo tipo para ocultar parcelamento quando for receita
+    this.form.get('type')?.valueChanges.subscribe(type => {
+      if (type === CardTransactionType.Income) {
+        // Se mudou para receita, reseta o parcelamento
+        this.form.get('parcelado')?.setValue(false);
+        this.form.get('numeroParcelas')?.setValue(1);
+      }
+    });
   }
 
   onSubmit(): void {
@@ -81,5 +90,9 @@ export class CreateCardTransactionDialogComponent {
 
   get isParcelado(): boolean {
     return this.form.get('parcelado')?.value || false;
+  }
+
+  get isReceita(): boolean {
+    return this.form.get('type')?.value === CardTransactionType.Income;
   }
 }

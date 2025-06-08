@@ -36,7 +36,7 @@
           <mat-error *ngIf="form.get('date')?.hasError('required')">Data é obrigatória</mat-error>
         </mat-form-field>
 
-        <div class="parcela-section">
+        <div class="parcela-section" *ngIf="!isReceita">
           <mat-slide-toggle
             formControlName="parcelado"
             class="parcela-toggle"
@@ -58,7 +58,7 @@
         </div>
 
         <!-- Informação sobre o valor das parcelas -->
-        <div class="parcela-info" *ngIf="isParcelado && form.get('amount')?.valid && form.get('numeroParcelas')?.valid">
+        <div class="parcela-info" *ngIf="!isReceita && isParcelado && form.get('amount')?.valid && form.get('numeroParcelas')?.valid">
           <mat-icon>info</mat-icon>
           <span>
             {{form.get('numeroParcelas')?.value}} parcelas de

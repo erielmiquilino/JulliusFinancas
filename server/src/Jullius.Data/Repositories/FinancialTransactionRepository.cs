@@ -39,6 +39,13 @@ public class FinancialTransactionRepository(JulliusDbContext context) : IFinanci
                                       ft.DueDate.Month == month);
     }
 
+    public async Task<IEnumerable<FinancialTransaction>> GetByDescriptionAsync(string description)
+    {
+        return await context.Set<FinancialTransaction>()
+            .Where(ft => ft.Description == description)
+            .ToListAsync();
+    }
+
     public async Task UpdateAsync(FinancialTransaction transaction)
     {
         context.Set<FinancialTransaction>().Update(transaction);

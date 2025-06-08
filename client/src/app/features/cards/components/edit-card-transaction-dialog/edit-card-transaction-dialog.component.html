@@ -36,7 +36,7 @@
           <mat-error *ngIf="form.get('date')?.hasError('required')">Data é obrigatória</mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="full-width">
+        <mat-form-field appearance="outline" class="full-width" *ngIf="!isReceita">
           <mat-label>Parcela</mat-label>
           <input matInput formControlName="installment" required readonly>
           <mat-hint>A informação de parcela não pode ser alterada</mat-hint>

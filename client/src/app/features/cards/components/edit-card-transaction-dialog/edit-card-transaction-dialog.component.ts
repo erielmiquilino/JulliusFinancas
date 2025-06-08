@@ -51,4 +51,8 @@ export class EditCardTransactionDialogComponent {
   onCancel(): void {
     this.dialogRef.close();
   }
+
+  get isReceita(): boolean {
+    return this.form.get('type')?.value === CardTransactionType.Income;
+  }
 }

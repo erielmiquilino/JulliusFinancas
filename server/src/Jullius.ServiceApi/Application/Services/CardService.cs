@@ -7,10 +7,12 @@ namespace Jullius.ServiceApi.Application.Services;
 public class CardService
 {
     private readonly ICardRepository _repository;
+    private readonly IFinancialTransactionRepository _financialTransactionRepository;
 
-    public CardService(ICardRepository repository)
+    public CardService(ICardRepository repository, IFinancialTransactionRepository financialTransactionRepository)
     {
         _repository = repository;
+        _financialTransactionRepository = financialTransactionRepository;
     }
 
     public async Task<Card> CreateCardAsync(CreateCardRequest request)
@@ -60,7 +62,25 @@ public class CardService
         if (card == null)
             return false;
 
+        // Exclui todas as faturas relacionadas ao cartão
+        await DeleteCardInvoicesAsync(card.Name);
+
+        // Exclui o cartão (as CardTransactions serão excluídas automaticamente por cascade)
         await _repository.DeleteAsync(id);
         return true;
+    }
+
+    private async Task DeleteCardInvoicesAsync(string cardName)
+    {
+        var invoiceDescription = $"Fatura {cardName}";
+        
+        // Busca todas as faturas relacionadas ao cartão
+        var cardInvoices = await _financialTransactionRepository.GetByDescriptionAsync(invoiceDescription);
+
+        // Exclui cada fatura encontrada
+        foreach (var invoice in cardInvoices)
+        {
+            await _financialTransactionRepository.DeleteAsync(invoice.Id);
+        }
     }
 } 
