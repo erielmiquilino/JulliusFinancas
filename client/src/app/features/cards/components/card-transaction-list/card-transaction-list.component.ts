@@ -5,7 +5,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
-import { CardService, Card, CardTransaction } from '../../services/card.service';
+import { CardService, Card, CardTransaction, CardTransactionType } from '../../services/card.service';
 import { CreateCardTransactionDialogComponent } from '../create-card-transaction-dialog/create-card-transaction-dialog.component';
 import { EditCardTransactionDialogComponent } from '../edit-card-transaction-dialog/edit-card-transaction-dialog.component';
 import { DeleteCardTransactionDialogComponent } from '../delete-card-transaction-dialog/delete-card-transaction-dialog.component';
@@ -22,13 +22,15 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
 
   cardId: string = '';
   card: Card | null = null;
-  isLoading = false;
+  isLoading = true;
 
   // Propriedades para o sistema de faturas
   invoiceOptions: { value: string, label: string }[] = [];
   selectedInvoice: string = '';
 
   @ViewChild(MatSort) sort!: MatSort;
+
+  CardTransactionType = CardTransactionType;
 
   constructor(
     private route: ActivatedRoute,
@@ -50,7 +52,6 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
       if (this.cardId) {
         this.generateInvoiceOptions();
         this.loadCard();
-        this.fetchTransactions();
       } else {
         this.snackBar.open('ID do cartão não encontrado', 'Fechar', { duration: 3000 });
         this.router.navigate(['/cards']);
@@ -73,21 +74,6 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     if (this.refreshSubscription) {
       this.refreshSubscription.unsubscribe();
     }
-  }
-
-  loadCard(): void {
-    this.cardService.getCardById(this.cardId).subscribe({
-      next: (card) => {
-        this.card = card;
-      },
-      error: (error) => {
-        console.error('Erro ao carregar cartão:', error);
-        this.snackBar.open('Erro ao carregar informações do cartão: ' + error.message, 'Fechar', {
-          duration: 5000
-        });
-        this.router.navigate(['/cards']);
-      }
-    });
   }
 
   generateInvoiceOptions(): void {
@@ -116,8 +102,68 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
       });
     }
 
-    // Define o mês/ano atual como selecionado por padrão
+    // Define a fatura atual como selecionada por padrão (será calculada quando o cartão for carregado)
     this.selectedInvoice = `${currentMonth}-${currentYear}`;
+  }
+
+  /**
+   * Calcula o período da fatura atual baseado na data de hoje e nos dias de fechamento/vencimento do cartão
+   * Replica a lógica do método CalculateInvoicePeriod do backend
+   *
+   * Exemplo: Cartão fecha dia 30 e vence dia 7
+   * - Se hoje for 7 de junho (depois do fechamento de 30 de maio)
+   * - A fatura que está aberta é de julho/2025 (que vence em 7 de julho)
+   */
+  private calculateCurrentInvoicePeriod(closingDay: number, dueDay: number): { year: number, month: number } {
+    const today = new Date();
+
+    let effectiveClosingDate: Date;
+
+    if (today.getDate() > closingDay) {
+      // Se hoje é depois do dia de fechamento, a data efetiva de fechamento é no próximo mês
+      effectiveClosingDate = new Date(today.getFullYear(), today.getMonth() + 1, closingDay);
+    } else {
+      // Se hoje é antes ou no dia de fechamento, a data efetiva é neste mês
+      effectiveClosingDate = new Date(today.getFullYear(), today.getMonth(), closingDay);
+    }
+
+    let invoiceDueDate: Date;
+
+    if (dueDay <= closingDay) {
+      // Se o vencimento é antes ou no dia de fechamento, vai para o próximo mês
+      const monthOfDueDate = new Date(effectiveClosingDate.getFullYear(), effectiveClosingDate.getMonth() + 1, 1);
+      invoiceDueDate = new Date(monthOfDueDate.getFullYear(), monthOfDueDate.getMonth(), dueDay);
+    } else {
+      // Se o vencimento é depois do fechamento, fica no mesmo mês do fechamento
+      invoiceDueDate = new Date(effectiveClosingDate.getFullYear(), effectiveClosingDate.getMonth(), dueDay);
+    }
+
+    return {
+      year: invoiceDueDate.getFullYear(),
+      month: invoiceDueDate.getMonth() + 1 // +1 porque getMonth() retorna 0-11
+    };
+  }
+
+  loadCard(): void {
+    this.cardService.getCardById(this.cardId).subscribe({
+      next: (card) => {
+        this.card = card;
+
+        // Calcula a fatura atual baseada nos dias de fechamento e vencimento do cartão
+        const currentInvoice = this.calculateCurrentInvoicePeriod(card.closingDay, card.dueDay);
+        this.selectedInvoice = `${currentInvoice.month}-${currentInvoice.year}`;
+
+        // Carrega as transações da fatura atual
+        this.fetchTransactions();
+      },
+      error: (error) => {
+        console.error('Erro ao carregar cartão:', error);
+        this.snackBar.open('Erro ao carregar informações do cartão: ' + error.message, 'Fechar', {
+          duration: 5000
+        });
+        this.router.navigate(['/cards']);
+      }
+    });
   }
 
   fetchTransactions(): void {

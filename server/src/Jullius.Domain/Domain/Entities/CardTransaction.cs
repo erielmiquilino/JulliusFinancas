@@ -14,11 +14,12 @@ public class CardTransaction
     public int InvoiceYear { get; private set; } // Ano da fatura a qual pertence
     public int InvoiceMonth { get; private set; } // Mês da fatura a qual pertence
     public DateTime CreatedAt { get; private set; }
+    public CardTransactionType Type { get; private set; }
 
     // Navigation property
     public Card Card { get; private set; }
 
-    public CardTransaction(Guid cardId, string description, decimal amount, DateTime date, string installment, int invoiceYear, int invoiceMonth)
+    public CardTransaction(Guid cardId, string description, decimal amount, DateTime date, string installment, int invoiceYear, int invoiceMonth, CardTransactionType type = CardTransactionType.Expense)
     {
         Id = Guid.NewGuid();
         CardId = cardId;
@@ -29,6 +30,7 @@ public class CardTransaction
         InvoiceYear = invoiceYear;
         InvoiceMonth = invoiceMonth;
         CreatedAt = DateTime.UtcNow;
+        Type = type;
 
         Validate();
     }
@@ -57,7 +59,7 @@ public class CardTransaction
             throw new ArgumentException("Invoice month must be between 1 and 12");
     }
 
-    public void UpdateDetails(string description, decimal amount, DateTime date, string installment, int invoiceYear, int invoiceMonth)
+    public void UpdateDetails(string description, decimal amount, DateTime date, string installment, int invoiceYear, int invoiceMonth, CardTransactionType type)
     {
         Description = description;
         Amount = amount;
@@ -65,7 +67,14 @@ public class CardTransaction
         Installment = installment;
         InvoiceYear = invoiceYear;
         InvoiceMonth = invoiceMonth;
+        Type = type;
 
         Validate();
     }
+}
+
+public enum CardTransactionType
+{
+    Expense = 0,
+    Income = 1
 } 

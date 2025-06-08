@@ -1,7 +1,7 @@
 import { Component, Inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { CardTransaction } from '../../services/card.service';
+import { CardTransaction, CardTransactionType } from '../../services/card.service';
 
 @Component({
   selector: 'app-edit-card-transaction-dialog',
@@ -10,6 +10,7 @@ import { CardTransaction } from '../../services/card.service';
 })
 export class EditCardTransactionDialogComponent {
   form: FormGroup;
+  CardTransactionType = CardTransactionType;
 
   constructor(
     private fb: FormBuilder,
@@ -22,6 +23,7 @@ export class EditCardTransactionDialogComponent {
 
     this.form = this.fb.group({
       description: [data.description, [Validators.required, Validators.maxLength(100)]],
+      type: [data.type, Validators.required],
       amount: [data.amount, [Validators.required, Validators.min(0.01)]],
       date: [localData, Validators.required],
       installment: [data.installment, Validators.required]
@@ -38,7 +40,8 @@ export class EditCardTransactionDialogComponent {
         description: formValue.description,
         amount: formValue.amount,
         date: utcDate,
-        installment: formValue.installment
+        installment: formValue.installment,
+        type: formValue.type
       };
 
       this.dialogRef.close(updatedTransaction);

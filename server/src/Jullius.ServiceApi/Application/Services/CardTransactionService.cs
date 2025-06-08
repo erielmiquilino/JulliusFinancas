@@ -52,14 +52,17 @@ public class CardTransactionService
                     installmentDate,
                     installmentText,
                     invoiceYear,
-                    invoiceMonth
+                    invoiceMonth,
+                    request.Type
                 );
 
                 var createdTransaction = await _repository.CreateAsync(cardTransaction);
                 transactions.Add(createdTransaction);
 
-                // Cria/atualiza a fatura para cada parcela (apenas com o valor da parcela)
-                await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, installmentAmount);
+                // Cria/atualiza a fatura para cada parcela
+                // Se for receita, subtrai da fatura; se for despesa, adiciona
+                var amountToApply = request.Type == CardTransactionType.Income ? -installmentAmount : installmentAmount;
+                await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, amountToApply);
             }
         }
         else
@@ -75,14 +78,17 @@ public class CardTransactionService
                 request.Date,
                 "1/1",
                 invoiceYear,
-                invoiceMonth
+                invoiceMonth,
+                request.Type
             );
 
             var createdTransaction = await _repository.CreateAsync(cardTransaction);
             transactions.Add(createdTransaction);
 
             // Cria/atualiza a fatura com o valor total da transação
-            await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, request.Amount);
+            // Se for receita, subtrai da fatura; se for despesa, adiciona
+            var amountToApply = request.Type == CardTransactionType.Income ? -request.Amount : request.Amount;
+            await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, amountToApply);
         }
 
         return transactions;
@@ -218,6 +224,7 @@ public class CardTransactionService
 
         // Guarda os valores antigos para reverter da fatura anterior
         var oldAmount = cardTransaction.Amount;
+        var oldType = cardTransaction.Type;
         var oldInvoiceYear = cardTransaction.InvoiceYear;
         var oldInvoiceMonth = cardTransaction.InvoiceMonth;
 
@@ -230,16 +237,19 @@ public class CardTransactionService
             request.Date,
             request.Installment,
             invoiceYear,
-            invoiceMonth
+            invoiceMonth,
+            request.Type
         );
 
         await _repository.UpdateAsync(cardTransaction);
 
-        // Remove o valor antigo da fatura anterior
-        await UpdateInvoiceAmountAsync(card, oldInvoiceYear, oldInvoiceMonth, -oldAmount);
+        // Remove o valor antigo da fatura anterior (considerando o tipo antigo)
+        var oldAmountToRevert = oldType == CardTransactionType.Income ? oldAmount : -oldAmount;
+        await UpdateInvoiceAmountAsync(card, oldInvoiceYear, oldInvoiceMonth, oldAmountToRevert);
 
-        // Adiciona o novo valor na fatura nova/atual
-        await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, request.Amount);
+        // Adiciona o novo valor na fatura nova/atual (considerando o novo tipo)
+        var newAmountToApply = request.Type == CardTransactionType.Income ? -request.Amount : request.Amount;
+        await CreateOrUpdateInvoiceAsync(card, invoiceYear, invoiceMonth, newAmountToApply);
 
         return cardTransaction;
     }
@@ -255,8 +265,9 @@ public class CardTransactionService
         if (card == null)
             throw new ArgumentException("Card not found");
 
-        // Remove o valor da fatura antes de excluir a transação
-        await UpdateInvoiceAmountAsync(card, cardTransaction.InvoiceYear, cardTransaction.InvoiceMonth, -cardTransaction.Amount);
+        // Remove o valor da fatura antes de excluir a transação (considerando o tipo)
+        var amountToRevert = cardTransaction.Type == CardTransactionType.Income ? cardTransaction.Amount : -cardTransaction.Amount;
+        await UpdateInvoiceAmountAsync(card, cardTransaction.InvoiceYear, cardTransaction.InvoiceMonth, amountToRevert);
 
         await _repository.DeleteAsync(id);
         return true;

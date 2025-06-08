@@ -36,6 +36,10 @@ public class CardTransactionConfiguration : IEntityTypeConfiguration<CardTransac
         builder.Property(x => x.InvoiceMonth)
             .IsRequired();
 
+        builder.Property(x => x.Type)
+            .IsRequired()
+            .HasDefaultValue(CardTransactionType.Expense);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

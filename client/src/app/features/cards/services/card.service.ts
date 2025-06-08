@@ -4,6 +4,11 @@ import { Observable, Subject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
+export enum CardTransactionType {
+  Expense = 0,
+  Income = 1
+}
+
 export interface Card {
   id: string;
   name: string;
@@ -37,6 +42,7 @@ export interface CardTransaction {
   amount: number;
   date: Date;
   installment: string;
+  type: CardTransactionType;
   createdAt: Date;
 }
 
@@ -47,6 +53,7 @@ export interface CreateCardTransactionRequest {
   date: Date;
   isInstallment: boolean;
   installmentCount: number;
+  type: CardTransactionType;
 }
 
 export interface UpdateCardTransactionRequest {
@@ -54,6 +61,7 @@ export interface UpdateCardTransactionRequest {
   amount: number;
   date: Date;
   installment: string;
+  type: CardTransactionType;
 }
 
 @Injectable({

@@ -1,3 +1,5 @@
+using Jullius.Domain.Domain.Entities;
+
 namespace Jullius.ServiceApi.Application.DTOs;
 
 public class CreateCardTransactionRequest
@@ -8,4 +10,5 @@ public class CreateCardTransactionRequest
     public DateTime Date { get; set; }
     public bool IsInstallment { get; set; } = false;
     public int InstallmentCount { get; set; } = 1;
+    public CardTransactionType Type { get; set; } = CardTransactionType.Expense;
 } 

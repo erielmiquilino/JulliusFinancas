@@ -1,7 +1,7 @@
 import { Component, Inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { CardService, CreateCardTransactionRequest } from '../../services/card.service';
+import { CardService, CreateCardTransactionRequest, CardTransactionType } from '../../services/card.service';
 
 @Component({
   selector: 'app-create-card-transaction-dialog',
@@ -11,6 +11,7 @@ import { CardService, CreateCardTransactionRequest } from '../../services/card.s
 export class CreateCardTransactionDialogComponent {
   form: FormGroup;
   cardId: string;
+  CardTransactionType = CardTransactionType;
 
   constructor(
     private fb: FormBuilder,
@@ -25,6 +26,7 @@ export class CreateCardTransactionDialogComponent {
 
     this.form = this.fb.group({
       description: ['', [Validators.required, Validators.maxLength(100)]],
+      type: [CardTransactionType.Expense, Validators.required],
       amount: ['', [Validators.required, Validators.min(0.01)]],
       date: [localToday, Validators.required],
       parcelado: [false],
@@ -57,7 +59,8 @@ export class CreateCardTransactionDialogComponent {
         amount: formValue.amount,
         date: utcData,
         isInstallment: formValue.parcelado,
-        installmentCount: formValue.parcelado ? formValue.numeroParcelas : 1
+        installmentCount: formValue.parcelado ? formValue.numeroParcelas : 1,
+        type: formValue.type
       };
 
       this.cardService.createCardTransaction(transaction).subscribe({
