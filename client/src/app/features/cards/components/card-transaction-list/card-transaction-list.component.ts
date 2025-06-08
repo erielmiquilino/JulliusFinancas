@@ -28,6 +28,10 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   invoiceOptions: { value: string, label: string }[] = [];
   selectedInvoice: string = '';
 
+  // Propriedades para informações da fatura
+  currentLimit: number = 0;
+  invoiceTotal: number = 0;
+
   @ViewChild(MatSort) sort!: MatSort;
 
   CardTransactionType = CardTransactionType;
@@ -173,8 +177,10 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
     const [month, year] = this.selectedInvoice.split('-').map(Number);
 
     this.cardService.getTransactionsForInvoice(this.cardId, month, year).subscribe({
-      next: (transactions) => {
-        this.dataSource.data = transactions;
+      next: (response) => {
+        this.dataSource.data = response.transactions;
+        this.currentLimit = response.currentLimit;
+        this.invoiceTotal = response.invoiceTotal;
         if (this.sort) {
           this.dataSource.sort = this.sort;
         }

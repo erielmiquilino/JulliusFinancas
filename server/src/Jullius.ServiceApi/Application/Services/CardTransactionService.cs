@@ -222,9 +222,28 @@ public class CardTransactionService
         return await _repository.GetByCardIdAsync(cardId);
     }
 
-    public async Task<IEnumerable<CardTransaction>> GetCardTransactionsForInvoiceAsync(Guid cardId, int month, int year)
+    public async Task<CardInvoiceResponse> GetCardTransactionsForInvoiceAsync(Guid cardId, int month, int year)
     {
-        return await _repository.GetByCardIdAndPeriodAsync(cardId, month, year);
+        // Busca as transações da fatura
+        var transactions = await _repository.GetByCardIdAndPeriodAsync(cardId, month, year);
+        
+        // Busca o cartão para obter informações atuais
+        var card = await _cardRepository.GetByIdAsync(cardId);
+        if (card == null)
+            throw new ArgumentException("Card not found");
+
+        // Calcula o total da fatura (despesas positivas, receitas negativas)
+        var invoiceTotal = transactions.Sum(t => t.Type == CardTransactionType.Expense ? t.Amount : -t.Amount);
+
+        return new CardInvoiceResponse
+        {
+            Transactions = transactions,
+            CurrentLimit = card.CurrentLimit,
+            InvoiceTotal = invoiceTotal,
+            CardName = card.Name,
+            Month = month,
+            Year = year
+        };
     }
 
     public async Task<CardTransaction?> UpdateCardTransactionAsync(Guid id, UpdateCardTransactionRequest request)

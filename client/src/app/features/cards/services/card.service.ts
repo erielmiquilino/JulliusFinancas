@@ -65,6 +65,15 @@ export interface UpdateCardTransactionRequest {
   type: CardTransactionType;
 }
 
+export interface CardInvoiceResponse {
+  transactions: CardTransaction[];
+  currentLimit: number;
+  invoiceTotal: number;
+  cardName: string;
+  month: number;
+  year: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -109,8 +118,8 @@ export class CardService {
     return this.http.get<CardTransaction[]>(`${this.transactionApiUrl}/card/${cardId}`);
   }
 
-  getTransactionsForInvoice(cardId: string, month: number, year: number): Observable<CardTransaction[]> {
-    return this.http.get<CardTransaction[]>(`${this.transactionApiUrl}/card/${cardId}/invoice/${year}/${month}`);
+  getTransactionsForInvoice(cardId: string, month: number, year: number): Observable<CardInvoiceResponse> {
+    return this.http.get<CardInvoiceResponse>(`${this.transactionApiUrl}/card/${cardId}/invoice/${year}/${month}`);
   }
 
   createCardTransaction(transaction: CreateCardTransactionRequest): Observable<any> {

@@ -20,6 +20,21 @@ mat-card.transaction-card mat-card-content {
   padding: 16px;
 }
 
+.main-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  height: 100%;
+  overflow: hidden;
+}
+
 .card-header-container {
   display: flex;
   justify-content: space-between;
@@ -50,13 +65,26 @@ mat-card.transaction-card mat-card-content {
   }
 }
 
-// Estilos para o seletor de faturas
-.invoice-selector {
-  margin-bottom: 20px;
+// Coluna esquerda - Controles e informações
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 
-  mat-form-field {
-    width: 250px;
+  // Seletor de faturas
+  .invoice-selector {
+    mat-form-field {
+      width: 100%;
+    }
   }
+}
+
+// Coluna direita - Tabela
+.right-column {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
 }
 
 .table-container {
@@ -144,5 +172,93 @@ mat-card.transaction-card mat-card-content {
 
   mat-spinner {
     margin-bottom: 16px;
+  }
+}
+
+// Cards informativos verticais
+.info-cards-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .info-card {
+    width: 100%;
+
+    .info-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      margin-bottom: 0;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .info-value {
+      font-size: 24px;
+      font-weight: 600;
+      margin-top: 8px;
+
+      &.limit-positive {
+        color: #4caf50;
+      }
+
+      &.limit-negative {
+        color: #f44336;
+      }
+
+      &.invoice-positive {
+        color: #f44336;
+      }
+
+      &.invoice-negative {
+        color: #4caf50;
+      }
+    }
+
+    &.limit-card {
+      border-left: 4px solid #2196F3;
+    }
+
+    &.total-card {
+      border-left: 4px solid #FF9800;
+    }
+  }
+}
+
+// Responsividade
+@media (max-width: 1024px) {
+  .content-grid {
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .left-column {
+    order: 1;
+  }
+
+  .right-column {
+    order: 2;
+  }
+
+  .info-cards-vertical {
+    flex-direction: row;
+
+    .info-card {
+      flex: 1;
+    }
   }
 }
