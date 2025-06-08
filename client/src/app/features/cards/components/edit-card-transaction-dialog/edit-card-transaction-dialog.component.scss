@@ -24,6 +24,18 @@
   }
 }
 
+.row-fields {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+
+  .flex-field {
+    flex: 1;
+    margin-bottom: 0;
+  }
+}
+
 mat-dialog-content {
   padding: 0 24px;
 }

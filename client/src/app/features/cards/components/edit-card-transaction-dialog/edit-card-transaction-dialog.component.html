@@ -13,28 +13,30 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Tipo</mat-label>
-          <mat-select formControlName="type" required>
-            <mat-option [value]="CardTransactionType.Expense">Despesa</mat-option>
-            <mat-option [value]="CardTransactionType.Income">Receita</mat-option>
-          </mat-select>
-          <mat-error *ngIf="form.get('type')?.hasError('required')">Tipo é obrigatório</mat-error>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
           <mat-label>Valor</mat-label>
           <input matInput type="number" formControlName="amount" required step="0.01" min="0.01">
           <mat-error *ngIf="form.get('amount')?.hasError('required')">Valor é obrigatório</mat-error>
           <mat-error *ngIf="form.get('amount')?.hasError('min')">Valor deve ser maior que zero</mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Data</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="date" required>
-          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-          <mat-error *ngIf="form.get('date')?.hasError('required')">Data é obrigatória</mat-error>
-        </mat-form-field>
+        <div class="row-fields">
+          <mat-form-field appearance="outline" class="flex-field">
+            <mat-label>Tipo</mat-label>
+            <mat-select formControlName="type" required>
+              <mat-option [value]="CardTransactionType.Expense">Despesa</mat-option>
+              <mat-option [value]="CardTransactionType.Income">Receita</mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('type')?.hasError('required')">Tipo é obrigatório</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="flex-field">
+            <mat-label>Data</mat-label>
+            <input matInput [matDatepicker]="picker" formControlName="date" required>
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+            <mat-error *ngIf="form.get('date')?.hasError('required')">Data é obrigatória</mat-error>
+          </mat-form-field>
+        </div>
 
         <mat-form-field appearance="outline" class="full-width" *ngIf="!isReceita">
           <mat-label>Parcela</mat-label>
