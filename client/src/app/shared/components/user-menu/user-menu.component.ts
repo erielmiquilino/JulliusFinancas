@@ -92,7 +92,7 @@ import { User } from '../../../core/auth/models/user.model';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--primary-gradient);
     }
 
     .avatar-image {
@@ -121,7 +121,7 @@ import { User } from '../../../core/auth/models/user.model';
       display: flex;
       align-items: center;
       gap: 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--primary-gradient);
       color: white;
     }
 

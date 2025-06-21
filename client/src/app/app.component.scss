@@ -1,10 +1,12 @@
+// Reset global
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Previne rolagem no body/html, se possível */
+  overflow: hidden;
 }
 
+// Layout para rotas autenticadas
 .app-container {
   display: flex;
   flex-direction: column;
@@ -12,50 +14,18 @@ html, body {
   overflow: hidden;
 }
 
-.app-header-flex-item {
-  flex-shrink: 0; /* O header não deve encolher */
-  z-index: 1000; /* Descomente se o header estiver sobrepondo incorretamente */
-}
-
-.app-side-menu-flex-item {
-  flex-grow: 1; /* O side-menu (e seu mat-sidenav-container) ocupa o espaço restante */
-  overflow-y: auto; /* Permite rolagem interna no side-menu se seu conteúdo for muito grande */
-                  /* Idealmente, a rolagem granular ocorre dentro de componentes filhos como transaction-list */
-  display: flex; /* Necessário para que o .sidenav-container com height:100% dentro dele funcione bem */
-  flex-direction: column; /* Garante que o .sidenav-container possa se expandir corretamente */
-}
-
-// Container do conteúdo das rotas
-.content-container {
-  flex-grow: 1;
-  overflow-y: auto;
-
-  // Quando tem layout (header e menu)
-  &.with-layout {
-    // O conteúdo já é gerenciado pelo side-menu
-    display: none; // Porque o conteúdo vai dentro do side-menu
-  }
-
-  // Quando não tem layout (telas de auth)
-  &.auth-layout {
-    display: block;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-  }
-}
-
-// Header fixo no topo
+// Header
 app-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 1000;
+  flex-shrink: 0;
 }
 
 // Container do sidenav
 .sidenav-container {
   flex: 1;
   overflow: hidden;
+  height: 100%;
 }
 
 // Menu lateral
@@ -66,10 +36,14 @@ app-header {
 }
 
 // Conteúdo principal
-.main-content {
-  padding: 24px;
+mat-sidenav-content {
   overflow-y: auto;
   height: 100%;
+}
+
+.main-content {
+  padding: 24px;
+  min-height: 100%;
 }
 
 // Links do menu
@@ -80,15 +54,15 @@ mat-nav-list {
     transition: all 0.3s ease;
 
     &:hover {
-      background-color: rgba(103, 58, 183, 0.08);
+      background-color: rgba(46, 125, 50, 0.08);
     }
 
     &.active-link {
-      background-color: rgba(103, 58, 183, 0.12);
-      color: #673ab7;
+      background-color: rgba(46, 125, 50, 0.12);
+      color: #2e7d32;
 
       mat-icon {
-        color: #673ab7;
+        color: #2e7d32;
       }
     }
   }

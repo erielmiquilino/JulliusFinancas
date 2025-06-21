@@ -110,7 +110,7 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--primary-gradient);
       z-index: 1;
     }
 
@@ -142,7 +142,7 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
     .forgot-password-header {
       text-align: center;
       padding: 40px 32px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--primary-gradient);
       color: white;
       margin: -24px -24px 0;
     }
@@ -211,11 +211,11 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
       font-size: 18px;
       width: 18px;
       height: 18px;
-      color: #667eea;
+      color: var(--primary-light);
     }
 
     .back-link {
-      color: #667eea;
+      color: var(--primary-light);
       text-decoration: none;
       font-size: 14px;
       font-weight: 500;
@@ -223,7 +223,7 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
     }
 
     .back-link:hover {
-      color: #764ba2;
+      color: var(--primary-color);
       text-decoration: underline;
     }
 
