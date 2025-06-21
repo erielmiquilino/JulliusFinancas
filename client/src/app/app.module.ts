@@ -11,6 +11,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 
+// Firebase imports
+import { AngularFireModule } from '@angular/fire/compat';
+import { AngularFireAuthModule } from '@angular/fire/compat/auth';
+import { environment } from '../environments/environment';
+
 import { AppComponent } from './app.component';
 import { routes } from './app.routes';
 import { HeaderComponent } from './layout/header/header.component';
@@ -33,7 +38,6 @@ const MY_DATE_FORMATS = {
 @NgModule({
   declarations: [
     AppComponent,
-    HeaderComponent,
     SideMenuComponent
   ],
   imports: [
@@ -43,7 +47,11 @@ const MY_DATE_FORMATS = {
     MatToolbarModule,
     MatIconModule,
     MatSidenavModule,
-    MatListModule
+    MatListModule,
+    HeaderComponent,
+    // Firebase configuration
+    AngularFireModule.initializeApp(environment.firebase),
+    AngularFireAuthModule
   ],
   providers: [
     provideHttpClient(),

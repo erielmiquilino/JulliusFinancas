@@ -1,8 +1,32 @@
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
 @import 'app/_custom-theme.scss';
 
 html, body {
   height: 100%;
   margin: 0;
   font-family: 'Roboto', sans-serif;
+}
+
+/* Estilos globais para snackbars */
+.success-snackbar {
+  --mdc-snackbar-container-color: #4caf50 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+  --mat-snack-bar-button-color: white !important;
+}
+
+.error-snackbar {
+  --mdc-snackbar-container-color: #f44336 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+  --mat-snack-bar-button-color: white !important;
+}
+
+/* Melhorias nos form fields */
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+/* Scroll suave */
+* {
+  scroll-behavior: smooth;
 }
 
