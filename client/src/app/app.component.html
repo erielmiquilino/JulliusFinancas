@@ -1,4 +1,34 @@
-<div class="app-container">
-  <app-header class="app-header-flex-item"></app-header>
-  <app-side-menu class="app-side-menu-flex-item"></app-side-menu>
+<!-- Layout para rotas autenticadas (com header e menu) -->
+<div class="app-container" *ngIf="showLayout">
+  <app-header></app-header>
+
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav mode="side" opened class="sidenav">
+      <mat-nav-list>
+        <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link">
+          <mat-icon mat-list-icon>dashboard</mat-icon>
+          <span mat-line>Dashboard</span>
+        </a>
+        <a mat-list-item routerLink="/transactions" routerLinkActive="active-link">
+          <mat-icon mat-list-icon>receipt_long</mat-icon>
+          <span mat-line>Transações</span>
+        </a>
+        <a mat-list-item routerLink="/cards" routerLinkActive="active-link">
+          <mat-icon mat-list-icon>credit_card</mat-icon>
+          <span mat-line>Cartões</span>
+        </a>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <div class="main-content">
+        <router-outlet></router-outlet>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>
+
+<!-- Layout para rotas não autenticadas (sem header e menu) -->
+<div class="auth-container" *ngIf="!showLayout">
+  <router-outlet></router-outlet>
 </div>

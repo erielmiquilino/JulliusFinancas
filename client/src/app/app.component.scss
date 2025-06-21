@@ -8,12 +8,13 @@ html, body {
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Ocupa toda a altura da viewport */
+  height: 100vh;
+  overflow: hidden;
 }
 
 .app-header-flex-item {
   flex-shrink: 0; /* O header não deve encolher */
-  /* z-index: 1000; // Descomente se o header estiver sobrepondo incorretamente */
+  z-index: 1000; /* Descomente se o header estiver sobrepondo incorretamente */
 }
 
 .app-side-menu-flex-item {
@@ -22,4 +23,91 @@ html, body {
                   /* Idealmente, a rolagem granular ocorre dentro de componentes filhos como transaction-list */
   display: flex; /* Necessário para que o .sidenav-container com height:100% dentro dele funcione bem */
   flex-direction: column; /* Garante que o .sidenav-container possa se expandir corretamente */
+}
+
+// Container do conteúdo das rotas
+.content-container {
+  flex-grow: 1;
+  overflow-y: auto;
+
+  // Quando tem layout (header e menu)
+  &.with-layout {
+    // O conteúdo já é gerenciado pelo side-menu
+    display: none; // Porque o conteúdo vai dentro do side-menu
+  }
+
+  // Quando não tem layout (telas de auth)
+  &.auth-layout {
+    display: block;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+// Header fixo no topo
+app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+// Container do sidenav
+.sidenav-container {
+  flex: 1;
+  overflow: hidden;
+}
+
+// Menu lateral
+.sidenav {
+  width: 250px;
+  background-color: #f5f5f5;
+  padding: 16px 0;
+}
+
+// Conteúdo principal
+.main-content {
+  padding: 24px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+// Links do menu
+mat-nav-list {
+  a.mat-list-item {
+    margin: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: rgba(103, 58, 183, 0.08);
+    }
+
+    &.active-link {
+      background-color: rgba(103, 58, 183, 0.12);
+      color: #673ab7;
+
+      mat-icon {
+        color: #673ab7;
+      }
+    }
+  }
+}
+
+// Layout para rotas não autenticadas
+.auth-container {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+// Responsividade
+@media (max-width: 768px) {
+  .sidenav {
+    width: 200px;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
 }
