@@ -9,7 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AuthService } from '../../../../core/auth/services/auth.service';
 
@@ -27,7 +26,6 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatDividerModule,
     MatCheckboxModule
   ],
   template: `
@@ -119,22 +117,6 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
                 ></mat-spinner>
               </button>
             </form>
-
-            <mat-divider class="divider">
-              <span class="divider-text">ou</span>
-            </mat-divider>
-
-            <div class="register-section">
-              <p class="register-text">Não tem uma conta?</p>
-              <a
-                routerLink="/auth/register"
-                mat-button
-                color="accent"
-                class="register-link"
-              >
-                Criar conta
-              </a>
-            </div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -263,39 +245,6 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
       border-radius: 8px;
       margin-top: 8px;
       position: relative;
-    }
-
-    .divider {
-      margin: 24px 0;
-      position: relative;
-    }
-
-    .divider-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 0 16px;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .register-section {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .register-text {
-      margin: 0;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .register-link {
-      font-weight: 600;
     }
 
     /* Responsive */

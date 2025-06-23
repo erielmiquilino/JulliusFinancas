@@ -15,13 +15,6 @@ export const authRoutes: Routes = [
     title: 'Login - Jullius Finanças'
   },
   {
-    path: 'register',
-    loadComponent: () => import('./components/register/register.component')
-      .then(c => c.RegisterComponent),
-    canActivate: [noAuthGuard],
-    title: 'Criar Conta - Jullius Finanças'
-  },
-  {
     path: 'forgot-password',
     loadComponent: () => import('./components/forgot-password/forgot-password.component')
       .then(c => c.ForgotPasswordComponent),

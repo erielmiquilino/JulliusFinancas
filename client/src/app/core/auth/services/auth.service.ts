@@ -1,10 +1,17 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, from, throwError } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
-import { AngularFireAuth } from '@angular/fire/compat/auth';
-import firebase from 'firebase/compat/app';
-import { User, LoginCredentials, RegisterCredentials, AuthState } from '../models/user.model';
+import { catchError, map, tap } from 'rxjs/operators';
+import {
+  Auth,
+  signInWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  User as FirebaseUser,
+  UserCredential
+} from '@angular/fire/auth';
+import { User, LoginCredentials, AuthState } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,18 +20,21 @@ export class AuthService {
   private authStateSubject = new BehaviorSubject<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: true,
+    isLoading: false, // Mudando para false por padrão
     error: null
   });
 
   public authState$ = this.authStateSubject.asObservable();
 
   constructor(
-    private afAuth: AngularFireAuth,
+    private auth: Auth,
     private router: Router
   ) {
+    // Define loading como true enquanto verifica o estado inicial
+    this.setLoading(true);
+
     // Escuta mudanças no estado de autenticação
-    this.afAuth.authState.subscribe((firebaseUser: firebase.User | null) => {
+    onAuthStateChanged(this.auth, (firebaseUser: FirebaseUser | null) => {
       const currentState = this.authStateSubject.value;
 
       if (firebaseUser) {
@@ -57,48 +67,27 @@ export class AuthService {
           error: null
         });
       }
+    }, (error) => {
+      console.error('Erro ao verificar estado de autenticação:', error);
+      const currentState = this.authStateSubject.value;
+      this.authStateSubject.next({
+        ...currentState,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Erro ao verificar autenticação'
+      });
     });
   }
 
   /**
    * Realiza login com email e senha
    */
-  login(credentials: LoginCredentials): Observable<firebase.auth.UserCredential> {
+  login(credentials: LoginCredentials): Observable<UserCredential> {
     this.setLoading(true);
     this.clearError();
 
-    return from(this.afAuth.signInWithEmailAndPassword(credentials.email, credentials.password)).pipe(
-      tap(() => {
-        this.setLoading(false);
-        this.router.navigate(['/dashboard']);
-      }),
-      catchError((error) => {
-        this.setLoading(false);
-        this.setError(this.getErrorMessage(error.code));
-        return throwError(() => error);
-      })
-    );
-  }
-
-  /**
-   * Realiza registro de novo usuário
-   */
-  register(credentials: RegisterCredentials): Observable<firebase.auth.UserCredential> {
-    this.setLoading(true);
-    this.clearError();
-
-    return from(this.afAuth.createUserWithEmailAndPassword(credentials.email, credentials.password)).pipe(
-      switchMap((userCredential) => {
-        // Atualiza o perfil com o nome de usuário se fornecido
-        if (credentials.displayName && userCredential.user) {
-          return from(userCredential.user.updateProfile({
-            displayName: credentials.displayName
-          })).pipe(
-            map(() => userCredential)
-          );
-        }
-        return from([userCredential]);
-      }),
+    return from(signInWithEmailAndPassword(this.auth, credentials.email, credentials.password)).pipe(
       tap(() => {
         this.setLoading(false);
         this.router.navigate(['/dashboard']);
@@ -115,7 +104,7 @@ export class AuthService {
    * Realiza logout
    */
   logout(): Observable<void> {
-    return from(this.afAuth.signOut()).pipe(
+    return from(signOut(this.auth)).pipe(
       tap(() => {
         this.router.navigate(['/auth/login']);
       }),
@@ -133,7 +122,7 @@ export class AuthService {
     this.setLoading(true);
     this.clearError();
 
-    return from(this.afAuth.sendPasswordResetEmail(email)).pipe(
+    return from(sendPasswordResetEmail(this.auth, email)).pipe(
       tap(() => {
         this.setLoading(false);
       }),
@@ -215,8 +204,6 @@ export class AuthService {
         return 'Usuário não encontrado. Verifique o email informado.';
       case 'auth/wrong-password':
         return 'Senha incorreta. Tente novamente.';
-      case 'auth/email-already-in-use':
-        return 'Este email já está sendo usado por outra conta.';
       case 'auth/weak-password':
         return 'A senha deve ter pelo menos 6 caracteres.';
       case 'auth/invalid-email':

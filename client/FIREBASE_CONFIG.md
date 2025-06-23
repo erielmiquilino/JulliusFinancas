@@ -43,6 +43,7 @@ Este documento explica como configurar o Firebase para autenticação no projeto
 Edite os arquivos de ambiente com as configurações do Firebase:
 
 #### `src/environments/environment.ts` (Desenvolvimento)
+
 ```typescript
 export const environment = {
   production: false,
@@ -60,6 +61,7 @@ export const environment = {
 ```
 
 #### `src/environments/environment.prod.ts` (Produção)
+
 ```typescript
 export const environment = {
   production: true,
@@ -127,17 +129,13 @@ service cloud.firestore {
 
 Abra o console do navegador (F12) e verifique se não há erros relacionados ao Firebase.
 
-### 2. Criar Conta de Teste
+### 2. Testar Login
 
-1. Acesse a tela de registro: `http://localhost:4200/auth/register`
-2. Crie uma conta com email e senha
-3. Verifique se o usuário aparece no Firebase Console > Authentication > Users
-
-### 3. Testar Login
-
-1. Faça logout
-2. Tente fazer login com as credenciais criadas
+1. Acesse a tela de login: `http://localhost:4200/auth/login`
+2. Faça login com as credenciais fornecidas pelo administrador
 3. Verifique se é redirecionado para o dashboard
+
+**Nota**: A criação de novas contas só é possível através de convites (funcionalidade a ser implementada).
 
 ## 🔧 Comandos Úteis
 
@@ -158,17 +156,21 @@ npm run build && npx http-server dist/jullius-app
 ## 🚨 Problemas Comuns
 
 ### 1. "FirebaseError: Missing or insufficient permissions"
+
 - Verifique se as regras de segurança estão configuradas
 - Confirme se o usuário está autenticado
 
 ### 2. "FirebaseError: Invalid API key"
+
 - Verifique se a API key está correta no environment
 - Confirme se o projeto Firebase está ativo
 
 ### 3. "FirebaseError: Domain not authorized"
+
 - Adicione o domínio em Authentication > Settings > Authorized domains
 
 ### 4. Erro de CORS
+
 - Verifique se está rodando na porta correta (4200)
 - Confirme se o domínio está autorizado no Firebase
 
@@ -180,7 +182,8 @@ npm run build && npx http-server dist/jullius-app
 
 ## 🛡️ Segurança
 
-⚠️ **IMPORTANTE**: 
+⚠️ **IMPORTANTE**:
+
 - Nunca commite as chaves do Firebase no repositório
 - Use variáveis de ambiente em produção
 - Configure regras de segurança adequadas
@@ -195,8 +198,7 @@ npm run build && npx http-server dist/jullius-app
 - [ ] App web registrado no Firebase
 - [ ] Variáveis de ambiente configuradas
 - [ ] Domínios autorizados adicionados
-- [ ] Teste de registro realizado
 - [ ] Teste de login realizado
 - [ ] Console sem erros Firebase
 
-🎉 **Configuração concluída com sucesso!** 
+🎉 **Configuração concluída com sucesso!**
