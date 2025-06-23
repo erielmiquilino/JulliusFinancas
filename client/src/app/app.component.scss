@@ -38,12 +38,11 @@ app-header {
 // Conteúdo principal
 mat-sidenav-content {
   overflow-y: auto;
-  height: 100%;
+  height: calc(100vh - 60px);
 }
 
 .main-content {
   padding: 24px;
-  min-height: 100%;
 }
 
 // Links do menu

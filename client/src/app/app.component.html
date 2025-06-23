@@ -4,20 +4,7 @@
 
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav mode="side" opened class="sidenav">
-      <mat-nav-list>
-        <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link">
-          <mat-icon mat-list-icon>dashboard</mat-icon>
-          <span mat-line>Dashboard</span>
-        </a>
-        <a mat-list-item routerLink="/transactions" routerLinkActive="active-link">
-          <mat-icon mat-list-icon>receipt_long</mat-icon>
-          <span mat-line>Transações</span>
-        </a>
-        <a mat-list-item routerLink="/cards" routerLinkActive="active-link">
-          <mat-icon mat-list-icon>credit_card</mat-icon>
-          <span mat-line>Cartões</span>
-        </a>
-      </mat-nav-list>
+      <app-side-menu></app-side-menu>
     </mat-sidenav>
 
     <mat-sidenav-content>

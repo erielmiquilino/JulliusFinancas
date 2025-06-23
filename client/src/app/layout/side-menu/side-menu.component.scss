@@ -1,14 +1,5 @@
-.sidenav-container {
-  height: 100%;
-}
-
-.sidenav {
-  width: 200px;
-}
-
-.mat-nav-list .mat-list-item.active-link {
-  background-color: rgba(0, 0, 0, 0.1); /* Um fundo sutil para o item ativo */
-  /* Ou você pode mudar a cor do texto, por exemplo: */
-  /* color: mat.get-color-from-palette(mat.define-palette(mat.blue-grey-palette), 'darker'); */
-  font-weight: bold; /* Deixa o texto em negrito */
+.menu-item-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }

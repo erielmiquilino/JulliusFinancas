@@ -22,6 +22,7 @@ import { routes } from './app.routes';
 import { HeaderComponent } from './layout/header/header.component';
 import { SideMenuComponent } from './layout/side-menu/side-menu.component';
 
+
 registerLocaleData(localePt);
 
 const MY_DATE_FORMATS = {
@@ -38,8 +39,7 @@ const MY_DATE_FORMATS = {
 
 @NgModule({
   declarations: [
-    AppComponent,
-    SideMenuComponent
+    AppComponent
   ],
   imports: [
     BrowserModule,
@@ -50,7 +50,8 @@ const MY_DATE_FORMATS = {
     MatIconModule,
     MatSidenavModule,
     MatListModule,
-    HeaderComponent
+    HeaderComponent,
+    SideMenuComponent
   ],
   providers: [
     provideHttpClient(),
