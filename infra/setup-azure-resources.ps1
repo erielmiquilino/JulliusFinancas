@@ -12,10 +12,7 @@ param(
     [string]$ResourceGroup = "rg-jullius-prod",
     
     [Parameter(Mandatory=$false)]
-    [string]$Location = "eastus",
-    
-    [Parameter(Mandatory=$false)]
-    [string]$Environment = "production"
+    [string]$Location = "eastus"
 )
 
 Write-Host "🚀 Iniciando configuração do Azure para Jullius Finanças" -ForegroundColor Green
@@ -36,7 +33,7 @@ Write-Host "📌 Subscription: $($account.name) ($($account.id))" -ForegroundCol
 # Variáveis
 $subscriptionId = $account.id
 $tenantId = $account.tenantId
-$appName = "jullius-github-actions-$Environment"
+$appName = "jullius-github-actions"
 
 # Criar Resource Group
 Write-Host "`n📦 Criando Resource Group..." -ForegroundColor Yellow
@@ -93,11 +90,6 @@ $federatedCreds = @(
         name = "github-pr"
         subject = "repo:${GitHubOrg}/${GitHubRepo}:pull_request"
         description = "Deploy from pull requests"
-    },
-    @{
-        name = "github-env-$Environment"
-        subject = "repo:${GitHubOrg}/${GitHubRepo}:environment:$Environment"
-        description = "Deploy to $Environment environment"
     }
 )
 

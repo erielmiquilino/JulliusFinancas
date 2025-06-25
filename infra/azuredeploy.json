@@ -59,7 +59,7 @@
     }
   },
   "variables": {
-    "postgresqlConnectionString": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), '@', parameters('postgresqlServerName'), ';Password={your_password}')]"
+    "postgresqlConnectionString": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), '@', parameters('postgresqlServerName'), ';Password=', parameters('postgresqlAdminPassword'), ';Ssl Mode=Require;')]"
   },
   "resources": [
     {
@@ -144,7 +144,7 @@
       },
       "properties": {
         "createMode": "Default",
-        "version": "12",
+        "version": "11",
         "administratorLogin": "[parameters('postgresqlAdminLogin')]",
         "administratorLoginPassword": "[parameters('postgresqlAdminPassword')]",
         "storageProfile": {
@@ -166,7 +166,7 @@
       ],
       "properties": {
         "charset": "UTF8",
-        "collation": "English_United States.1252"
+        "collation": "en_US.utf8"
       }
     },
     {
