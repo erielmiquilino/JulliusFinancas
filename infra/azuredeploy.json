@@ -58,9 +58,7 @@
       }
     }
   },
-  "variables": {
-    "postgresqlConnectionString": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), '@', parameters('postgresqlServerName'), ';Password=', parameters('postgresqlAdminPassword'), ';Ssl Mode=Require;')]"
-  },
+  "variables": {},
   "resources": [
     {
       "type": "Microsoft.Web/serverfarms",
@@ -100,14 +98,7 @@
             },
             {
               "name": "ConnectionStrings__DefaultConnection",
-              "value": "[variables('postgresqlConnectionString')]"
-            }
-          ],
-          "connectionStrings": [
-            {
-              "name": "DefaultConnection",
-              "connectionString": "[variables('postgresqlConnectionString')]",
-              "type": "PostgreSQL"
+              "value": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), '@', parameters('postgresqlServerName'), ';Password=', parameters('postgresqlAdminPassword'), ';Ssl Mode=Require;')]"
             }
           ]
         },
@@ -200,4 +191,4 @@
       "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName]"
     }
   }
-} 
+}
