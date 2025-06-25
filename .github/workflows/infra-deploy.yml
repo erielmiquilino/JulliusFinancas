@@ -63,10 +63,10 @@ jobs:
     - name: Configure PostgreSQL Firewall for GitHub Actions
       run: |
         # Adiciona regra temporária para GitHub Actions
-        az postgres server firewall-rule create \
+        az postgres flexible-server firewall-rule create \
           --resource-group ${{ github.event.inputs.resourceGroupName }} \
-          --server-name ${{ steps.get-outputs.outputs.POSTGRES_SERVER }} \
-          --name AllowGitHubActions \
+          --name ${{ steps.get-outputs.outputs.POSTGRES_SERVER }} \
+          --rule-name AllowGitHubActions \
           --start-ip-address 0.0.0.0 \
           --end-ip-address 255.255.255.255
 

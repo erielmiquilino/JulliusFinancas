@@ -84,7 +84,7 @@
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
-        "[resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))]"
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))]"
       ],
       "kind": "app,linux",
       "properties": {
@@ -98,11 +98,11 @@
             },
             {
               "name": "ConnectionStrings__DefaultConnection",
-              "value": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), '@', parameters('postgresqlServerName'), ';Password=', parameters('postgresqlAdminPassword'), ';Ssl Mode=Require;')]"
+              "value": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), '@', parameters('postgresqlServerName'), ';Password=', parameters('postgresqlAdminPassword'), ';Ssl Mode=Require;')]"
             }
           ]
         },
-        "httpsOnly": true
+        "onlyHttps": true
       }
     },
     {
@@ -123,37 +123,39 @@
       }
     },
     {
-      "type": "Microsoft.DBforPostgreSQL/servers",
-      "apiVersion": "2017-12-01",
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "apiVersion": "2022-12-01",
       "name": "[parameters('postgresqlServerName')]",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "B_Gen5_1",
-        "tier": "Basic",
-        "family": "Gen5",
-        "capacity": 1
+        "name": "Standard_B1ms",
+        "tier": "Burstable"
       },
       "properties": {
-        "createMode": "Default",
-        "version": "11",
+        "version": "14",
         "administratorLogin": "[parameters('postgresqlAdminLogin')]",
         "administratorLoginPassword": "[parameters('postgresqlAdminPassword')]",
-        "storageProfile": {
-          "storageMB": 5120,
-          "backupRetentionDays": 7,
-          "geoRedundantBackup": "Disabled",
-          "storageAutogrow": "Enabled"
+        "storage": {
+          "storageSizeGB": 32
         },
-        "sslEnforcement": "Enabled",
-        "publicNetworkAccess": "Enabled"
+        "backup": {
+          "backupRetentionDays": 7,
+          "geoRedundantBackup": "Disabled"
+        },
+        "network": {
+            "publicNetworkAccess": "Enabled"
+        },
+        "highAvailability": {
+            "mode": "Disabled"
+        }
       }
     },
     {
-      "type": "Microsoft.DBforPostgreSQL/servers/databases",
-      "apiVersion": "2017-12-01",
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+      "apiVersion": "2022-12-01",
       "name": "[concat(parameters('postgresqlServerName'), '/', parameters('databaseName'))]",
       "dependsOn": [
-        "[resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))]"
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))]"
       ],
       "properties": {
         "charset": "UTF8",
@@ -161,11 +163,11 @@
       }
     },
     {
-      "type": "Microsoft.DBforPostgreSQL/servers/firewallRules",
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
       "apiVersion": "2017-12-01",
       "name": "[concat(parameters('postgresqlServerName'), '/AllowAzureServices')]",
       "dependsOn": [
-        "[resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))]"
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))]"
       ],
       "properties": {
         "startIpAddress": "0.0.0.0",
@@ -188,7 +190,7 @@
     },
     "postgresqlFQDN": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName]"
+      "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))).fullyQualifiedDomainName]"
     }
   }
 }
