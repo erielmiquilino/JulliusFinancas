@@ -7,15 +7,11 @@ on:
         description: 'Nome do Resource Group'
         required: true
         default: 'rg-jullius-prod'
-      environment:
-        description: 'Ambiente de deploy'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - development
-          - staging
-          - production
+
+# Adicionar permissões necessárias para OIDC
+permissions:
+  id-token: write
+  contents: read
 
 env:
   AZURE_REGION: 'eastus'
@@ -24,7 +20,6 @@ jobs:
   deploy-infrastructure:
     name: Deploy Infrastructure
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
     
     steps:
     - name: Checkout code
@@ -96,7 +91,7 @@ jobs:
           --name $(echo "${{ steps.get-outputs.outputs.WEBAPP_URL }}" | sed 's|https://||' | sed 's|.azurewebsites.net||') \
           --settings \
             "ConnectionStrings__DefaultConnection=Server=${{ steps.get-outputs.outputs.POSTGRES_FQDN }};Database=julliusdb;Port=5432;User Id=julliusadmin@${{ steps.get-outputs.outputs.POSTGRES_SERVER }};Password=${{ secrets.PG_ADMIN_PASSWORD }};Ssl Mode=Require;" \
-            "ASPNETCORE_ENVIRONMENT=${{ github.event.inputs.environment }}"
+            "ASPNETCORE_ENVIRONMENT=Production"
 
     - name: Summary
       run: |
@@ -104,7 +99,6 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Resources Deployed:" >> $GITHUB_STEP_SUMMARY
         echo "- **Resource Group:** ${{ github.event.inputs.resourceGroupName }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Web App URL:** ${{ steps.get-outputs.outputs.WEBAPP_URL }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Static Web App URL:** ${{ steps.get-outputs.outputs.STATIC_WEBAPP_URL }}" >> $GITHUB_STEP_SUMMARY
         echo "- **PostgreSQL Server:** ${{ steps.get-outputs.outputs.POSTGRES_SERVER }}" >> $GITHUB_STEP_SUMMARY
