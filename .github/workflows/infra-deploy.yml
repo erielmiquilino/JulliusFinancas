@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  AZURE_REGION: 'eastus'
+  AZURE_REGION: 'eastus2'
 
 jobs:
   deploy-infrastructure:
@@ -43,11 +43,9 @@ jobs:
         az deployment group create \
           --resource-group ${{ github.event.inputs.resourceGroupName }} \
           --template-file ./infra/azuredeploy.json \
-          --parameters ./infra/azuredeploy.parameters.json \
           --parameters postgresqlAdminPassword="${{ secrets.PG_ADMIN_PASSWORD }}" \
           --name jullius-deployment-${{ github.run_number }} \
-          --verbose \
-          --debug
+          --verbose
 
     - name: Get deployment outputs
       id: get-outputs

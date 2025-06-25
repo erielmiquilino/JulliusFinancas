@@ -12,7 +12,7 @@ param(
     [string]$ResourceGroup = "rg-jullius-prod",
     
     [Parameter(Mandatory=$false)]
-    [string]$Location = "eastus"
+    [string]$Location = "eastus2"
 )
 
 Write-Host "🚀 Iniciando configuração do Azure para Jullius Finanças" -ForegroundColor Green
