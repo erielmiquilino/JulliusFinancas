@@ -1,0 +1,203 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webAppName": {
+      "type": "string",
+      "defaultValue": "[concat('jullius-api-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Nome único para o Web App do .NET API"
+      }
+    },
+    "staticWebAppName": {
+      "type": "string",
+      "defaultValue": "[concat('jullius-spa-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Nome único para o Static Web App do Angular"
+      }
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "[concat('jullius-plan-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Nome do App Service Plan"
+      }
+    },
+    "postgresqlServerName": {
+      "type": "string",
+      "defaultValue": "[concat('jullius-db-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Nome único do servidor PostgreSQL"
+      }
+    },
+    "postgresqlAdminLogin": {
+      "type": "string",
+      "defaultValue": "julliusadmin",
+      "metadata": {
+        "description": "Nome de usuário administrador do PostgreSQL"
+      }
+    },
+    "postgresqlAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Senha do administrador do PostgreSQL"
+      }
+    },
+    "databaseName": {
+      "type": "string",
+      "defaultValue": "julliusdb",
+      "metadata": {
+        "description": "Nome do banco de dados"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Localização para todos os recursos"
+      }
+    }
+  },
+  "variables": {
+    "postgresqlConnectionString": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), '@', parameters('postgresqlServerName'), ';Password={your_password}')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "F1",
+        "tier": "Free",
+        "size": "F1",
+        "family": "F",
+        "capacity": 0
+      },
+      "kind": "linux",
+      "properties": {
+        "reserved": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('webAppName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "[resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))]"
+      ],
+      "kind": "app,linux",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "siteConfig": {
+          "linuxFxVersion": "DOTNETCORE|9.0",
+          "appSettings": [
+            {
+              "name": "ASPNETCORE_ENVIRONMENT",
+              "value": "Production"
+            },
+            {
+              "name": "ConnectionStrings__DefaultConnection",
+              "value": "[variables('postgresqlConnectionString')]"
+            }
+          ],
+          "connectionStrings": [
+            {
+              "name": "DefaultConnection",
+              "connectionString": "[variables('postgresqlConnectionString')]",
+              "type": "PostgreSQL"
+            }
+          ]
+        },
+        "httpsOnly": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/staticSites",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('staticWebAppName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Free",
+        "tier": "Free"
+      },
+      "properties": {
+        "repositoryUrl": "",
+        "branch": "",
+        "stagingEnvironmentPolicy": "Enabled",
+        "allowConfigFileUpdates": true,
+        "provider": "None"
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/servers",
+      "apiVersion": "2017-12-01",
+      "name": "[parameters('postgresqlServerName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "B_Gen5_1",
+        "tier": "Basic",
+        "family": "Gen5",
+        "capacity": 1
+      },
+      "properties": {
+        "createMode": "Default",
+        "version": "12",
+        "administratorLogin": "[parameters('postgresqlAdminLogin')]",
+        "administratorLoginPassword": "[parameters('postgresqlAdminPassword')]",
+        "storageProfile": {
+          "storageMB": 5120,
+          "backupRetentionDays": 7,
+          "geoRedundantBackup": "Disabled",
+          "storageAutogrow": "Enabled"
+        },
+        "sslEnforcement": "Enabled",
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/servers/databases",
+      "apiVersion": "2017-12-01",
+      "name": "[concat(parameters('postgresqlServerName'), '/', parameters('databaseName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))]"
+      ],
+      "properties": {
+        "charset": "UTF8",
+        "collation": "English_United States.1252"
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/servers/firewallRules",
+      "apiVersion": "2017-12-01",
+      "name": "[concat(parameters('postgresqlServerName'), '/AllowAzureServices')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))]"
+      ],
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      }
+    }
+  ],
+  "outputs": {
+    "webAppUrl": {
+      "type": "string",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', parameters('webAppName'))).defaultHostName)]"
+    },
+    "staticWebAppUrl": {
+      "type": "string",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/staticSites', parameters('staticWebAppName'))).defaultHostname)]"
+    },
+    "postgresqlServerName": {
+      "type": "string",
+      "value": "[parameters('postgresqlServerName')]"
+    },
+    "postgresqlFQDN": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/servers', parameters('postgresqlServerName'))).fullyQualifiedDomainName]"
+    }
+  }
+} 

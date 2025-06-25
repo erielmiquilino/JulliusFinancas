@@ -1,0 +1,214 @@
+name: Deploy .NET API
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-dotnet.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente de deploy'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      resourceGroup:
+        description: 'Resource Group'
+        required: true
+        default: 'rg-jullius-prod'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  API_PROJECT_PATH: './server/src/Jullius.ServiceApi'
+  OUTPUT_PATH: './output'
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy .NET API
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      working-directory: ${{ env.API_PROJECT_PATH }}
+      run: dotnet restore
+
+    - name: Run tests
+      working-directory: ./server/src
+      run: |
+        # Procura por projetos de teste e executa
+        find . -name "*.Tests.csproj" -o -name "*.Test.csproj" | while read testproject; do
+          echo "Running tests for $testproject"
+          dotnet test "$testproject" --no-restore --verbosity normal --logger trx --results-directory ./TestResults
+        done
+      continue-on-error: true
+
+    - name: Build application
+      working-directory: ${{ env.API_PROJECT_PATH }}
+      run: |
+        dotnet build --configuration Release --no-restore
+        dotnet publish --configuration Release --output ${{ env.OUTPUT_PATH }} --no-build
+
+    - name: Create deployment package
+      run: |
+        cd ${{ env.API_PROJECT_PATH }}/${{ env.OUTPUT_PATH }}
+        zip -r ../../../deployment-package.zip .
+        cd ../../../
+        ls -la deployment-package.zip
+
+    - name: Azure Login via OIDC
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Get Web App name
+      id: get-webapp-name
+      run: |
+        RESOURCE_GROUP="${{ github.event.inputs.resourceGroup || 'rg-jullius-prod' }}"
+        
+        # Lista todos os web apps no resource group
+        WEBAPP_NAME=$(az webapp list \
+          --resource-group $RESOURCE_GROUP \
+          --query "[?kind=='app,linux' && contains(name, 'jullius-api')].name" \
+          --output tsv | head -n 1)
+        
+        if [ -z "$WEBAPP_NAME" ]; then
+          echo "❌ Web App não encontrado no Resource Group: $RESOURCE_GROUP"
+          exit 1
+        fi
+        
+        echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_OUTPUT
+        echo "✅ Web App encontrado: $WEBAPP_NAME"
+
+    - name: Deploy to Azure Web App
+      run: |
+        az webapp deploy \
+          --resource-group ${{ github.event.inputs.resourceGroup || 'rg-jullius-prod' }} \
+          --name ${{ steps.get-webapp-name.outputs.WEBAPP_NAME }} \
+          --src-path ./deployment-package.zip \
+          --type zip \
+          --async false
+
+    - name: Verify deployment
+      run: |
+        # Aguarda alguns segundos para o app iniciar
+        sleep 30
+        
+        # Obtém a URL do Web App
+        WEBAPP_URL=$(az webapp show \
+          --resource-group ${{ github.event.inputs.resourceGroup || 'rg-jullius-prod' }} \
+          --name ${{ steps.get-webapp-name.outputs.WEBAPP_NAME }} \
+          --query defaultHostName --output tsv)
+        
+        # Testa se a API está respondendo
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://$WEBAPP_URL/health || echo "000")
+        
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "✅ API está respondendo corretamente!"
+        else
+          echo "⚠️ API retornou código HTTP: $HTTP_CODE"
+        fi
+
+    - name: Update deployment slots (if production)
+      if: github.event.inputs.environment == 'production' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      run: |
+        # Verifica se existe slot de staging
+        STAGING_EXISTS=$(az webapp deployment slot list \
+          --resource-group ${{ github.event.inputs.resourceGroup || 'rg-jullius-prod' }} \
+          --name ${{ steps.get-webapp-name.outputs.WEBAPP_NAME }} \
+          --query "[?name=='staging'].name" --output tsv)
+        
+        if [ ! -z "$STAGING_EXISTS" ]; then
+          echo "🔄 Realizando swap de slots (staging -> production)"
+          az webapp deployment slot swap \
+            --resource-group ${{ github.event.inputs.resourceGroup || 'rg-jullius-prod' }} \
+            --name ${{ steps.get-webapp-name.outputs.WEBAPP_NAME }} \
+            --slot staging \
+            --target-slot production
+        fi
+
+    - name: Clean up
+      if: always()
+      run: |
+        rm -f deployment-package.zip
+        rm -rf ${{ env.API_PROJECT_PATH }}/${{ env.OUTPUT_PATH }}
+
+    - name: Deployment summary
+      run: |
+        echo "## 🚀 .NET API Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Information:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment:** ${{ github.event.inputs.environment || 'production' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Resource Group:** ${{ github.event.inputs.resourceGroup || 'rg-jullius-prod' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Web App:** ${{ steps.get-webapp-name.outputs.WEBAPP_NAME }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Build Information:" >> $GITHUB_STEP_SUMMARY
+        echo "- **.NET Version:** ${{ env.DOTNET_VERSION }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Configuration:** Release" >> $GITHUB_STEP_SUMMARY
+        echo "- **Package Size:** $(ls -lh deployment-package.zip 2>/dev/null | awk '{print $5}' || echo 'N/A')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Deployment completed successfully!" >> $GITHUB_STEP_SUMMARY
+
+  api-health-check:
+    name: API Health Check
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    if: success()
+    
+    steps:
+    - name: Azure Login via OIDC
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Run health checks
+      run: |
+        RESOURCE_GROUP="${{ github.event.inputs.resourceGroup || 'rg-jullius-prod' }}"
+        
+        # Obtém a URL do Web App
+        WEBAPP_URL=$(az webapp list \
+          --resource-group $RESOURCE_GROUP \
+          --query "[?kind=='app,linux' && contains(name, 'jullius-api')].defaultHostName" \
+          --output tsv | head -n 1)
+        
+        echo "🔍 Executando health checks em: https://$WEBAPP_URL"
+        
+        # Testa endpoints críticos
+        endpoints=("/health" "/api/cards" "/api/financial-transactions")
+        
+        for endpoint in "${endpoints[@]}"; do
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://$WEBAPP_URL$endpoint || echo "000")
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ]; then
+            echo "✅ $endpoint - HTTP $HTTP_CODE"
+          else
+            echo "❌ $endpoint - HTTP $HTTP_CODE"
+          fi
+        done 

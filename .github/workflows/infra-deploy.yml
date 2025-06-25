@@ -1,0 +1,114 @@
+name: Infrastructure Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      resourceGroupName:
+        description: 'Nome do Resource Group'
+        required: true
+        default: 'rg-jullius-prod'
+      environment:
+        description: 'Ambiente de deploy'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+env:
+  AZURE_REGION: 'eastus'
+
+jobs:
+  deploy-infrastructure:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login via OIDC
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Create Resource Group
+      run: |
+        az group create \
+          --name ${{ github.event.inputs.resourceGroupName }} \
+          --location ${{ env.AZURE_REGION }}
+
+    - name: Deploy ARM Template
+      uses: azure/arm-deploy@v1
+      with:
+        resourceGroupName: ${{ github.event.inputs.resourceGroupName }}
+        template: ./infra/azuredeploy.json
+        parameters: ./infra/azuredeploy.parameters.json postgresqlAdminPassword=${{ secrets.PG_ADMIN_PASSWORD }}
+        deploymentMode: Incremental
+        deploymentName: jullius-deployment-${{ github.run_number }}
+
+    - name: Get deployment outputs
+      id: get-outputs
+      run: |
+        outputs=$(az deployment group show \
+          --resource-group ${{ github.event.inputs.resourceGroupName }} \
+          --name jullius-deployment-${{ github.run_number }} \
+          --query properties.outputs -o json)
+        
+        echo "WEBAPP_URL=$(echo $outputs | jq -r '.webAppUrl.value')" >> $GITHUB_OUTPUT
+        echo "STATIC_WEBAPP_URL=$(echo $outputs | jq -r '.staticWebAppUrl.value')" >> $GITHUB_OUTPUT
+        echo "POSTGRES_SERVER=$(echo $outputs | jq -r '.postgresqlServerName.value')" >> $GITHUB_OUTPUT
+        echo "POSTGRES_FQDN=$(echo $outputs | jq -r '.postgresqlFQDN.value')" >> $GITHUB_OUTPUT
+
+    - name: Configure PostgreSQL Firewall for GitHub Actions
+      run: |
+        # Adiciona regra temporária para GitHub Actions
+        az postgres server firewall-rule create \
+          --resource-group ${{ github.event.inputs.resourceGroupName }} \
+          --server-name ${{ steps.get-outputs.outputs.POSTGRES_SERVER }} \
+          --name AllowGitHubActions \
+          --start-ip-address 0.0.0.0 \
+          --end-ip-address 255.255.255.255
+
+    - name: Run Database Migrations
+      run: |
+        # Instala ferramentas do .NET Entity Framework
+        dotnet tool install --global dotnet-ef
+        
+        # Navega para o projeto de dados
+        cd server/src/Jullius.Data
+        
+        # Executa as migrations
+        CONNECTION_STRING="Server=${{ steps.get-outputs.outputs.POSTGRES_FQDN }};Database=julliusdb;Port=5432;User Id=julliusadmin@${{ steps.get-outputs.outputs.POSTGRES_SERVER }};Password=${{ secrets.PG_ADMIN_PASSWORD }};Ssl Mode=Require;"
+        
+        dotnet ef database update --connection "$CONNECTION_STRING" --verbose
+
+    - name: Update Application Settings
+      run: |
+        # Atualiza configurações do Web App
+        az webapp config appsettings set \
+          --resource-group ${{ github.event.inputs.resourceGroupName }} \
+          --name $(echo "${{ steps.get-outputs.outputs.WEBAPP_URL }}" | sed 's|https://||' | sed 's|.azurewebsites.net||') \
+          --settings \
+            "ConnectionStrings__DefaultConnection=Server=${{ steps.get-outputs.outputs.POSTGRES_FQDN }};Database=julliusdb;Port=5432;User Id=julliusadmin@${{ steps.get-outputs.outputs.POSTGRES_SERVER }};Password=${{ secrets.PG_ADMIN_PASSWORD }};Ssl Mode=Require;" \
+            "ASPNETCORE_ENVIRONMENT=${{ github.event.inputs.environment }}"
+
+    - name: Summary
+      run: |
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Resources Deployed:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Resource Group:** ${{ github.event.inputs.resourceGroupName }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Web App URL:** ${{ steps.get-outputs.outputs.WEBAPP_URL }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Static Web App URL:** ${{ steps.get-outputs.outputs.STATIC_WEBAPP_URL }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **PostgreSQL Server:** ${{ steps.get-outputs.outputs.POSTGRES_SERVER }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Deploy the Angular app using the **Deploy Angular App** workflow" >> $GITHUB_STEP_SUMMARY
+        echo "2. Deploy the .NET API using the **Deploy .NET API** workflow" >> $GITHUB_STEP_SUMMARY 

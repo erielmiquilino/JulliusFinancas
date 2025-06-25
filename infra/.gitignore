@@ -1,0 +1,22 @@
+# Secrets e configurações sensíveis
+github-secrets.txt
+*.secrets
+*.pfx
+*.key
+*.pem
+
+# Arquivos de parâmetros locais
+azuredeploy.parameters.local.json
+*.local.json
+
+# Logs e outputs
+*.log
+deployment-outputs.json
+
+# Backups
+*.bak
+*.backup
+
+# Temporários
+*.tmp
+*.temp 
