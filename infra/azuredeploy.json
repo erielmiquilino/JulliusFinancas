@@ -164,7 +164,7 @@
     },
     {
       "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
-      "apiVersion": "2017-12-01",
+      "apiVersion": "2024-08-01",
       "name": "[concat(parameters('postgresqlServerName'), '/AllowAzureServices')]",
       "dependsOn": [
         "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))]"
