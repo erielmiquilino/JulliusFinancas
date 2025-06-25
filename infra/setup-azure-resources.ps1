@@ -102,18 +102,20 @@ $federatedCreds = @(
 )
 
 foreach ($cred in $federatedCreds) {
-    $credJson = @{
-        name = $cred.name
-        issuer = "https://token.actions.githubusercontent.com"
-        subject = $cred.subject
-        description = $cred.description
-        audiences = @("api://AzureADTokenExchange")
-    } | ConvertTo-Json -Compress
+    # Criar JSON como string com escape adequado para PowerShell
+    $credJsonString = "{`"name`":`"$($cred.name)`",`"issuer`":`"https://token.actions.githubusercontent.com`",`"subject`":`"$($cred.subject)`",`"description`":`"$($cred.description)`",`"audiences`":[`"api://AzureADTokenExchange`"]}"
 
     $existingCred = az ad app federated-credential list --id $appId --query "[?name=='$($cred.name)']" | ConvertFrom-Json
     if ($existingCred.Count -eq 0) {
-        az ad app federated-credential create --id $appId --parameters $credJson
-        Write-Host "✅ Federated credential '$($cred.name)' criado" -ForegroundColor Green
+        # Usar arquivo temporário para evitar problemas de escape
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        $credJsonString | Out-File -FilePath $tempFile -Encoding UTF8 -NoNewline
+        try {
+            az ad app federated-credential create --id $appId --parameters "@$tempFile"
+            Write-Host "✅ Federated credential '$($cred.name)' criado" -ForegroundColor Green
+        } finally {
+            Remove-Item $tempFile -ErrorAction SilentlyContinue
+        }
     } else {
         Write-Host "ℹ️  Federated credential '$($cred.name)' já existe" -ForegroundColor Cyan
     }
@@ -121,8 +123,9 @@ foreach ($cred in $federatedCreds) {
 
 # Gerar senha para PostgreSQL
 Write-Host "`n🔐 Gerando senha segura para PostgreSQL..." -ForegroundColor Yellow
-Add-Type -AssemblyName System.Web
-$pgPassword = [System.Web.Security.Membership]::GeneratePassword(32, 8)
+# Usar método alternativo que não depende de System.Web
+$chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+$pgPassword = -join ((1..32) | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
 Write-Host "✅ Senha gerada (mantenha em local seguro!)" -ForegroundColor Green
 
 # Criar arquivo de secrets
@@ -142,7 +145,7 @@ API_URL=<será definido após deploy do Web App>
 STATIC_WEB_APP_URL=<será definido após deploy do Static Web App>
 "@
 
-$secretsFile = "infra\github-secrets.txt"
+$secretsFile = "github-secrets.txt"
 $secretsContent | Out-File -FilePath $secretsFile -Encoding UTF8
 Write-Host "✅ Arquivo de secrets criado em: $secretsFile" -ForegroundColor Green
 
@@ -162,7 +165,7 @@ Write-Host "   gh secret set AZURE_SUBSCRIPTION_ID --body `"$subscriptionId`"" -
 Write-Host "   gh secret set PG_ADMIN_PASSWORD --body `"$pgPassword`"" -ForegroundColor DarkGray
 
 # Criar .gitignore para o arquivo de secrets
-if (-not (Test-Path "infra\.gitignore")) {
-    "github-secrets.txt" | Out-File -FilePath "infra\.gitignore" -Encoding UTF8
+if (-not (Test-Path ".gitignore")) {
+    "github-secrets.txt" | Out-File -FilePath ".gitignore" -Encoding UTF8
     Write-Host "`n⚠️  Arquivo .gitignore criado em infra/ para proteger os secrets" -ForegroundColor Yellow
 } 
