@@ -1,13 +1,12 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://your-production-api.com/api',
+  apiUrl: (window as any)["env"]["apiUrl"] || '',
   firebase: {
-    projectId: 'your-production-project-id',
-    appId: 'your-production-app-id',
-    storageBucket: 'your-production-storage-bucket',
-    apiKey: 'your-production-api-key',
-    authDomain: 'your-production-auth-domain',
-    messagingSenderId: 'your-production-messaging-sender-id',
-    measurementId: 'your-production-measurement-id',
+    projectId: (window as any)["env"]["firebaseProjectId"] || 'your-production-project-id',
+    appId: (window as any)["env"]["firebaseAppId"] || 'your-production-app-id',
+    storageBucket: (window as any)["env"]["firebaseStorageBucket"] || 'your-production-storage-bucket',
+    apiKey: (window as any)["env"]["firebaseApiKey"] || 'your-production-api-key',
+    authDomain: (window as any)["env"]["firebaseAuthDomain"] || 'your-production-auth-domain',
+    messagingSenderId: (window as any)["env"]["firebaseMessagingSenderId"] || 'your-production-messaging-sender-id',
   }
 };

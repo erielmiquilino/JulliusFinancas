@@ -35,7 +35,9 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "src/assets/env.js"
+            ]
           },
           "configurations": {
             "production": {
@@ -98,7 +100,9 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "src/assets/env.js"
+            ]
           }
         }
       }
