@@ -98,7 +98,7 @@
             },
             {
               "name": "ConnectionStrings__DefaultConnection",
-              "value": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), '@', parameters('postgresqlServerName'), ';Password=', parameters('postgresqlAdminPassword'), ';Ssl Mode=Require;')]"
+              "value": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), ';Password=', parameters('postgresqlAdminPassword'), ';Ssl Mode=Require;')]"
             }
           ]
         },
