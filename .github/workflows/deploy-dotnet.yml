@@ -9,6 +9,10 @@ on:
       - '.github/workflows/deploy-dotnet.yml'
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   DOTNET_VERSION: '9.0.x'
   API_PROJECT_PATH: './server/src/Jullius.ServiceApi'
@@ -65,7 +69,7 @@ jobs:
         ls -la deployment-package.zip
 
     - name: Azure Login via OIDC
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -149,7 +153,7 @@ jobs:
     
     steps:
     - name: Azure Login via OIDC
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
