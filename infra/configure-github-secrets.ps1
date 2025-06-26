@@ -76,7 +76,7 @@ if (-not $webApp) {
     Write-Host "❌ Nenhum App Service com 'jullius-api' no nome foi encontrado no resource group '$ResourceGroup'." -ForegroundColor Red
     return
 }
-$apiUrl = "https://$($webApp.url)"
+$apiUrl = "https://$($webApp.url)/api"
 Write-Host "   ✅ API URL: $apiUrl" -ForegroundColor Cyan
 
 # Obter nome, URL e token do Static Web App
