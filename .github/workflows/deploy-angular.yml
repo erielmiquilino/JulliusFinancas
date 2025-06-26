@@ -43,6 +43,7 @@ jobs:
       working-directory: ./client
       run: |
         echo "Creating environment file..."
+        mkdir -p src/assets
         cat > src/assets/env.js << EOF
         (function (window) {
           window["env"] = window["env"] || {};
