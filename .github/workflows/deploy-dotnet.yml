@@ -64,8 +64,8 @@ jobs:
     - name: Create deployment package
       run: |
         cd ${{ env.API_PROJECT_PATH }}/${{ env.OUTPUT_PATH }}
-        zip -r ../../../deployment-package.zip .
-        cd ../../../
+        zip -r ${{ github.workspace }}/deployment-package.zip .
+        cd ${{ github.workspace }}
         ls -la deployment-package.zip
 
     - name: Azure Login via OIDC
