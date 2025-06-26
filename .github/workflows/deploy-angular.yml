@@ -61,10 +61,8 @@ jobs:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         action: "upload"
         app_location: "/client"
-        output_location: "dist/client"
-        app_build_command: "npm run build -- --configuration=production"
-        api_build_command: ""
-        skip_app_build: false
+        output_location: "dist/jullius-app"
+        skip_app_build: true
         
     - name: Post deployment validation
       run: |
