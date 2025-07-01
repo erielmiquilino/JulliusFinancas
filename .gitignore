@@ -72,3 +72,12 @@ Thumbs.db
 
 bin/
 obj/
+
+# .NET Development Settings
+appsettings.Development.json
+appsettings.Local.json
+
+# Angular Development Settings
+client/src/assets/env.js
+
+.Cursor/
