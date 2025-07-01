@@ -1,12 +1,12 @@
 name: Deploy Angular App
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #   paths:
-  #     - 'client/**'
-  #     - '.github/workflows/deploy-angular.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'client/**'
+      - '.github/workflows/deploy-angular.yml'
   workflow_dispatch:
 
 jobs:
