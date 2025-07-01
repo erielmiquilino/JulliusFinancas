@@ -1,181 +1,134 @@
-using Jullius.Domain.Domain.Repositories;
-using Jullius.Data.Context;
-using Jullius.Data.Repositories;
-using Jullius.ServiceApi.Application.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
-using Microsoft.OData.Edm;
-using Microsoft.OData.ModelBuilder;
-using Microsoft.AspNetCore.OData;
-using Jullius.Domain.Domain.Entities;
-using System.Text.Json;
+using Jullius.ServiceApi.Configuration;
+using Jullius.ServiceApi.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace Jullius.ServiceApi;
 
-// Configurar a porta para Azure
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://*:{port}");
-
-// Classe para rastrear o status das migrations
-public class MigrationStatus
+/// <summary>
+/// Classe principal da aplicação Jullius Finanças API
+/// Configurada seguindo padrões enterprise .NET com separação de responsabilidades
+/// </summary>
+public class Program
 {
-    public bool IsCompleted { get; set; } = false;
-    public bool IsRunning { get; set; } = false;
-    public string? ErrorMessage { get; set; } = null;
-    public DateTime? StartTime { get; set; } = null;
-    public DateTime? CompletedTime { get; set; } = null;
-}
-
-// Instância global do status das migrations
-var migrationStatus = new MigrationStatus();
-
-// Configuração do modelo EDM para OData
-static IEdmModel GetEdmModel()
-{
-    var odataBuilder = new ODataConventionModelBuilder();
-    odataBuilder.EntitySet<FinancialTransaction>("FinancialTransactions");
-    var financialTransactionType = odataBuilder.EntityType<FinancialTransaction>();
-    financialTransactionType.HasKey(e => e.Id);
-    
-    odataBuilder.EntitySet<Card>("Cards");
-    var cardType = odataBuilder.EntityType<Card>();
-    cardType.HasKey(e => e.Id);
-    
-    odataBuilder.EntitySet<CardTransaction>("CardTransactions");
-    var cardTransactionType = odataBuilder.EntityType<CardTransaction>();
-    cardTransactionType.HasKey(e => e.Id);
-    
-    return odataBuilder.GetEdmModel();
-}
-
-// Add services to the container
-builder.Services.AddControllers()
- .AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-})
-.AddOData(options => options
-    .Select()
-    .Filter()
-    .OrderBy()
-    .SetMaxTop(100)
-    .Count()
-    .Expand()
-    .AddRouteComponents("api", GetEdmModel()));
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Jullius Finanças API", Version = "v1" });
-});
-
-// Configure DbContext
-builder.Services.AddDbContext<JulliusDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Adicionar Health Checks
-builder.Services.AddHealthChecks()
-    .AddDbContext<JulliusDbContext>();
-
-// Register services
-builder.Services.AddScoped<IFinancialTransactionRepository, FinancialTransactionRepository>();
-builder.Services.AddScoped<FinancialTransactionService>();
-builder.Services.AddScoped<ICardRepository, CardRepository>();
-builder.Services.AddScoped<CardService>();
-builder.Services.AddScoped<ICardTransactionRepository, CardTransactionRepository>();
-builder.Services.AddScoped<CardTransactionService>();
-
-// Configure CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policyBuilder =>
-        policyBuilder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader());
-});
-
-var app = builder.Build();
-
-// Atualiza o banco de dados automaticamente com tratamento de erro
-// Executa migrations em background para não bloquear o startup
-_ = Task.Run(async () =>
-{
-    try
+    /// <summary>
+    /// Método principal de entrada da aplicação
+    /// </summary>
+    /// <param name="args">Argumentos da linha de comando</param>
+    public static async Task Main(string[] args)
     {
-        migrationStatus.IsRunning = true;
-        migrationStatus.StartTime = DateTime.UtcNow;
+        // Criação do builder da aplicação
+        var builder = WebApplication.CreateBuilder(args);
+
+        // ========================================
+        // CONFIGURAÇÃO DE SERVIÇOS
+        // ========================================
         
-        // Aguarda um pouco para a aplicação estar disponível
-        await Task.Delay(5000);
+        await ConfigureServices(builder.Services, builder.Configuration);
+
+        // ========================================
+        // BUILD DA APLICAÇÃO
+        // ========================================
         
-        using var scope = app.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<JulliusDbContext>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var app = builder.Build();
         
-        logger.LogInformation("Iniciando migração do banco de dados em background...");
+        // ========================================
+        // CONFIGURAÇÃO DO PIPELINE
+        // ========================================
         
-        // Verifica se a conexão está disponível antes de tentar migrar
-        var connectionString = dbContext.Database.GetConnectionString();
-        logger.LogInformation("Testando conexão com o banco de dados...");
+        await ConfigurePipeline(app);
+
+        // ========================================
+        // INICIALIZAÇÃO DO BANCO DE DADOS
+        // ========================================
         
-        await dbContext.Database.MigrateAsync();
+        await InitializeDatabase(app);
+
+        // ========================================
+        // EXECUÇÃO DA APLICAÇÃO
+        // ========================================
         
-        migrationStatus.IsCompleted = true;
-        migrationStatus.IsRunning = false;
-        migrationStatus.CompletedTime = DateTime.UtcNow;
-        
-        logger.LogInformation("Migração do banco de dados concluída com sucesso.");
+        await app.RunAsync();
     }
-    catch (Exception ex)
+
+    /// <summary>
+    /// Configura todos os serviços da aplicação
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="configuration">Configuração da aplicação</param>
+    private static async Task ConfigureServices(IServiceCollection services, IConfiguration configuration)
+    {
+        // Configurações de API (Controllers, OData, JSON)
+        services.AddApiConfiguration();
+        
+        // Configuração do Swagger para documentação
+        services.AddSwaggerConfiguration();
+        
+        // Configuração de CORS
+        services.AddCorsConfiguration();
+        
+        // Configuração do banco de dados
+        var connectionString = configuration.GetConnectionString("DefaultConnection") 
+            ?? throw new InvalidOperationException("String de conexão 'DefaultConnection' não encontrada");
+        
+        services.AddDatabaseConfiguration(connectionString);
+        
+        // Configuração de health checks
+        services.AddDatabaseHealthChecks();
+        
+        // Registro de dependências (Repositories e Services)
+        services.AddApplicationDependencies();
+        
+        // Registro do serviço de migrations
+        services.AddSingleton<DatabaseMigrationService>();
+        
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Configura o pipeline de middleware da aplicação
+    /// </summary>
+    /// <param name="app">Web application</param>
+    private static async Task ConfigurePipeline(WebApplication app)
+    {
+        // Configuração do Swagger apenas em desenvolvimento
+        app.UseSwaggerInDevelopment();
+        
+        // Configuração de middleware padrão (HTTPS, CORS, Auth, Controllers)
+        app.UseStandardMiddleware();
+        
+        // Configuração de endpoints de monitoramento
+        var migrationService = app.Services.GetRequiredService<DatabaseMigrationService>();
+        app.MapMonitoringEndpoints(migrationService);
+        
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Inicializa o banco de dados executando migrations em background
+    /// Otimizado para Azure SQL Database Serverless
+    /// </summary>
+    /// <param name="app">Web application</param>
+    private static async Task InitializeDatabase(WebApplication app)
     {
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        migrationStatus.IsRunning = false;
-        migrationStatus.ErrorMessage = ex.Message;
         
-        logger.LogError(ex, "Erro ao executar migração do banco de dados: {ErrorMessage}", ex.Message);
-        // Migrations em background - não falhar a aplicação
-    }
-});
-
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Jullius Finanças API V1");
-    });
-}
-
-// Adicionar endpoint de health check
-app.MapHealthChecks("/health");
-
-// Endpoint simples para verificar se a aplicação está rodando
-app.MapGet("/startup", () => 
-{
-    var response = new { 
-        status = "running", 
-        timestamp = DateTime.UtcNow,
-        message = "Aplicação iniciada com sucesso",
-        migration = new {
-            isCompleted = migrationStatus.IsCompleted,
-            isRunning = migrationStatus.IsRunning,
-            startTime = migrationStatus.StartTime,
-            completedTime = migrationStatus.CompletedTime,
-            errorMessage = migrationStatus.ErrorMessage,
-            status = migrationStatus.IsCompleted ? "completed" : 
-                    migrationStatus.IsRunning ? "running" : 
-                    !string.IsNullOrEmpty(migrationStatus.ErrorMessage) ? "error" : "pending"
+        try
+        {
+            logger.LogInformation("🚀 Inicializando Jullius Finanças API...");
+            
+            // Obtém o serviço de migrations e inicia o processo em background
+            var migrationService = app.Services.GetRequiredService<DatabaseMigrationService>();
+            
+            // Inicia migrations de forma assíncrona (não bloqueia o startup)
+            _ = migrationService.StartMigrationsAsync();
+            
+            logger.LogInformation("✅ API inicializada com sucesso! Migrations executando em background...");
         }
-    };
-    
-    return Results.Ok(response);
-}).WithName("StartupCheck");
-
-app.UseHttpsRedirection();
-app.UseCors("AllowAll");
-
-app.UseAuthorization();
-app.MapControllers();
-
-app.Run();
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "❌ Erro durante a inicialização da aplicação: {ErrorMessage}", ex.Message);
+            throw; // Re-throw para falhar o startup se necessário
+        }
+        
+        await Task.CompletedTask;
+    }
+}
