@@ -99,12 +99,11 @@ jobs:
           --name ${{ steps.get-webapp-name.outputs.WEBAPP_NAME }} \
           --src-path ./deployment-package.zip \
           --type zip \
-          --async false
+          --async true
 
-    - name: Verify deployment
+    - name: Wait for deployment and verify health
       run: |
-        # Aguarda alguns segundos para o app iniciar
-        sleep 30
+        echo "⏳ Aguardando deployment e inicialização da aplicação..."
         
         # Obtém a URL do Web App
         WEBAPP_URL=$(az webapp show \
@@ -112,14 +111,68 @@ jobs:
           --name ${{ steps.get-webapp-name.outputs.WEBAPP_NAME }} \
           --query defaultHostName --output tsv)
         
-        # Testa se a API está respondendo
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://$WEBAPP_URL/health || echo "000")
+        echo "🔍 Verificando saúde da aplicação em: https://$WEBAPP_URL"
         
-        if [ "$HTTP_CODE" = "200" ]; then
-          echo "✅ API está respondendo corretamente!"
-        else
-          echo "⚠️ API retornou código HTTP: $HTTP_CODE"
+        # Primeiro verifica se a aplicação está rodando (endpoint /startup)
+        echo "1️⃣ Verificando se a aplicação iniciou..."
+        MAX_ATTEMPTS_STARTUP=30  # 30 tentativas x 20 segundos = 10 minutos
+        ATTEMPT=1
+        STARTUP_OK=false
+        
+        while [ $ATTEMPT -le $MAX_ATTEMPTS_STARTUP ]; do
+          echo "Tentativa $ATTEMPT/$MAX_ATTEMPTS_STARTUP - Aguardando 20 segundos..."
+          sleep 20
+          
+          # Testa o endpoint de startup
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://$WEBAPP_URL/startup || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Aplicação iniciada com sucesso! (HTTP $HTTP_CODE)"
+            STARTUP_OK=true
+            break
+          elif [ "$HTTP_CODE" = "000" ]; then
+            echo "⏳ Aplicação ainda não está respondendo (timeout/connection error)"
+          else
+            echo "⚠️ Aplicação retornou HTTP $HTTP_CODE no endpoint /startup"
+          fi
+          
+          ATTEMPT=$((ATTEMPT + 1))
+        done
+        
+        if [ "$STARTUP_OK" = "false" ]; then
+          echo "❌ Aplicação não iniciou após 10 minutos."
+          az webapp show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ steps.get-webapp-name.outputs.WEBAPP_NAME }} \
+            --query "{state: state, availabilityState: availabilityState}" \
+            --output table
+          exit 1
         fi
+        
+        # Agora verifica o health check (banco de dados)
+        echo "2️⃣ Verificando conexão com banco de dados..."
+        MAX_ATTEMPTS_HEALTH=15  # 15 tentativas x 10 segundos = 2.5 minutos
+        ATTEMPT=1
+        
+        while [ $ATTEMPT -le $MAX_ATTEMPTS_HEALTH ]; do
+          echo "Verificação de saúde - Tentativa $ATTEMPT/$MAX_ATTEMPTS_HEALTH..."
+          sleep 10
+          
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://$WEBAPP_URL/health || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Health check passou! Banco de dados conectado (HTTP $HTTP_CODE)"
+            break
+          elif [ "$HTTP_CODE" = "000" ]; then
+            echo "⏳ Health check ainda não está respondendo"
+          else
+            echo "⚠️ Health check retornou HTTP $HTTP_CODE (migrations podem estar em andamento)"
+          fi
+          
+          ATTEMPT=$((ATTEMPT + 1))
+        done
+        
+        echo "✅ Verificação de deployment concluída!"
 
     - name: Clean up
       if: always()
@@ -159,7 +212,7 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Run health checks
+    - name: Run comprehensive health checks
       run: |
         # Obtém a URL do Web App
         WEBAPP_URL=$(az webapp list \
@@ -167,16 +220,50 @@ jobs:
           --query "[?kind=='app,linux' && contains(name, 'jullius-api')].defaultHostName" \
           --output tsv | head -n 1)
         
-        echo "🔍 Executando health checks em: https://$WEBAPP_URL"
+        echo "🔍 Executando health checks abrangentes em: https://$WEBAPP_URL"
         
-        # Testa endpoints críticos
-        endpoints=("/health" "/api/cards" "/api/financial-transactions")
+        # Aguarda um pouco para garantir que a aplicação esteja estável
+        echo "⏳ Aguardando 30 segundos para estabilização..."
+        sleep 30
         
+        # Testa endpoints críticos com retry
+        endpoints=("/startup" "/health" "/api/cards" "/api/financial-transactions")
+        
+        echo "📊 Testando endpoints principais:"
         for endpoint in "${endpoints[@]}"; do
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://$WEBAPP_URL$endpoint || echo "000")
-          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ]; then
-            echo "✅ $endpoint - HTTP $HTTP_CODE"
-          else
-            echo "❌ $endpoint - HTTP $HTTP_CODE"
+          echo "🔗 Testando: $endpoint"
+          
+          # Tenta 3 vezes cada endpoint
+          SUCCESS=false
+          for i in {1..3}; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://$WEBAPP_URL$endpoint || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ]; then
+              echo "  ✅ Tentativa $i - $endpoint - HTTP $HTTP_CODE"
+              SUCCESS=true
+              break
+            else
+              echo "  ⚠️ Tentativa $i - $endpoint - HTTP $HTTP_CODE"
+              if [ $i -lt 3 ]; then
+                echo "  ⏳ Aguardando 10 segundos antes da próxima tentativa..."
+                sleep 10
+              fi
+            fi
+          done
+          
+          if [ "$SUCCESS" = "false" ]; then
+            echo "  ❌ $endpoint falhou em todas as tentativas"
           fi
-        done 
+        done
+        
+        # Verifica o status geral da aplicação
+        echo ""
+        echo "📊 Status geral da aplicação:"
+        az webapp show \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name $(echo $WEBAPP_URL | cut -d'.' -f1) \
+          --query "{name: name, state: state, availabilityState: availabilityState, lastModifiedTimeUtc: lastModifiedTimeUtc}" \
+          --output table
+        
+        echo ""
+        echo "✅ Health check concluído!" 

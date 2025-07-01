@@ -113,6 +113,19 @@
                     <button mat-icon-button color="warn" (click)="openDeleteDialog(transaction)" matTooltip="Excluir">
                       <mat-icon>delete</mat-icon>
                     </button>
+                    <button mat-icon-button [matMenuTriggerFor]="contextMenu" matTooltip="Mais opções">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #contextMenu="matMenu">
+                      <button mat-menu-item (click)="moveTransactionToPreviousInvoice(transaction)">
+                        <mat-icon>arrow_back</mat-icon>
+                        <span>Enviar para fatura anterior</span>
+                      </button>
+                      <button mat-menu-item (click)="moveTransactionToNextInvoice(transaction)">
+                        <mat-icon>arrow_forward</mat-icon>
+                        <span>Enviar para próxima fatura</span>
+                      </button>
+                    </mat-menu>
                   </td>
                 </ng-container>
 

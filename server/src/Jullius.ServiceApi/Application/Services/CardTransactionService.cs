@@ -39,8 +39,10 @@ public class CardTransactionService
                 // Calcula a data de cada parcela (adiciona meses)
                 var installmentDate = request.Date.AddMonths(i);
                 
-                // Calcula a qual fatura essa parcela pertence
-                var (invoiceYear, invoiceMonth) = CalculateInvoicePeriod(installmentDate, card.ClosingDay, card.DueDay);
+                // Usa o período da fatura recebido do frontend, mas calcula para cada parcela
+                var invoiceDate = new DateTime(request.InvoiceYear, request.InvoiceMonth, 1).AddMonths(i);
+                var invoiceYear = invoiceDate.Year;
+                var invoiceMonth = invoiceDate.Month;
                 
                 // Cria o texto da parcela (ex: "1/3", "2/3", "3/3")
                 var installmentText = $"{i + 1}/{request.InstallmentCount}";
@@ -70,8 +72,9 @@ public class CardTransactionService
         }
         else
         {
-            // Calcula a qual fatura essa transação pertence
-            var (invoiceYear, invoiceMonth) = CalculateInvoicePeriod(request.Date, card.ClosingDay, card.DueDay);
+            // Usa o período da fatura recebido do frontend
+            var invoiceYear = request.InvoiceYear;
+            var invoiceMonth = request.InvoiceMonth;
             
             // Cria uma única transação
             var cardTransaction = new CardTransaction(
@@ -266,8 +269,9 @@ public class CardTransactionService
         var oldInvoiceYear = cardTransaction.InvoiceYear;
         var oldInvoiceMonth = cardTransaction.InvoiceMonth;
 
-        // Calcula a qual fatura essa transação pertence
-        var (invoiceYear, invoiceMonth) = CalculateInvoicePeriod(request.Date, card.ClosingDay, card.DueDay);
+        // Usa o período da fatura recebido do frontend
+        var invoiceYear = request.InvoiceYear;
+        var invoiceMonth = request.InvoiceMonth;
 
         cardTransaction.UpdateDetails(
             request.Description,

@@ -11,4 +11,6 @@ public class CreateCardTransactionRequest
     public bool IsInstallment { get; set; } = false;
     public int InstallmentCount { get; set; } = 1;
     public CardTransactionType Type { get; set; } = CardTransactionType.Expense;
+    public int InvoiceYear { get; set; }
+    public int InvoiceMonth { get; set; }
 } 

@@ -9,4 +9,6 @@ public class UpdateCardTransactionRequest
     public DateTime Date { get; set; }
     public string Installment { get; set; } = string.Empty;
     public CardTransactionType Type { get; set; } = CardTransactionType.Expense;
+    public int InvoiceYear { get; set; }
+    public int InvoiceMonth { get; set; }
 } 

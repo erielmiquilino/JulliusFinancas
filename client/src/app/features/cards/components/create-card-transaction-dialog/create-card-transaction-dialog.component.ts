@@ -11,15 +11,19 @@ import { CardService, CreateCardTransactionRequest, CardTransactionType } from '
 export class CreateCardTransactionDialogComponent {
   form: FormGroup;
   cardId: string;
+  invoiceYear: number;
+  invoiceMonth: number;
   CardTransactionType = CardTransactionType;
 
   constructor(
     private fb: FormBuilder,
     private cardService: CardService,
     private dialogRef: MatDialogRef<CreateCardTransactionDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { cardId: string }
+    @Inject(MAT_DIALOG_DATA) public data: { cardId: string, invoiceYear: number, invoiceMonth: number }
   ) {
     this.cardId = data.cardId;
+    this.invoiceYear = data.invoiceYear;
+    this.invoiceMonth = data.invoiceMonth;
 
     const today = new Date();
     const localToday = new Date(today.getTime() + today.getTimezoneOffset() * 60000);
@@ -69,7 +73,9 @@ export class CreateCardTransactionDialogComponent {
         date: utcData,
         isInstallment: formValue.parcelado,
         installmentCount: formValue.parcelado ? formValue.numeroParcelas : 1,
-        type: formValue.type
+        type: formValue.type,
+        invoiceYear: this.invoiceYear,
+        invoiceMonth: this.invoiceMonth
       };
 
       this.cardService.createCardTransaction(transaction).subscribe({

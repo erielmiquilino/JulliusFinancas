@@ -19,6 +19,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatMenuModule } from '@angular/material/menu';
 
 // Components
 import { CardListComponent } from './components/card-list/card-list.component';
@@ -61,6 +62,7 @@ import { CardRoutingModule } from './card-routing.module';
     MatDialogModule,
     MatSlideToggleModule,
     MatProgressSpinnerModule,
+    MatMenuModule,
     CardRoutingModule
   ],
   providers: [

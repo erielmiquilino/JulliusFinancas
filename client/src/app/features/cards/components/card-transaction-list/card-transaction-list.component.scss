@@ -115,8 +115,13 @@ mat-card.transaction-card mat-card-content {
       border-bottom: 1px solid #e0e0e0;
 
       &.mat-column-actions {
-        width: 160px;
+        width: 200px;
         text-align: center;
+        button {
+          margin: 0 2px;
+          min-width: 40px;
+          height: 40px;
+        }
       }
     }
 
@@ -143,7 +148,7 @@ mat-card.transaction-card mat-card-content {
 // Estilos específicos para ações das transações
 .mat-column-actions {
   text-align: center;
-  width: 120px;
+  width: 140px;
 
   button {
     margin: 0 4px;

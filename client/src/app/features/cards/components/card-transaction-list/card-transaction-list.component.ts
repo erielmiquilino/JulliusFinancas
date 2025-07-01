@@ -221,10 +221,15 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   }
 
   openCreateDialog(): void {
+    const [month, year] = this.selectedInvoice.split('-').map(Number);
     const dialogRef = this.dialog.open(CreateCardTransactionDialogComponent, {
       width: '500px',
       disableClose: true,
-      data: { cardId: this.cardId }
+      data: {
+        cardId: this.cardId,
+        invoiceYear: year,
+        invoiceMonth: month
+      }
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -238,10 +243,15 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
   }
 
   openEditDialog(transaction: CardTransaction): void {
+    const [month, year] = this.selectedInvoice.split('-').map(Number);
     const dialogRef = this.dialog.open(EditCardTransactionDialogComponent, {
       width: '500px',
       disableClose: true,
-      data: transaction
+      data: {
+        ...transaction,
+        invoiceYear: year,
+        invoiceMonth: month
+      }
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -292,6 +302,41 @@ export class CardTransactionListComponent implements OnInit, OnDestroy, AfterVie
       error: (error) => {
         console.error('Erro ao excluir lançamento:', error);
         this.snackBar.open('Erro ao excluir lançamento: ' + error.message, 'Fechar', {
+          duration: 5000
+        });
+      }
+    });
+  }
+
+  moveTransactionToPreviousInvoice(transaction: CardTransaction): void {
+    const [currentMonth, currentYear] = this.selectedInvoice.split('-').map(Number);
+    const previousDate = new Date(currentYear, currentMonth - 2, 1); // -2 porque getMonth() é 0-based
+    const previousMonth = previousDate.getMonth() + 1;
+    const previousYear = previousDate.getFullYear();
+
+    this.moveTransaction(transaction, previousYear, previousMonth, 'anterior');
+  }
+
+  moveTransactionToNextInvoice(transaction: CardTransaction): void {
+    const [currentMonth, currentYear] = this.selectedInvoice.split('-').map(Number);
+    const nextDate = new Date(currentYear, currentMonth, 1); // currentMonth porque queremos +1 mês
+    const nextMonth = nextDate.getMonth() + 1;
+    const nextYear = nextDate.getFullYear();
+
+    this.moveTransaction(transaction, nextYear, nextMonth, 'próxima');
+  }
+
+  private moveTransaction(transaction: CardTransaction, invoiceYear: number, invoiceMonth: number, direction: string): void {
+    this.cardService.moveTransactionToInvoice(transaction, invoiceYear, invoiceMonth).subscribe({
+      next: () => {
+        this.snackBar.open(`Transação movida para a fatura ${direction} com sucesso!`, 'Fechar', {
+          duration: 3000
+        });
+        this.fetchTransactions(); // Recarrega a lista de transações
+      },
+      error: (error) => {
+        console.error('Erro ao mover transação:', error);
+        this.snackBar.open('Erro ao mover transação: ' + error.message, 'Fechar', {
           duration: 5000
         });
       }

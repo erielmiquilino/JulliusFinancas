@@ -15,7 +15,7 @@ export class EditCardTransactionDialogComponent {
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<EditCardTransactionDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: CardTransaction
+    @Inject(MAT_DIALOG_DATA) public data: CardTransaction & { invoiceYear?: number, invoiceMonth?: number }
   ) {
     // Ajusta a data para o timezone local mantendo o mesmo dia
     const dataTransacao = new Date(data.date);
@@ -41,7 +41,9 @@ export class EditCardTransactionDialogComponent {
         amount: formValue.amount,
         date: utcDate,
         installment: formValue.installment,
-        type: formValue.type
+        type: formValue.type,
+        invoiceYear: this.data.invoiceYear || new Date().getFullYear(),
+        invoiceMonth: this.data.invoiceMonth || new Date().getMonth() + 1
       };
 
       this.dialogRef.close(updatedTransaction);

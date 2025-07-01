@@ -55,6 +55,8 @@ export interface CreateCardTransactionRequest {
   isInstallment: boolean;
   installmentCount: number;
   type: CardTransactionType;
+  invoiceYear: number;
+  invoiceMonth: number;
 }
 
 export interface UpdateCardTransactionRequest {
@@ -63,6 +65,8 @@ export interface UpdateCardTransactionRequest {
   date: Date;
   installment: string;
   type: CardTransactionType;
+  invoiceYear: number;
+  invoiceMonth: number;
 }
 
 export interface CardInvoiceResponse {
@@ -138,5 +142,19 @@ export class CardService {
     return this.http.delete<void>(`${this.transactionApiUrl}/${id}`).pipe(
       tap(() => this.refreshSubject.next())
     );
+  }
+
+  moveTransactionToInvoice(transaction: CardTransaction, invoiceYear: number, invoiceMonth: number): Observable<CardTransaction> {
+    const updateRequest: UpdateCardTransactionRequest = {
+      description: transaction.description,
+      amount: transaction.amount,
+      date: transaction.date,
+      installment: transaction.installment,
+      type: transaction.type,
+      invoiceYear: invoiceYear,
+      invoiceMonth: invoiceMonth
+    };
+
+    return this.updateCardTransaction(transaction.id, updateRequest);
   }
 }
