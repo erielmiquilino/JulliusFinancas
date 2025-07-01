@@ -43,7 +43,7 @@ jobs:
         az deployment group create \
           --resource-group ${{ github.event.inputs.resourceGroupName }} \
           --template-file ./infra/azuredeploy.json \
-          --parameters postgresqlAdminPassword="${{ secrets.PG_ADMIN_PASSWORD }}" \
+          --parameters sqlAdminPassword="${{ secrets.SQL_ADMIN_PASSWORD }}" \
           --name jullius-deployment-${{ github.run_number }} \
           --verbose
 
@@ -57,18 +57,9 @@ jobs:
         
         echo "WEBAPP_URL=$(echo $outputs | jq -r '.webAppUrl.value')" >> $GITHUB_OUTPUT
         echo "STATIC_WEBAPP_URL=$(echo $outputs | jq -r '.staticWebAppUrl.value')" >> $GITHUB_OUTPUT
-        echo "POSTGRES_SERVER=$(echo $outputs | jq -r '.postgresqlServerName.value')" >> $GITHUB_OUTPUT
-        echo "POSTGRES_FQDN=$(echo $outputs | jq -r '.postgresqlFQDN.value')" >> $GITHUB_OUTPUT
-
-    - name: Configure PostgreSQL Firewall for GitHub Actions
-      run: |
-        # Adiciona regra temporária para GitHub Actions
-        az postgres flexible-server firewall-rule create \
-          --resource-group ${{ github.event.inputs.resourceGroupName }} \
-          --name ${{ steps.get-outputs.outputs.POSTGRES_SERVER }} \
-          --rule-name AllowGitHubActions \
-          --start-ip-address 0.0.0.0 \
-          --end-ip-address 255.255.255.255
+        echo "SQL_SERVER=$(echo $outputs | jq -r '.sqlServerName.value')" >> $GITHUB_OUTPUT
+        echo "SQL_SERVER_FQDN=$(echo $outputs | jq -r '.sqlServerFQDN.value')" >> $GITHUB_OUTPUT
+        echo "DATABASE_NAME=$(echo $outputs | jq -r '.databaseName.value')" >> $GITHUB_OUTPUT
 
     - name: Summary
       run: |
@@ -78,7 +69,8 @@ jobs:
         echo "- **Resource Group:** ${{ github.event.inputs.resourceGroupName }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Web App URL:** ${{ steps.get-outputs.outputs.WEBAPP_URL }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Static Web App URL:** ${{ steps.get-outputs.outputs.STATIC_WEBAPP_URL }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **PostgreSQL Server:** ${{ steps.get-outputs.outputs.POSTGRES_SERVER }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Azure SQL Server:** ${{ steps.get-outputs.outputs.SQL_SERVER }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Database:** ${{ steps.get-outputs.outputs.DATABASE_NAME }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
         echo "1. Deploy the Angular app using the **Deploy Angular App** workflow" >> $GITHUB_STEP_SUMMARY

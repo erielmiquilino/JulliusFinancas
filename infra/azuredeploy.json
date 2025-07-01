@@ -23,29 +23,29 @@
         "description": "Nome do App Service Plan"
       }
     },
-    "postgresqlServerName": {
+    "sqlServerName": {
       "type": "string",
-      "defaultValue": "[concat('jullius-db-', uniqueString(resourceGroup().id))]",
+      "defaultValue": "[concat('jullius-sql-', uniqueString(resourceGroup().id))]",
       "metadata": {
-        "description": "Nome único do servidor PostgreSQL"
+        "description": "Nome único do servidor Azure SQL"
       }
     },
-    "postgresqlAdminLogin": {
+    "sqlAdminLogin": {
       "type": "string",
       "defaultValue": "julliusadmin",
       "metadata": {
-        "description": "Nome de usuário administrador do PostgreSQL"
+        "description": "Nome de usuário administrador do Azure SQL"
       }
     },
-    "postgresqlAdminPassword": {
+    "sqlAdminPassword": {
       "type": "securestring",
       "metadata": {
-        "description": "Senha do administrador do PostgreSQL"
+        "description": "Senha do administrador do Azure SQL"
       }
     },
     "databaseName": {
       "type": "string",
-      "defaultValue": "julliusdb",
+      "defaultValue": "JulliusFinancasDb",
       "metadata": {
         "description": "Nome do banco de dados"
       }
@@ -84,7 +84,7 @@
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
-        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))]"
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
       ],
       "kind": "app,linux",
       "properties": {
@@ -98,7 +98,7 @@
             },
             {
               "name": "ConnectionStrings__DefaultConnection",
-              "value": "[concat('Server=', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))).fullyQualifiedDomainName, ';Database=', parameters('databaseName'), ';Port=5432;User Id=', parameters('postgresqlAdminLogin'), ';Password=', parameters('postgresqlAdminPassword'), ';Ssl Mode=Require;')]"
+              "value": "[concat('Server=tcp:', reference(resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))).fullyQualifiedDomainName, ',1433;Initial Catalog=', parameters('databaseName'), ';Persist Security Info=False;User ID=', parameters('sqlAdminLogin'), ';Password=', parameters('sqlAdminPassword'), ';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
             }
           ]
         },
@@ -123,55 +123,68 @@
       }
     },
     {
-      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
-      "apiVersion": "2022-12-01",
-      "name": "[parameters('postgresqlServerName')]",
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2024-05-01-preview",
+      "name": "[parameters('sqlServerName')]",
       "location": "[parameters('location')]",
-      "sku": {
-        "name": "Standard_B1ms",
-        "tier": "Burstable"
-      },
       "properties": {
-        "version": "14",
-        "administratorLogin": "[parameters('postgresqlAdminLogin')]",
-        "administratorLoginPassword": "[parameters('postgresqlAdminPassword')]",
-        "storage": {
-          "storageSizeGB": 32
-        },
-        "backup": {
-          "backupRetentionDays": 7,
-          "geoRedundantBackup": "Disabled"
-        },
-        "network": {
-            "publicNetworkAccess": "Enabled"
-        },
-        "highAvailability": {
-            "mode": "Disabled"
-        }
+        "administratorLogin": "[parameters('sqlAdminLogin')]",
+        "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
+        "version": "12.0",
+        "publicNetworkAccess": "Enabled"
       }
     },
     {
-      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
-      "apiVersion": "2022-12-01",
-      "name": "[concat(parameters('postgresqlServerName'), '/', parameters('databaseName'))]",
+      "type": "Microsoft.Sql/servers/databases",
+      "apiVersion": "2024-05-01-preview",
+      "name": "[concat(parameters('sqlServerName'), '/', parameters('databaseName'))]",
+      "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))]"
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
       ],
+      "sku": {
+        "name": "GP_S_Gen5",
+        "tier": "GeneralPurpose",
+        "family": "Gen5",
+        "capacity": 1
+      },
+      "kind": "v12.0,user,vcore,serverless",
       "properties": {
-        "charset": "UTF8",
-        "collation": "en_US.utf8"
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "maxSizeBytes": 34359738368,
+        "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+        "zoneRedundant": false,
+        "readScale": "Disabled",
+        "autoPauseDelay": 60,
+        "requestedBackupStorageRedundancy": "Local",
+        "minCapacity": 0.5,
+        "isLedgerOn": false,
+        "useFreeLimit": true,
+        "freeLimitExhaustionBehavior": "AutoPause",
+        "availabilityZone": "NoPreference"
       }
     },
     {
-      "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
-      "apiVersion": "2024-08-01",
-      "name": "[concat(parameters('postgresqlServerName'), '/AllowAzureServices')]",
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2024-05-01-preview",
+      "name": "[concat(parameters('sqlServerName'), '/AllowAzureServices')]",
       "dependsOn": [
-        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))]"
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
       ],
       "properties": {
         "startIpAddress": "0.0.0.0",
         "endIpAddress": "0.0.0.0"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers/databases/transparentDataEncryption",
+      "apiVersion": "2024-05-01-preview",
+      "name": "[concat(parameters('sqlServerName'), '/', parameters('databaseName'), '/Current')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlServerName'), parameters('databaseName'))]"
+      ],
+      "properties": {
+        "state": "Enabled"
       }
     }
   ],
@@ -184,13 +197,17 @@
       "type": "string",
       "value": "[concat('https://', reference(resourceId('Microsoft.Web/staticSites', parameters('staticWebAppName'))).defaultHostname)]"
     },
-    "postgresqlServerName": {
+    "sqlServerName": {
       "type": "string",
-      "value": "[parameters('postgresqlServerName')]"
+      "value": "[parameters('sqlServerName')]"
     },
-    "postgresqlFQDN": {
+    "sqlServerFQDN": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('postgresqlServerName'))).fullyQualifiedDomainName]"
+      "value": "[reference(resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))).fullyQualifiedDomainName]"
+    },
+    "databaseName": {
+      "type": "string",
+      "value": "[parameters('databaseName')]"
     }
   }
 }

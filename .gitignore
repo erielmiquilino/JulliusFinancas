@@ -1,3 +1,7 @@
+DataMigration/
+REDEPLOYMENT_GUIDE.md
+cleanup-migration.ps1
+
 # Dependencies
 node_modules/
 /.pnp
