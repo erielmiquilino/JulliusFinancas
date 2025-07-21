@@ -33,7 +33,7 @@ public class CardController : ODataController
     }
 
     [HttpGet]
-    [EnableQuery(PageSize = 50)]
+    [EnableQuery(MaxTop = 100)]
     public async Task<IActionResult> GetAll()
     {
         var cards = await _service.GetAllCardsAsync();

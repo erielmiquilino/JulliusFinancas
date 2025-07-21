@@ -46,7 +46,7 @@ public class CardTransactionController : ODataController
     }
 
     [HttpGet]
-    [EnableQuery(PageSize = 50)]
+    [EnableQuery(MaxTop = 100)]
     public async Task<IActionResult> GetAll()
     {
         var cardTransactions = await _service.GetAllCardTransactionsAsync();

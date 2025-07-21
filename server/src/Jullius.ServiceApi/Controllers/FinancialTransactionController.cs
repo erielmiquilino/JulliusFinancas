@@ -33,7 +33,7 @@ public class FinancialTransactionController : ODataController
     }
 
     [HttpGet]
-    [EnableQuery(PageSize = 50)]
+    [EnableQuery(MaxTop = 100)]
     public async Task<IActionResult> GetAll()
     {
         var transactions = await _service.GetAllTransactionsAsync();
