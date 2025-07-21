@@ -242,7 +242,7 @@ jobs:
         sleep 30
         
         # Testa endpoints críticos com retry
-        endpoints=("/startup" "/wakeup-db" "/health" "/api/cards" "/api/financial-transactions")
+        endpoints=("/startup" "/wakeup-db" "/health" "/api/Card" "/api/FinancialTransaction")
         
         echo "📊 Testando endpoints principais:"
         for endpoint in "${endpoints[@]}"; do

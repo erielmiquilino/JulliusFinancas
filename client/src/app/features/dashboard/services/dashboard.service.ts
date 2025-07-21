@@ -14,6 +14,10 @@ export class DashboardService {
 
   getTransactions(filters?: TransactionFilters): Observable<FinancialTransaction[]> {
     let filterString = '';
+    const queryParams: string[] = [];
+
+    // Sempre incluir o $top=100 para buscar o máximo de registros permitido
+    queryParams.push('$top=100');
 
     if (filters) {
       const conditions: string[] = [];
@@ -34,11 +38,11 @@ export class DashboardService {
       }
 
       if (conditions.length > 0) {
-        filterString = `$filter=${conditions.join(' and ')}`;
+        queryParams.push(`$filter=${conditions.join(' and ')}`);
       }
     }
 
-    const url = filterString ? `${this.apiUrl}?${filterString}` : this.apiUrl;
+    const url = queryParams.length > 0 ? `${this.apiUrl}?${queryParams.join('&')}` : this.apiUrl;
     return this.http.get<FinancialTransaction[]>(url);
   }
 }
