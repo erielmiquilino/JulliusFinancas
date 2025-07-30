@@ -23,8 +23,20 @@ public class FinancialTransactionController : ODataController
     {
         try
         {
-            var transaction = await _service.CreateTransactionAsync(request);
-            return CreatedAtAction(nameof(GetById), new { id = transaction.Id }, transaction);
+            var transactions = await _service.CreateTransactionAsync(request);
+            var transactionsList = transactions.ToList();
+            
+            if (transactionsList.Count == 1)
+            {
+                // Se é apenas uma transação, retorna como antes para compatibilidade
+                var transaction = transactionsList.First();
+                return CreatedAtAction(nameof(GetById), new { id = transaction.Id }, transaction);
+            }
+            else
+            {
+                // Se são múltiplas transações (parcelado), retorna a lista
+                return Ok(transactionsList);
+            }
         }
         catch (ArgumentException ex)
         {

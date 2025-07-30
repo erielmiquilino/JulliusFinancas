@@ -17,18 +17,55 @@ public class FinancialTransactionService
         _cardRepository = cardRepository;
     }
 
-    public async Task<FinancialTransaction> CreateTransactionAsync(CreateFinancialTransactionRequest request)
+    public async Task<IEnumerable<FinancialTransaction>> CreateTransactionAsync(CreateFinancialTransactionRequest request)
     {
-        var transaction = new FinancialTransaction(
-            request.Description,
-            request.Amount,
-            request.DueDate,
-            request.Type,
-            request.IsPaid
-        );
+        var transactions = new List<FinancialTransaction>();
 
-        await _repository.CreateAsync(transaction);
-        return transaction;
+        if (request.IsInstallment && request.InstallmentCount > 1)
+        {
+            // Calcula o valor de cada parcela
+            var installmentAmount = Math.Round(request.Amount / request.InstallmentCount, 2);
+            var remainingAmount = request.Amount - (installmentAmount * (request.InstallmentCount - 1));
+
+            for (int i = 1; i <= request.InstallmentCount; i++)
+            {
+                // Usa o valor restante na última parcela para evitar diferenças de arredondamento
+                var currentAmount = i == request.InstallmentCount ? remainingAmount : installmentAmount;
+                
+                // Concatena o número da parcela na descrição
+                var descriptionWithInstallment = $"{request.Description} ({i:D2}/{request.InstallmentCount:D2})";
+                
+                // Calcula a data de vencimento (cada parcela é um mês depois da anterior)
+                var installmentDueDate = request.DueDate.AddMonths(i - 1);
+
+                var transaction = new FinancialTransaction(
+                    descriptionWithInstallment,
+                    currentAmount,
+                    installmentDueDate,
+                    request.Type,
+                    request.IsPaid
+                );
+
+                var createdTransaction = await _repository.CreateAsync(transaction);
+                transactions.Add(createdTransaction);
+            }
+        }
+        else
+        {
+            // Cria uma única transação
+            var transaction = new FinancialTransaction(
+                request.Description,
+                request.Amount,
+                request.DueDate,
+                request.Type,
+                request.IsPaid
+            );
+
+            var createdTransaction = await _repository.CreateAsync(transaction);
+            transactions.Add(createdTransaction);
+        }
+
+        return transactions;
     }
 
     public async Task<IEnumerable<FinancialTransaction>> GetAllTransactionsAsync()

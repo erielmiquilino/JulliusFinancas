@@ -9,4 +9,6 @@ public class CreateFinancialTransactionRequest
     public DateTime DueDate { get; set; }
     public TransactionType Type { get; set; }
     public bool IsPaid { get; set; }
+    public bool IsInstallment { get; set; } = false;
+    public int InstallmentCount { get; set; } = 1;
 } 

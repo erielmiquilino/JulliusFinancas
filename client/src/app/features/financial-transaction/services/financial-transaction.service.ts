@@ -24,6 +24,9 @@ export interface CreateFinancialTransactionRequest {
   amount: number;
   dueDate: Date;
   type: TransactionType;
+  isPaid?: boolean;
+  isInstallment?: boolean;
+  installmentCount?: number;
 }
 
 export interface TransactionFilters {
@@ -56,8 +59,8 @@ export class FinancialTransactionService {
     return this.refreshList.asObservable();
   }
 
-  createTransaction(request: CreateFinancialTransactionRequest): Observable<FinancialTransaction> {
-    return this.http.post<FinancialTransaction>(this.apiUrl, request)
+  createTransaction(request: CreateFinancialTransactionRequest): Observable<FinancialTransaction | FinancialTransaction[]> {
+    return this.http.post<FinancialTransaction | FinancialTransaction[]>(this.apiUrl, request)
       .pipe(
         tap(() => this.refreshList.next())
       );
