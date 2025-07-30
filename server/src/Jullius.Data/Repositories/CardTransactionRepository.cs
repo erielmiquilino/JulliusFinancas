@@ -51,6 +51,17 @@ public class CardTransactionRepository(JulliusDbContext context) : ICardTransact
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<CardTransaction>> GetByCardIdFromPeriodAsync(Guid cardId, int month, int year)
+    {
+        return await context.Set<CardTransaction>()
+            .Where(ct => ct.CardId == cardId && 
+                        (ct.InvoiceYear > year || 
+                         (ct.InvoiceYear == year && ct.InvoiceMonth >= month)))
+            .Include(ct => ct.Card)
+            .OrderByDescending(ct => ct.Date)
+            .ToListAsync();
+    }
+
     public async Task<CardTransaction?> GetByIdAsync(Guid id)
     {
         return await context.Set<CardTransaction>()
