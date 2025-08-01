@@ -24,7 +24,7 @@ export class DashboardService {
 
       if (filters.month && filters.year) {
         const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
-        const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999); // Final do dia
+        const endDate = new Date(Date.UTC(filters.year, filters.month, 0, 23, 59, 59, 999)); // Final do dia em UTC
         conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
       } else if (filters.year) { // Adicionado para filtrar apenas por ano se o mês não for fornecido
         const startDate = new Date(Date.UTC(filters.year, 0, 1));

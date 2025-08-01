@@ -97,7 +97,7 @@ export class FinancialTransactionService {
           case 'Month':
             if (filters.month && filters.year) {
               const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
-              const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999);
+              const endDate = new Date(Date.UTC(filters.year, filters.month, 0, 23, 59, 59, 999));
               conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
             }
             break;
@@ -113,7 +113,7 @@ export class FinancialTransactionService {
         }
       } else if (filters.month && filters.year) { // Fallback to old month/year filter if dateRangeType is not set
         const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
-        const endDate = new Date(filters.year, filters.month, 0, 23, 59, 59, 999);
+        const endDate = new Date(Date.UTC(filters.year, filters.month, 0, 23, 59, 59, 999));
         conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
       }
 
