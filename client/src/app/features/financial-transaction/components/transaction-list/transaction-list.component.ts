@@ -57,6 +57,10 @@ export class TransactionListComponent implements OnInit, OnDestroy, AfterViewIni
     private cdr: ChangeDetectorRef
   ) {
     this.dataSource = new MatTableDataSource<FinancialTransaction>();
+    this.dataSource.filterPredicate = (data: FinancialTransaction, filter: string) => {
+      const normalized = filter.trim().toLowerCase();
+      return data.description?.toLowerCase().includes(normalized);
+    };
     this.refreshSubscription = this.transactionService.refresh$.subscribe(() => {
       this.loadTransactions();
     });
@@ -121,7 +125,7 @@ export class TransactionListComponent implements OnInit, OnDestroy, AfterViewIni
         if (this.sort) {
           this.dataSource.sort = this.sort;
         }
-        this.calculateTotal(transactions);
+        this.calculateTotal(this.dataSource.filteredData);
       },
       error: (error) => {
         console.error('Erro ao carregar transações:', error);
@@ -192,6 +196,7 @@ export class TransactionListComponent implements OnInit, OnDestroy, AfterViewIni
   applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
+    this.calculateTotal(this.dataSource.filteredData);
   }
 
   openCreateDialog(): void {
