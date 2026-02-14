@@ -1,0 +1,109 @@
+<div class="overdue-account-list-container">
+  <mat-card class="overdue-account-card">
+    <mat-card-header class="card-header-container">
+      <mat-card-title>Contas Atrasadas</mat-card-title>
+      <mat-card-actions align="end">
+        <button mat-raised-button color="primary" (click)="openCreateDialog()">
+          <mat-icon>add</mat-icon>
+          Nova Conta Atrasada
+        </button>
+      </mat-card-actions>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Filtro Desktop -->
+      <div class="filters-section filters-desktop">
+        <mat-form-field class="search-field" appearance="outline">
+          <mat-label>Filtrar Descrição</mat-label>
+          <input matInput (keyup)="applyFilter($event)" [(ngModel)]="textFilter" placeholder="Filtrar Descrição" #input>
+        </mat-form-field>
+      </div>
+
+      <!-- Filtro Mobile -->
+      <div class="filters-mobile">
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>filter_list</mat-icon>
+              Filtros
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="filters-section">
+            <mat-form-field class="search-field" appearance="outline">
+              <mat-label>Filtrar Descrição</mat-label>
+              <input matInput (keyup)="applyFilter($event)" [(ngModel)]="textFilter" placeholder="Filtrar Descrição">
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+      </div>
+
+      <div class="table-container">
+        <div class="table-scroll-container">
+          <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
+
+            <!-- Coluna Descrição -->
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Descrição </th>
+              <td mat-cell *matCellDef="let row">
+                <a class="table-link" (click)="openEditDialog(row)">{{row.description}}</a>
+              </td>
+            </ng-container>
+
+            <!-- Coluna Valor Atual da Dívida -->
+            <ng-container matColumnDef="currentDebtValue">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Valor Atual </th>
+              <td mat-cell *matCellDef="let row" class="negative">
+                {{row.currentDebtValue | currency:'BRL':'symbol':'1.2-2':'pt-BR'}}
+              </td>
+            </ng-container>
+
+            <!-- Coluna Data de Criação -->
+            <ng-container matColumnDef="createdAt">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Data de Criação </th>
+              <td mat-cell *matCellDef="let row"> {{row.createdAt | date:'dd/MM/yyyy HH:mm'}} </td>
+            </ng-container>
+
+            <!-- Coluna Ações -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef> Ações </th>
+              <td mat-cell *matCellDef="let row">
+                <button mat-icon-button color="warn" (click)="openDeleteDialog(row)" matTooltip="Excluir">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <!-- Footer com total -->
+            <ng-container matColumnDef="footer">
+              <td mat-footer-cell *matFooterCellDef [attr.colspan]="displayedColumns.length">
+                <div class="totals-container">
+                  <div class="general-total-section">
+                    <span class="total-label">Total:</span>
+                    <span class="total-value negative">{{totalAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR'}}</span>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            <tr mat-footer-row *matFooterRowDef="['footer']; sticky: true"></tr>
+
+            <!-- Mensagem quando não há dados -->
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+                <div class="no-data-message">
+                  @if (input.value) {
+                    <span>Nenhuma conta atrasada encontrada para o filtro: "{{input.value}}"</span>
+                  } @else {
+                    <span>Nenhuma conta atrasada encontrada</span>
+                  }
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

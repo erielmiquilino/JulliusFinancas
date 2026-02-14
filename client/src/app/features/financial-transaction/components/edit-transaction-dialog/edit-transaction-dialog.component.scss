@@ -1,0 +1,81 @@
+.edit-transaction-container {
+  width: 100%;
+  max-width: 500px;
+}
+
+mat-dialog-content {
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  max-height: 70vh;
+  padding: 0 24px !important;
+  box-sizing: border-box;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0; // Previne overflow
+  box-sizing: border-box;
+  gap: 4px; // Espaçamento entre os campos
+}
+
+mat-form-field {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+mat-slide-toggle {
+  margin: 16px 0;
+  width: 100%;
+
+  &.mat-form-field-should-float {
+    margin-bottom: 8px;
+  }
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+// =============================================================================
+// RESPONSIVIDADE
+// =============================================================================
+
+@media (max-width: 600px) {
+  .edit-transaction-container {
+    max-width: 100%;
+  }
+
+  mat-dialog-content {
+    padding: 0 16px !important;
+    max-height: calc(100vh - 140px) !important;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column;
+    padding: 16px !important;
+    gap: 8px;
+
+    button {
+      width: 100%;
+      margin: 0 !important;
+    }
+  }
+}

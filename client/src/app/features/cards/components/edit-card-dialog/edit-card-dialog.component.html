@@ -1,0 +1,78 @@
+<h2 mat-dialog-title>Editar Cartão de Crédito</h2>
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nome do Cartão</mat-label>
+        <input matInput formControlName="name" placeholder="Ex: Nubank, Inter">
+        @if (form.get('name')?.hasError('required')) {
+          <mat-error>Nome é obrigatório</mat-error>
+        }
+        @if (form.get('name')?.hasError('maxlength')) {
+          <mat-error>Nome deve ter no máximo 50 caracteres</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Banco Emissor</mat-label>
+        <input matInput formControlName="IssuingBank" placeholder="Ex: Nu Pagamentos S.A.">
+        @if (form.get('IssuingBank')?.hasError('required')) {
+          <mat-error>Banco emissor é obrigatório</mat-error>
+        }
+        @if (form.get('IssuingBank')?.hasError('maxlength')) {
+          <mat-error>Banco emissor deve ter no máximo 50 caracteres</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Limite Total</mat-label>
+        <input matInput type="number" formControlName="limit" placeholder="0.00">
+        <span matPrefix>R$&nbsp;</span>
+        @if (form.get('limit')?.hasError('required')) {
+          <mat-error>Limite é obrigatório</mat-error>
+        }
+        @if (form.get('limit')?.hasError('min')) {
+          <mat-error>Limite deve ser maior que zero</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Dia de Fechamento</mat-label>
+        <mat-select formControlName="closingDay">
+          @for (dia of diaFechamentoOptions; track dia.value) {
+            <mat-option [value]="dia.value">
+              {{dia.label}}
+            </mat-option>
+          }
+        </mat-select>
+        @if (form.get('closingDay')?.hasError('required')) {
+          <mat-error>Dia de fechamento é obrigatório</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Dia do Vencimento</mat-label>
+        <mat-select formControlName="dueDay">
+          @for (dia of diaVencimentoOptions; track dia.value) {
+            <mat-option [value]="dia.value">
+              {{dia.label}}
+            </mat-option>
+          }
+        </mat-select>
+        @if (form.get('dueDay')?.hasError('required')) {
+          <mat-error>Dia do vencimento é obrigatório</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="form.invalid">Salvar Alterações</button>
+</mat-dialog-actions>

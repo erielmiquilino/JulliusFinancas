@@ -1,0 +1,249 @@
+<div class="dashboard-container">
+  <!-- Header Card: Título e Filtros -->
+  <mat-card class="dashboard-header-card">
+    <mat-card-header class="card-header-container">
+      <mat-card-title>Dashboard Financeiro</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="filters-section">
+        <form [formGroup]="filterForm" class="filter-form">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Mês</mat-label>
+            <mat-select formControlName="month">
+              @for (month of months; track month.value) {
+                <mat-option [value]="month.value">
+                  {{month.viewValue}}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Ano</mat-label>
+            <mat-select formControlName="year">
+              @for (year of years; track year) {
+                <mat-option [value]="year">
+                  {{year}}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </form>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Content Card: Seções do Dashboard -->
+  <mat-card class="dashboard-content-card">
+    <mat-card-content>
+      @if (!loading) {
+        <div class="content-scroll-container">
+          <div class="summary-content">
+      @if (summaryData) {
+        <!-- Seção: Transações -->
+        <h2 class="section-title">Transações Financeiras</h2>
+        <div class="summary-grid">
+          <mat-card class="summary-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="card-icon expense">trending_down</mat-icon>
+              <mat-card-title>Despesas</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="summary-item">
+                <span class="label">Total:</span>
+                <span class="value expense">{{ summaryData.totalDespesas | currency:'BRL' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Pagas:</span>
+                <span class="value">{{ summaryData.totalDespesasPagas | currency:'BRL' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Em Aberto:</span>
+                <span class="value warning">{{ summaryData.totalDespesasEmAberto | currency:'BRL' }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="summary-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="card-icon income">trending_up</mat-icon>
+              <mat-card-title>Receitas</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="summary-item">
+                <span class="label">Total:</span>
+                <span class="value income">{{ summaryData.totalReceitas | currency:'BRL' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Recebidas:</span>
+                <span class="value">{{ summaryData.totalReceitasRecebidas | currency:'BRL' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">A Receber:</span>
+                <span class="value warning">{{ summaryData.totalReceitasAReceber | currency:'BRL' }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="summary-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="card-icon balance">account_balance_wallet</mat-icon>
+              <mat-card-title>Saldo</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="summary-item">
+                <span class="label">Em Conta:</span>
+                <span class="value" [class.income]="summaryData.totalEmConta >= 0" [class.expense]="summaryData.totalEmConta < 0">
+                  {{ summaryData.totalEmConta | currency:'BRL' }}
+                </span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Previsto:</span>
+                <span class="value" [class.income]="summaryData.totalPrevistoEmConta >= 0" [class.expense]="summaryData.totalPrevistoEmConta < 0">
+                  {{ summaryData.totalPrevistoEmConta | currency:'BRL' }}
+                </span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Seção: Budgets -->
+      @if (budgetSummary) {
+        <h2 class="section-title">Budgets do Período</h2>
+        <div class="summary-grid">
+          <mat-card class="summary-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="card-icon budget">savings</mat-icon>
+              <mat-card-title>Planejamento</mat-card-title>
+              <mat-card-subtitle>{{budgetSummary.quantidadeBudgets}} budget(s) cadastrado(s)</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="summary-item">
+                <span class="label">Total Planejado:</span>
+                <span class="value">{{ budgetSummary.totalPlanejado | currency:'BRL' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Total Realizado:</span>
+                <span class="value" [class]="getBudgetProgressClass(budgetSummary.percentualUtilizado)">
+                  {{ budgetSummary.totalRealizado | currency:'BRL' }}
+                </span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Restante:</span>
+                <span class="value" [class.income]="budgetSummary.totalRestante >= 0" [class.expense]="budgetSummary.totalRestante < 0">
+                  {{ budgetSummary.totalRestante | currency:'BRL' }}
+                </span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          @if (budgetSummary.quantidadeBudgets > 0) {
+            <mat-card class="summary-card progress-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar class="card-icon" [class]="getBudgetProgressClass(budgetSummary.percentualUtilizado)">
+                  donut_large
+                </mat-icon>
+                <mat-card-title>Utilização dos Budgets</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="progress-display">
+                  <div class="progress-bar-wrapper">
+                    <div class="progress-bar"
+                         [class]="getBudgetProgressClass(budgetSummary.percentualUtilizado)"
+                         [style.width.%]="budgetSummary.percentualUtilizado > 100 ? 100 : budgetSummary.percentualUtilizado">
+                    </div>
+                  </div>
+                  <span class="progress-text" [class]="getBudgetProgressClass(budgetSummary.percentualUtilizado)">
+                    {{ budgetSummary.percentualUtilizado | number:'1.1-1' }}%
+                  </span>
+                </div>
+                @if (budgetSummary.percentualUtilizado < 70) {
+                  <p class="progress-hint">
+                    Consumo saudável dos budgets
+                  </p>
+                } @else if (budgetSummary.percentualUtilizado >= 70 && budgetSummary.percentualUtilizado <= 90) {
+                  <p class="progress-hint warning">
+                    Atenção: consumo próximo do limite
+                  </p>
+                } @else {
+                  <p class="progress-hint danger">
+                    Alerta: budgets quase esgotados!
+                  </p>
+                }
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+
+      <!-- Seção: Consolidado -->
+      @if (consolidatedSummary) {
+        <h2 class="section-title">Visão Consolidada</h2>
+        <div class="summary-grid">
+          <mat-card class="summary-card consolidated">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="card-icon consolidated">assessment</mat-icon>
+              <mat-card-title>Total Geral de Gastos</mat-card-title>
+              <mat-card-subtitle>Sem duplicidade</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="summary-item">
+                <span class="label">Transacoes sem Budget:</span>
+                <span class="value">{{ consolidatedSummary.transacoesSemBudget | currency:'BRL' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Budgets Planejados:</span>
+                <span class="value">{{ consolidatedSummary.budgetsPlanejados | currency:'BRL' }}</span>
+              </div>
+              @if (consolidatedSummary.budgetsExcedentes > 0) {
+                <div class="summary-item" >
+                  <span class="label">Budgets Excedentes:</span>
+                  <span class="value expense">{{ consolidatedSummary.budgetsExcedentes | currency:'BRL' }}</span>
+                </div>
+              }
+              <div class="summary-item total">
+                <span class="label">TOTAL GERAL:</span>
+                <span class="value expense">{{ consolidatedSummary.totalGeral | currency:'BRL' }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="summary-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="card-icon"
+                        [class.income]="consolidatedSummary.saldoPrevistoGeral >= 0"
+                        [class.expense]="consolidatedSummary.saldoPrevistoGeral < 0">
+                {{ consolidatedSummary.saldoPrevistoGeral >= 0 ? 'thumb_up' : 'thumb_down' }}
+              </mat-icon>
+              <mat-card-title>Saldo Previsto Geral</mat-card-title>
+              <mat-card-subtitle>Receitas ({{ consolidatedSummary.totalReceitas | currency:'BRL' }}) - Gastos</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="big-value" [class.income]="consolidatedSummary.saldoPrevistoGeral >= 0" [class.expense]="consolidatedSummary.saldoPrevistoGeral < 0">
+                {{ consolidatedSummary.saldoPrevistoGeral | currency:'BRL' }}
+              </div>
+              @if (consolidatedSummary.saldoPrevistoGeral >= 0) {
+                <p class="status-hint">
+                  Você está dentro do orçamento!
+                </p>
+              } @else {
+                <p class="status-hint danger">
+                  Atenção: gastos previstos excedem as receitas
+                </p>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+          </div>
+        </div>
+      } @else {
+        <div class="loading-indicator">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>Carregando dados...</p>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

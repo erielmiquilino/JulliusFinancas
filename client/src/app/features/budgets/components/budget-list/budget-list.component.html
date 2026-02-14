@@ -1,0 +1,120 @@
+<div class="budget-list-container">
+  <mat-card class="budget-header-card">
+    <mat-card-header class="card-header-container">
+      <mat-card-title>Budgets (Orçamentos)</mat-card-title>
+      <mat-card-actions align="end">
+        <button mat-raised-button color="primary" (click)="openCreateDialog()">
+          <mat-icon>add</mat-icon>
+          Novo Budget
+        </button>
+      </mat-card-actions>
+    </mat-card-header>
+    <mat-card-content>
+      <!-- Filtros Desktop -->
+      <div class="filters-section filters-desktop">
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Filtrar por Mês</mat-label>
+          <mat-select [(ngModel)]="selectedMonth" (selectionChange)="onPeriodChange()">
+            @for (month of months; track month.value) {
+              <mat-option [value]="month.value">
+                {{month.label}}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Filtrar por Ano</mat-label>
+          <input matInput type="number" [(ngModel)]="selectedYear" (ngModelChange)="onPeriodChange()">
+        </mat-form-field>
+      </div>
+
+      <!-- Filtros Mobile -->
+      <div class="filters-mobile">
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>filter_list</mat-icon>
+              Filtros
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="filters-section">
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Filtrar por Mês</mat-label>
+              <mat-select [(ngModel)]="selectedMonth" (selectionChange)="onPeriodChange()">
+                @for (month of months; track month.value) {
+                  <mat-option [value]="month.value">
+                    {{month.label}}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Filtrar por Ano</mat-label>
+              <input matInput type="number" [(ngModel)]="selectedYear" (ngModelChange)="onPeriodChange()">
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  @if (budgets.length > 0) {
+    <div class="budgets-grid">
+      @for (budget of budgets; track budget.id) {
+        <mat-card class="budget-item">
+          <mat-card-header>
+            <mat-card-title>
+              <div class="budget-header-content">
+                <a class="table-link" (click)="openEditDialog(budget); $event.stopPropagation()">{{budget.name}}</a>
+                <div class="budget-actions">
+                  <button mat-icon-button color="warn" (click)="openDeleteDialog(budget); $event.stopPropagation()" matTooltip="Excluir">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </div>
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (budget.description) {
+              <p class="budget-description">{{budget.description}}</p>
+            }
+
+            <!-- Barra de Progresso -->
+            <div class="progress-container">
+              <div class="progress-bar-wrapper">
+                <div class="progress-bar"
+                     [ngClass]="getProgressBarClass((budget.usedAmount / budget.limitAmount) * 100)"
+                     [style.width.%]="(budget.usedAmount / budget.limitAmount) * 100">
+                </div>
+              </div>
+              <span class="progress-percentage"
+                    [ngClass]="getProgressBarClass((budget.usedAmount / budget.limitAmount) * 100)">
+                {{(budget.usedAmount / budget.limitAmount) * 100 | number:'1.0-0'}}%
+              </span>
+            </div>
+
+            <div class="budget-values">
+              <div class="value-row">
+                <span>Limite:</span>
+                <span class="value">{{budget.limitAmount | currency:'BRL'}}</span>
+              </div>
+              <div class="value-row">
+                <span>Utilizado:</span>
+                <span class="value" [class.danger]="budget.usedAmount > budget.limitAmount">
+                  {{budget.usedAmount | currency:'BRL'}}
+                </span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  } @else {
+    <div class="no-data-message">
+      <mat-icon>info</mat-icon>
+      <p>Nenhum orçamento encontrado para este período.</p>
+    </div>
+  }
+</div>

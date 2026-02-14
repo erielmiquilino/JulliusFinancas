@@ -1,0 +1,88 @@
+DataMigration/
+REDEPLOYMENT_GUIDE.md
+cleanup-migration.ps1
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/build
+/dist
+/out
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# IDE - VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IDE - JetBrains
+.idea/
+*.iml
+*.iws
+
+# VS
+.vs/
+
+# Misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+Thumbs.db
+
+# Client build
+/client/build
+/client/dist
+/client/node_modules
+
+# Server build
+/server/dist
+/server/node_modules
+
+# Cache
+.cache/
+.next/
+.nuxt/
+.npm/
+
+# Debug
+.debug/ 
+
+bin/
+obj/
+
+# .NET Development Settings
+appsettings.Development.json
+appsettings.Local.json
+
+# Angular Development Settings
+client/src/assets/env.js
+
+.Cursor/
+
+exmplos-de-faturas/
+
+.config/
+.github/instructions/snyk_rules.instructions.md

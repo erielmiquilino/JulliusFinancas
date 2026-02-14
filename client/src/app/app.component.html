@@ -1,0 +1,31 @@
+<div class="main-wrapper">
+  @if (showLayout) {
+    <div class="app-container" [class.is-mobile]="isMobile">
+      <app-header
+        [isMobile]="isMobile"
+        (menuToggle)="sidenav.toggle()">
+      </app-header>
+
+      <mat-sidenav-container class="sidenav-container">
+        <mat-sidenav #sidenav
+                     [mode]="isMobile ? 'over' : 'side'"
+                     [opened]="!isMobile"
+                     [fixedInViewport]="isMobile"
+                     fixedTopGap="64"
+                     role="navigation">
+          <app-side-menu (itemClick)="onSidenavItemClick()"></app-side-menu>
+        </mat-sidenav>
+
+        <mat-sidenav-content role="main">
+          <main class="main-content">
+            <router-outlet></router-outlet>
+          </main>
+        </mat-sidenav-content>
+      </mat-sidenav-container>
+    </div>
+  } @else {
+    <div class="auth-container">
+      <router-outlet></router-outlet>
+    </div>
+  }
+</div>

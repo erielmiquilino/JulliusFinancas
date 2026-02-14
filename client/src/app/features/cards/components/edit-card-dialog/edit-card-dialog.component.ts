@@ -1,0 +1,90 @@
+import { Component, Inject } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { CardService, Card, UpdateCardRequest } from '../../services/card.service';
+
+@Component({
+  selector: 'app-edit-card-dialog',
+  templateUrl: './edit-card-dialog.component.html',
+  styleUrls: ['./edit-card-dialog.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule
+  ]
+})
+export class EditCardDialogComponent {
+  form: FormGroup;
+
+  bandeiraOptions = [
+    { value: 'Visa', label: 'Visa' },
+    { value: 'Mastercard', label: 'Mastercard' },
+    { value: 'American Express', label: 'American Express' },
+    { value: 'Elo', label: 'Elo' },
+    { value: 'Hipercard', label: 'Hipercard' },
+    { value: 'Outro', label: 'Outro' }
+  ];
+
+  diaFechamentoOptions = Array.from({ length: 31 }, (_, i) => ({
+    value: i + 1,
+    label: `Dia ${i + 1}`
+  }));
+
+  diaVencimentoOptions = Array.from({ length: 31 }, (_, i) => ({
+    value: i + 1,
+    label: `Dia ${i + 1}`
+  }));
+
+  constructor(
+    private fb: FormBuilder,
+    private cardService: CardService,
+    private dialogRef: MatDialogRef<EditCardDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: Card
+  ) {
+    this.form = this.fb.group({
+      name: [data.name, [Validators.required, Validators.maxLength(50)]],
+      IssuingBank: [data.issuingBank, [Validators.required, Validators.maxLength(50)]],
+      closingDay: [data.closingDay, [Validators.required, Validators.min(1), Validators.max(31)]],
+      dueDay: [data.dueDay, [Validators.required, Validators.min(1), Validators.max(31)]],
+      limit: [data.limit, [Validators.required, Validators.min(1)]]
+    });
+  }
+
+  onSave(): void {
+    if (this.form.valid) {
+      const formValue = this.form.value;
+
+      const updateRequest: UpdateCardRequest = {
+        name: formValue.name,
+        issuingBank: formValue.IssuingBank,
+        closingDay: Number(formValue.closingDay),
+        dueDay: Number(formValue.dueDay),
+        limit: Number(formValue.limit)
+      };
+
+      this.cardService.updateCard(this.data.id, updateRequest)
+        .subscribe({
+          next: () => {
+            this.dialogRef.close(true);
+          },
+          error: (error) => {
+            console.error('Erro ao atualizar cartão:', error);
+          }
+        });
+    }
+  }
+
+  onCancel(): void {
+    this.dialogRef.close();
+  }
+}

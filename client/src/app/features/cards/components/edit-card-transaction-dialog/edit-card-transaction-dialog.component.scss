@@ -1,0 +1,80 @@
+.dialog-container {
+  padding: 20px;
+
+  h3 {
+    margin-bottom: 20px;
+    color: #333;
+  }
+}
+
+.edit-card-transaction-container {
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.form-container {
+  padding: 20px 0;
+
+  mat-form-field {
+    margin-bottom: 16px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.row-fields {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+
+  .flex-field {
+    flex: 1;
+    margin-bottom: 0;
+  }
+}
+
+mat-dialog-content {
+  padding: 0 24px;
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  gap: 8px;
+}
+
+// =============================================================================
+// RESPONSIVIDADE
+// =============================================================================
+
+@media (max-width: 600px) {
+  .edit-card-transaction-container {
+    min-width: unset;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .dialog-container {
+    padding: 16px;
+  }
+
+  .row-fields {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  mat-dialog-content {
+    padding: 0 16px;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column;
+    padding: 16px;
+
+    button {
+      width: 100%;
+    }
+  }
+}

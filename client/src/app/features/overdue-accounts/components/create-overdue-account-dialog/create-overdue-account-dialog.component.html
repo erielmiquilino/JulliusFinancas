@@ -1,0 +1,35 @@
+<h2 mat-dialog-title>Nova Conta Atrasada</h2>
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Descrição</mat-label>
+        <input matInput formControlName="description" placeholder="Ex: Cartão de Crédito Antigo">
+        @if (form.get('description')?.hasError('required')) {
+          <mat-error>Descrição é obrigatória</mat-error>
+        }
+        @if (form.get('description')?.hasError('maxlength')) {
+          <mat-error>Máximo de 200 caracteres</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Valor Atual da Dívida</mat-label>
+        <input matInput type="number" formControlName="currentDebtValue" placeholder="0.00">
+        <span matPrefix>R$&nbsp;</span>
+        @if (form.get('currentDebtValue')?.hasError('required')) {
+          <mat-error>Valor é obrigatório</mat-error>
+        }
+        @if (form.get('currentDebtValue')?.hasError('min')) {
+          <mat-error>Valor não pode ser negativo</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="form.invalid">Salvar</button>
+</mat-dialog-actions>

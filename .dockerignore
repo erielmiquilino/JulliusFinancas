@@ -1,0 +1,51 @@
+# Frontend
+client/node_modules/
+client/dist/
+client/.angular/
+client/.vscode/
+client/.idea/
+
+# Backend
+server/**/bin/
+server/**/obj/
+server/**/*.user
+server/**/logs/
+server/**/.vs/
+
+# Arquivos de build e cache
+**/.git/
+**/.gitignore
+**/.gitattributes
+**/.editorconfig
+
+# Documentação
+docs/
+*.md
+!README.md
+
+# Scripts de automação (não necessários na imagem)
+automation/
+
+# Infraestrutura
+infra/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup

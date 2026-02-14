@@ -1,0 +1,47 @@
+<h2 mat-dialog-title>Editar Categoria</h2>
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nome da Categoria</mat-label>
+        <input matInput formControlName="name" placeholder="Ex: Alimentação">
+        @if (form.get('name')?.hasError('required')) {
+          <mat-error>Nome é obrigatório</mat-error>
+        }
+        @if (form.get('name')?.hasError('maxlength')) {
+          <mat-error>Nome deve ter no máximo 100 caracteres</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <div class="color-picker-label">Cor da Categoria:</div>
+      <div class="color-palette">
+        @for (color of predefinedColors; track color) {
+          <div class="color-option"
+               [style.background-color]="color"
+               [class.selected]="form.get('color')?.value === color"
+               (click)="selectColor(color)"
+               [matTooltip]="color">
+          </div>
+        }
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width color-input-field">
+        <mat-label>Ou insira o Hexadecimal</mat-label>
+        <input matInput formControlName="color" placeholder="#HEX">
+        <div matPrefix class="color-preview" [style.background-color]="form.get('color')?.value"></div>
+        @if (form.get('color')?.hasError('required')) {
+          <mat-error>Cor é obrigatória</mat-error>
+        }
+        @if (form.get('color')?.hasError('pattern')) {
+          <mat-error>Formato inválido (ex: #FF5722)</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="form.invalid">Salvar Alterações</button>
+</mat-dialog-actions>

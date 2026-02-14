@@ -1,0 +1,66 @@
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
+
+// Material Imports
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+
+// Components
+import { CreateTransactionDialogComponent } from './components/create-transaction-dialog/create-transaction-dialog.component';
+import { EditTransactionDialogComponent } from './components/edit-transaction-dialog/edit-transaction-dialog.component';
+import { PayWithCardDialogComponent } from './components/pay-with-card-dialog/pay-with-card-dialog.component';
+import { FinancialTransactionRoutingModule } from './financial-transaction-routing.module';
+import { TransactionListComponent } from './components/transaction-list/transaction-list.component';
+
+@NgModule({
+  declarations: [
+  ],
+  imports: [
+    CreateTransactionDialogComponent,
+    EditTransactionDialogComponent,
+    PayWithCardDialogComponent,
+    TransactionListComponent,
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatIconModule,
+    MatSnackBarModule,
+    MatSelectModule,
+    MatDialogModule,
+    MatSlideToggleModule,
+    MatCheckboxModule,
+    MatMenuModule,
+    MatAutocompleteModule,
+    FinancialTransactionRoutingModule
+  ],
+  providers: [
+    { provide: MAT_DATE_LOCALE, useValue: 'pt-BR' }
+  ]
+})
+export class FinancialTransactionModule { }

@@ -1,0 +1,46 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+// Desktop: densidade compacta (-2) para melhor aproveitamento de espaço
+$jullius-theme-light: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$green-palette,
+    tertiary: mat.$cyan-palette,
+  ),
+  typography: (
+    plain-family: 'Inter, sans-serif',
+    brand-family: 'Inter, sans-serif',
+  ),
+  density: (
+    scale: -2
+  )
+));
+
+// Mobile: densidade padrão (0) para touch targets adequados (≥48px)
+$jullius-theme-mobile: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$green-palette,
+    tertiary: mat.$cyan-palette,
+  ),
+  typography: (
+    plain-family: 'Inter, sans-serif',
+    brand-family: 'Inter, sans-serif',
+  ),
+  density: (
+    scale: 0
+  )
+));
+
+html {
+  @include mat.all-component-themes($jullius-theme-light);
+}
+
+// Aplica densidade 0 (touch-friendly) em viewports mobile
+@media (max-width: 599.98px) {
+  html {
+    @include mat.all-component-densities($jullius-theme-mobile);
+  }
+}

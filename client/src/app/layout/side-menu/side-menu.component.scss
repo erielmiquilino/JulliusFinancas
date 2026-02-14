@@ -1,0 +1,74 @@
+.side-menu-container {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+.menu-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px !important;
+  text-decoration: none;
+  color: #333;
+  transition: background-color 0.2s, color 0.2s, border-right 0.2s;
+  cursor: pointer;
+  border-right: 3px solid transparent;
+  border-left: none !important;
+  position: relative;
+  height: auto !important;
+  min-height: unset !important;
+  max-height: unset !important;
+
+  mat-icon {
+    margin-right: 12px;
+    color: #757575;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .menu-text {
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &.active-link {
+    background-color: #d4edda;
+    color: #28a745;
+    border-right: 3px solid #28a745;
+
+    mat-icon {
+      color: #28a745;
+    }
+
+    .menu-text {
+      font-weight: 500;
+    }
+  }
+}
+
+// Sobrescreve estilos do Angular Material
+.menu-link[mat-list-item] {
+  height: auto !important;
+  min-height: unset !important;
+
+  ::ng-deep {
+    .mdc-list-item__content {
+      padding: 0 !important;
+    }
+
+    .mat-mdc-list-item-unscoped-content {
+      height: auto !important;
+    }
+  }
+}

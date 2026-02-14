@@ -1,0 +1,75 @@
+<h2 mat-dialog-title>Editar Lançamento no Cartão</h2>
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Descrição</mat-label>
+        <input type="text"
+               matInput
+               formControlName="description"
+               [matAutocomplete]="auto">
+        <mat-autocomplete #auto="matAutocomplete">
+          @for (description of filteredDescriptions$ | async; track description) {
+            <mat-option [value]="description">
+              {{description}}
+            </mat-option>
+          }
+        </mat-autocomplete>
+        @if (form.get('description')?.hasError('required')) {
+          <mat-error>Descrição é obrigatória</mat-error>
+        }
+        @if (form.get('description')?.hasError('maxlength')) {
+          <mat-error>Descrição deve ter no máximo 100 caracteres</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Valor</mat-label>
+        <input matInput type="number" formControlName="amount" placeholder="0.00">
+        <span matPrefix>R$&nbsp;</span>
+        @if (form.get('amount')?.hasError('required')) {
+          <mat-error>Valor é obrigatório</mat-error>
+        }
+        @if (form.get('amount')?.hasError('min')) {
+          <mat-error>Valor deve ser maior que zero</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Tipo</mat-label>
+        <mat-select formControlName="type" (selectionChange)="onTypeChange()">
+          <mat-option [value]="CardTransactionType.Expense">Gasto / Compra</mat-option>
+          <mat-option [value]="CardTransactionType.Income">Crédito / Estorno</mat-option>
+        </mat-select>
+        @if (form.get('type')?.hasError('required')) {
+          <mat-error>Tipo é obrigatório</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Data da Compra</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="date">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        @if (form.get('date')?.hasError('required')) {
+          <mat-error>Data é obrigatória</mat-error>
+        }
+      </mat-form-field>
+
+      @if (!isReceita) {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Parcela</mat-label>
+          <input matInput formControlName="installment" placeholder="Ex: 1/12">
+        </mat-form-field>
+      }
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="form.invalid">Salvar Alterações</button>
+</mat-dialog-actions>

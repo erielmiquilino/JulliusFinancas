@@ -1,0 +1,118 @@
+<h2 mat-dialog-title>Nova Transação</h2>
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Descrição</mat-label>
+        <input type="text"
+               matInput
+               formControlName="description"
+               [matAutocomplete]="auto">
+        <mat-autocomplete #auto="matAutocomplete">
+          @for (description of filteredDescriptions$ | async; track description) {
+            <mat-option [value]="description">
+              {{description}}
+            </mat-option>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Valor</mat-label>
+        <input matInput type="number" formControlName="amount" placeholder="0.00">
+        <span matPrefix>R$&nbsp;</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Tipo</mat-label>
+        <mat-select formControlName="type" (selectionChange)="onTypeChange()">
+          @for (type of transactionTypes; track type.value) {
+            <mat-option [value]="type.value">
+              {{type.label}}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Categoria</mat-label>
+        <mat-select formControlName="categoryId">
+          @for (category of categories; track category.id) {
+            <mat-option [value]="category.id">
+              {{category.name}}
+            </mat-option>
+          }
+        </mat-select>
+        @if (form.get('categoryId')?.hasError('required')) {
+          <mat-error>Categoria é obrigatória</mat-error>
+        }
+      </mat-form-field>
+
+      @if (budgets.length > 0) {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Budget (Opcional)</mat-label>
+          <mat-select formControlName="budgetId">
+            <mat-option [value]="null">Nenhum</mat-option>
+            @for (budget of budgets; track budget.id) {
+              <mat-option [value]="budget.id">
+                {{budget.name}} (Mês: {{budget.month}})
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Data de Vencimento</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="dueDate">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+    </div>
+
+    @if (!isReceivableBill) {
+      <div class="parcela-section">
+        <mat-checkbox formControlName="isInstallment">Parcelar esta despesa?</mat-checkbox>
+
+        @if (isInstallment) {
+          <div class="installment-fields">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Número de Parcelas</mat-label>
+              <input matInput type="number" formControlName="installmentCount" min="2" max="24">
+              @if (form.get('installmentCount')?.hasError('required')) {
+                <mat-error>Número de parcelas é obrigatório</mat-error>
+              }
+              @if (form.get('installmentCount')?.hasError('min')) {
+                <mat-error>Mínimo de 2 parcelas</mat-error>
+              }
+              @if (form.get('installmentCount')?.hasError('max')) {
+                <mat-error>Máximo de 24 parcelas</mat-error>
+              }
+            </mat-form-field>
+
+            @if (isInstallment && form.get('amount')?.valid && form.get('installmentCount')?.valid) {
+              <div class="parcela-info">
+                Valor estimado por parcela: {{ (form.get('amount')?.value || 0) / (form.get('installmentCount')?.value || 1) | currency:'BRL' }}
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <div class="form-row">
+      <mat-checkbox formControlName="isPaid">Marcar como pago / recebido</mat-checkbox>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="accent" (click)="onSaveAndNew()" [disabled]="form.invalid">Salvar e Criar Outro</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="form.invalid">Salvar</button>
+</mat-dialog-actions>

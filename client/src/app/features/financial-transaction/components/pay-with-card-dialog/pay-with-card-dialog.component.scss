@@ -1,0 +1,95 @@
+.pay-with-card-container {
+  width: 100%;
+  max-width: 500px;
+}
+
+mat-dialog-content {
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  max-height: 70vh;
+  padding: 0 24px !important;
+  box-sizing: border-box;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0; // Previne overflow
+  box-sizing: border-box;
+  gap: 4px; // Espaçamento entre os campos
+}
+
+mat-form-field {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  box-sizing: border-box;
+
+  mat-icon {
+    margin-right: 8px;
+    color: #666;
+    font-size: 20px;
+    height: 20px;
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+  }
+
+  div {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #666;
+  }
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+// =============================================================================
+// RESPONSIVIDADE
+// =============================================================================
+
+@media (max-width: 600px) {
+  .pay-with-card-container {
+    max-width: 100%;
+  }
+
+  mat-dialog-content {
+    padding: 0 16px !important;
+    max-height: calc(100vh - 140px) !important;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column;
+    padding: 16px !important;
+    gap: 8px;
+
+    button {
+      width: 100%;
+      margin: 0 !important;
+    }
+  }
+
+  .info-section {
+    padding: 10px;
+  }
+}

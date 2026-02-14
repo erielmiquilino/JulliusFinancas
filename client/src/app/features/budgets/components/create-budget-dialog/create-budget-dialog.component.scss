@@ -1,0 +1,28 @@
+.full-width {
+  width: 100%;
+}
+
+.period-row {
+  display: flex;
+  gap: 16px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+:host ::ng-deep .mat-mdc-dialog-content {
+  max-height: none;
+  overflow: visible;
+}
+
+// =============================================================================
+// RESPONSIVIDADE
+// =============================================================================
+
+@media (max-width: 600px) {
+  .period-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

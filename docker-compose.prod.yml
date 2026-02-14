@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    image: ${DOCKER_REGISTRY}/jullius-financas:latest
+    container_name: jullius-monolith
+    restart: always
+    env_file: .env
+    networks:
+      - proxy-net
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=${DB_HOST};Database=${DB_NAME};User=${DB_USER};Password=${DB_PASSWORD};Port=3306;
+    volumes:
+      - jullius_dataprotection_keys:/var/jullius/keys
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jullius.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.jullius.entrypoints=web"
+      - "traefik.http.routers.jullius-secure.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.jullius-secure.entrypoints=websecure"
+      - "traefik.http.routers.jullius-secure.tls=true"
+      - "traefik.http.routers.jullius-secure.tls.certresolver=myresolver"
+      - "traefik.http.services.jullius.loadbalancer.server.port=80"
+
+networks:
+  proxy-net:
+    external: true
+
+volumes:
+  jullius_dataprotection_keys:

@@ -1,0 +1,6 @@
+@Jullius.ServiceApi_HostAddress = https://localhost:7087
+
+GET {{Jullius.ServiceApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

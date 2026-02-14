@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>Pagar com Cartão</h2>
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Selecione o Cartão</mat-label>
+        <mat-select formControlName="cardId">
+          @for (card of cards; track card.id) {
+            <mat-option [value]="card.id">
+              {{card.name}} ({{card.issuingBank}})
+            </mat-option>
+          }
+        </mat-select>
+        @if (cards.length === 0) {
+          <mat-hint>Nenhum cartão cadastrado</mat-hint>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Fatura de Vencimento</mat-label>
+        <mat-select formControlName="invoiceDate">
+          @for (option of invoiceOptions; track option.value) {
+            <mat-option [value]="option.value">
+              {{option.label}}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="form.invalid">Confirmar Pagamento</button>
+</mat-dialog-actions>
