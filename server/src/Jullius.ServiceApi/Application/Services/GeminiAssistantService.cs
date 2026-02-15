@@ -36,6 +36,7 @@ public class GeminiAssistantService
         - Para parcelas, extraia de "10x", "em 10 vezes", "em 10 parcelas", "parcelei em 10"
         - Para categorias, extraia texto após "categoria", "em", "na categoria"
         - Para cartões, extraia nomes próprios que pareçam ser cartões (nubank, inter, itaú, etc.)
+        - Para vencimento, extraia "dueDate" quando o usuário informar data explícita ou relativa (ex: "amanhã", "próxima segunda", "dia 10/03", "nas próximas 3 segundas"), usando formato ISO 8601 (yyyy-MM-dd)
         - Capitalize a primeira letra da descrição e da categoria
         - Identifique se o usuário indicou que a despesa já foi paga com expressões como: "pago", "paga", "pagas", "pagos", "já paguei", "já pago", "quitado", "quitada". Se sim, isPaid = true. Caso contrário, isPaid = false.
         - Quando o status de pagamento se aplicar a TODAS as transações (ex: "as duas pagas", "todos pagos", "tudo pago"), marque isPaid = true em TODAS.
@@ -53,6 +54,7 @@ public class GeminiAssistantService
                 "cardName": "string ou null",
                 "installments": número ou null,
                 "isPaid": boolean (true se pago, false se não mencionado ou pendente),
+                "dueDate": "string ISO 8601 (yyyy-MM-dd) ou null",
                 "question": "string ou null"
               },
               "missingFields": ["lista de campos obrigatórios faltantes"],
@@ -193,6 +195,7 @@ public class GeminiAssistantService
                 "cardName": "string ou null",
                 "installments": número ou null,
                 "isPaid": boolean (true se pago/paga/quitado, false caso contrário),
+                "dueDate": "string ISO 8601 (yyyy-MM-dd) ou null",
                 "question": null
               },
               "missingFields": [],

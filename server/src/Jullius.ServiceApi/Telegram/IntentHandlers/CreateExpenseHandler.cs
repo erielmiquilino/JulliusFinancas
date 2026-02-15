@@ -1,3 +1,4 @@
+using System.Globalization;
 using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
@@ -7,6 +8,7 @@ namespace Jullius.ServiceApi.Telegram.IntentHandlers;
 
 public class CreateExpenseHandler : IIntentHandler
 {
+    private static readonly CultureInfo PtBrCulture = new("pt-BR");
     private readonly FinancialTransactionService _transactionService;
     private readonly ICategoryRepository _categoryRepository;
     private readonly ILogger<CreateExpenseHandler> _logger;
@@ -42,12 +44,13 @@ public class CreateExpenseHandler : IIntentHandler
         var dueDate = state.GetData<DateTime?>("dueDate") ?? DateTime.UtcNow;
         var isPaid = state.GetData<bool>("isPaid");
         var paidText = isPaid ? "✅ Pago" : "⏳ Pendente";
+        var amountText = amount.ToString("N2", PtBrCulture);
 
         return $"""
             📝 *Confirma o lançamento?*
 
             • Descrição: {description}
-            • Valor: R$ {amount:N2}
+            • Valor: R$ {amountText}
             • Categoria: {categoryName}
             • Data: {dueDate:dd/MM/yyyy}
             • Status: {paidText}
@@ -128,7 +131,7 @@ public class CreateExpenseHandler : IIntentHandler
     {
         var description = state.GetData<string>("description") ?? "";
         var amount = state.GetData<decimal>("amount");
-        var amountText = amount > 0 ? $" de R$ {amount:N2}" : "";
+        var amountText = amount > 0 ? $" de R$ {amount.ToString("N2", PtBrCulture)}" : "";
 
         return $"📂 Entendi! {description}{amountText}.\nEm qual categoria devo lançar? (ex: Alimentação, Saúde, Lazer)";
     }
