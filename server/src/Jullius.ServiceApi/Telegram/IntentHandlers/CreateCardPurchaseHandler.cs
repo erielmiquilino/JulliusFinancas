@@ -1,3 +1,4 @@
+using System.Globalization;
 using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
@@ -7,6 +8,7 @@ namespace Jullius.ServiceApi.Telegram.IntentHandlers;
 
 public class CreateCardPurchaseHandler : IIntentHandler
 {
+    private static readonly CultureInfo PtBrCulture = new("pt-BR");
     private readonly CardTransactionService _cardTransactionService;
     private readonly ICardRepository _cardRepository;
     private readonly ILogger<CreateCardPurchaseHandler> _logger;
@@ -39,16 +41,17 @@ public class CreateCardPurchaseHandler : IIntentHandler
         var cardName = state.GetData<string>("cardName") ?? "N/A";
         var installments = state.GetData<int?>("installments") ?? 1;
         var installmentAmount = installments > 1 ? amount / installments : amount;
+        var amountText = amount.ToString("N2", PtBrCulture);
 
         var installmentText = installments > 1
-            ? $"{installments}x de R$ {installmentAmount:N2}"
+            ? $"{installments}x de R$ {installmentAmount.ToString("N2", PtBrCulture)}"
             : "À vista";
 
         return $"""
             💳 *Confirma a compra no cartão?*
 
             • Descrição: {description}
-            • Valor total: R$ {amount:N2}
+            • Valor total: R$ {amountText}
             • Parcelas: {installmentText}
             • Cartão: {cardName}
 
