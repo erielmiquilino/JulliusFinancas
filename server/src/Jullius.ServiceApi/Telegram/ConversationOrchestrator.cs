@@ -252,6 +252,7 @@ public class ConversationOrchestrator(
         if (!string.IsNullOrEmpty(data.CardName)) pending.SetData("cardName", data.CardName);
         if (data.Installments.HasValue) pending.SetData("installments", data.Installments.Value);
         if (data.IsPaid.HasValue) pending.SetData("isPaid", data.IsPaid.Value);
+        if (data.DueDate.HasValue) pending.SetData("dueDate", data.DueDate.Value);
         if (!string.IsNullOrEmpty(data.Question)) pending.SetData("question", data.Question);
     }
 
@@ -263,6 +264,7 @@ public class ConversationOrchestrator(
         if (!string.IsNullOrEmpty(data.CardName) && !pending.HasData("cardName")) pending.SetData("cardName", data.CardName);
         if (data.Installments.HasValue && !pending.HasData("installments")) pending.SetData("installments", data.Installments.Value);
         if (data.IsPaid.HasValue && !pending.HasData("isPaid")) pending.SetData("isPaid", data.IsPaid.Value);
+        if (data.DueDate.HasValue && !pending.HasData("dueDate")) pending.SetData("dueDate", data.DueDate.Value);
     }
 
     private static string FormatPendingData(PendingTransaction pending)
@@ -274,6 +276,7 @@ public class ConversationOrchestrator(
         if (pending.HasData("cardName")) parts.Add($"cartão='{pending.GetData<string>("cardName")}'");
         if (pending.HasData("installments")) parts.Add($"parcelas={pending.GetData<int>("installments")}");
         if (pending.HasData("isPaid")) parts.Add($"pago={pending.GetData<bool>("isPaid")}");
+        if (pending.HasData("dueDate")) parts.Add($"vencimento={pending.GetData<DateTime>("dueDate"):dd/MM/yyyy}");
         return string.Join(", ", parts);
     }
 

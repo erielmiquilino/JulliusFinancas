@@ -339,6 +339,53 @@ public class ConversationOrchestratorTests
         state.PendingTransactions[1].GetData<bool>("isPaid").Should().BeTrue();
     }
 
+    [Fact]
+    public async Task ProcessMessage_ShouldPopulateDueDate_InPendingTransactions()
+    {
+        var geminiResponse = new List<GeminiIntentResponse>
+        {
+            new()
+            {
+                Intent = "CREATE_EXPENSE",
+                Confidence = 0.95,
+                Data = new GeminiExtractedData
+                {
+                    Description = "Gasolina",
+                    Amount = 60m,
+                    CategoryName = "Essenciais",
+                    DueDate = new DateTime(2026, 2, 16)
+                }
+            },
+            new()
+            {
+                Intent = "CREATE_EXPENSE",
+                Confidence = 0.90,
+                Data = new GeminiExtractedData
+                {
+                    Description = "Gasolina",
+                    Amount = 60m,
+                    CategoryName = "Essenciais",
+                    DueDate = new DateTime(2026, 2, 23)
+                }
+            }
+        };
+
+        _geminiServiceMock
+            .Setup(g => g.ClassifyIntentAsync(It.IsAny<string>(), It.IsAny<List<ChatMessage>>()))
+            .ReturnsAsync(geminiResponse);
+
+        _expenseHandlerMock
+            .Setup(h => h.GetMissingFields(It.IsAny<ConversationState>()))
+            .Returns(new List<string>());
+
+        await _orchestrator.ProcessMessageAsync(TestChatId, "Lance 2 despesas de gasolina");
+
+        var state = _stateStore.GetOrCreate(TestChatId);
+        state.PendingTransactions.Should().HaveCount(2);
+        state.PendingTransactions[0].GetData<DateTime>("dueDate").Should().Be(new DateTime(2026, 2, 16));
+        state.PendingTransactions[1].GetData<DateTime>("dueDate").Should().Be(new DateTime(2026, 2, 23));
+    }
+
     #endregion
 
     #region Confirmation Phase
