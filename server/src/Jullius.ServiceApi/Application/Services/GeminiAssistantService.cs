@@ -11,6 +11,7 @@ public class GeminiAssistantService
 
     private const string GeminiModel = "gemini-3-flash-preview";
     private const string GeminiApiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
+    private static readonly TimeZoneInfo BrazilTimeZone = GetBrazilTimeZone();
 
     private static readonly string SystemPrompt = """
         Você é o assistente financeiro do Jullius Finanças. Sua função é classificar a intenção do usuário e extrair dados estruturados da mensagem.
@@ -88,7 +89,7 @@ public class GeminiAssistantService
         var contents = BuildContents(userMessage, history);
         var requestBody = new
         {
-            system_instruction = new { parts = new[] { new { text = SystemPrompt } } },
+            system_instruction = new { parts = new[] { new { text = $"{SystemPrompt}\n\n{BuildDateContextInstruction(DateTime.UtcNow)}" } } },
             contents,
             generationConfig = new
             {
@@ -181,6 +182,7 @@ public class GeminiAssistantService
 
         var extractionPrompt = $$"""
             O usuário está em uma conversa sobre uma transação financeira.
+            {{BuildDateContextInstruction(DateTime.UtcNow)}}
             Contexto: {{contextHint}}
             Mensagem do usuário: "{{userMessage}}"
 
@@ -259,6 +261,24 @@ public class GeminiAssistantService
         });
 
         return contents.ToArray();
+    }
+
+    private static string BuildDateContextInstruction(DateTime utcNow)
+    {
+        var brazilNow = TimeZoneInfo.ConvertTimeFromUtc(utcNow, BrazilTimeZone);
+        return $"Data/hora de referência atual (fuso de Brasília - America/Sao_Paulo): {brazilNow:yyyy-MM-dd HH:mm}. Use esse referencial para interpretar datas relativas como \"amanhã\" e \"próxima segunda-feira\".";
+    }
+
+    private static TimeZoneInfo GetBrazilTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time");
+        }
     }
 
     private GeminiIntentResponse? ParseGeminiResponse(string responseJson)
