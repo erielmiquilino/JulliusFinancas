@@ -44,7 +44,12 @@ echo "Backend iniciado com PID: $BACKEND_PID"
 # Gerar env.js para o frontend (usando /api relativo para proxy do Nginx)
 echo "Gerando env.js para frontend..."
 mkdir -p /usr/share/nginx/html/assets
-cat > /usr/share/nginx/html/assets/env.js << 'EOF'
+if [ -z "$FIREBASE_API_KEY" ]; then
+        echo "ERRO: FIREBASE_API_KEY não definida no ambiente do container."
+        exit 1
+fi
+
+cat > /usr/share/nginx/html/assets/env.js << EOF
 (function (window) {
   window.env = window.env || {};
 

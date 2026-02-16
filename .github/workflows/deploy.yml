@@ -75,9 +75,8 @@ jobs:
             echo "FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env
             echo "FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}" >> .env
             echo "FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" >> .env
-            ${{ secrets.DOCKER_REGISTRY }}
             # Login e atualização
-            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login registry.skadi.digital -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login "${{ secrets.DOCKER_REGISTRY }}" -u "${{ secrets.REGISTRY_USER }}" --password-stdin
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             
