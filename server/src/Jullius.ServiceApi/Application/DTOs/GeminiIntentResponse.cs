@@ -49,6 +49,9 @@ public class GeminiExtractedData
     [JsonPropertyName("isPaid")]
     public bool? IsPaid { get; set; }
 
+    [JsonPropertyName("dueDate")]
+    public DateTime? DueDate { get; set; }
+
     [JsonPropertyName("question")]
     public string? Question { get; set; }
 }

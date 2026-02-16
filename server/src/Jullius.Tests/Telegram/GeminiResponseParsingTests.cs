@@ -72,15 +72,16 @@ public class GeminiResponseParsingTests
             {
               "intent": "CREATE_EXPENSE",
               "confidence": 0.95,
-              "data": {
-                "description": "Café",
-                "amount": 8.50,
-                "categoryName": "Alimentação",
-                "isPaid": false
-              },
-              "missingFields": [],
-              "clarificationQuestion": null
-            }
+                "data": {
+                  "description": "Café",
+                  "amount": 8.50,
+                  "categoryName": "Alimentação",
+                  "isPaid": false,
+                  "dueDate": "2026-02-16"
+                },
+                "missingFields": [],
+                "clarificationQuestion": null
+              }
           ]
         }
         """;
@@ -90,6 +91,7 @@ public class GeminiResponseParsingTests
         result.Should().NotBeNull();
         result!.Transactions.Should().HaveCount(1);
         result.Transactions[0].Data.IsPaid.Should().BeFalse();
+        result.Transactions[0].Data.DueDate.Should().Be(new DateTime(2026, 2, 16));
     }
 
     [Fact]
