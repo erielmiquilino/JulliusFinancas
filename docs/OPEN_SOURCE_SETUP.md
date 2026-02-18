@@ -29,7 +29,7 @@ Para rodar localmente, crie um arquivo `.env` na raiz ou configure as variáveis
 
 ```bash
 # Exemplo de .env local (NÃO COMMITE ESTE ARQUIVO)
-ConnectionStrings__DefaultConnection="Server=127.0.0.1;Port=3306;Database=jullius_financas;User=root;Password=root"
+ConnectionStrings__DefaultConnection="Host=127.0.0.1;Port=5432;Database=jullius_financas;Username=postgres;Password=root"
 FIREBASE_API_KEY="AIzaSy..."
 # ... outras variáveis do Firebase
 ```

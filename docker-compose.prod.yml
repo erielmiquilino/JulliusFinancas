@@ -9,7 +9,7 @@ services:
     networks:
       - proxy-net
     environment:
-      - ConnectionStrings__DefaultConnection=Server=${DB_HOST};Database=${DB_NAME};User=${DB_USER};Password=${DB_PASSWORD};Port=3306;
+      - ConnectionStrings__DefaultConnection=Host=${DB_HOST};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD};Port=5432;
     volumes:
       - jullius_dataprotection_keys:/var/jullius/keys
     labels:

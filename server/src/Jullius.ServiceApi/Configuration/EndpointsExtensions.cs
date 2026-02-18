@@ -37,7 +37,7 @@ public static class EndpointsExtensions
                 },
                 migration = migrationService.GetMigrationStatus(),
                 database = new {
-                    type = "MySQL",
+                    type = "PostgreSQL",
                     retryEnabled = true
                 }
             };
@@ -54,7 +54,7 @@ public static class EndpointsExtensions
         {
             try
             {
-                logger.LogInformation("🔍 Testando conexão com MySQL...");
+                logger.LogInformation("🔍 Testando conexão com PostgreSQL...");
                 var startTime = DateTime.UtcNow;
                 
                 await dbContext.Database.CanConnectAsync();
@@ -67,7 +67,7 @@ public static class EndpointsExtensions
                     message = "Conexão com banco estabelecida com sucesso",
                     duration = $"{duration.TotalMilliseconds:F0}ms",
                     timestamp = DateTime.UtcNow,
-                    database = "MySQL"
+                    database = "PostgreSQL"
                 });
             }
             catch (Exception ex)
@@ -83,8 +83,8 @@ public static class EndpointsExtensions
         })
         .WithName("PingDatabase")
         .WithTags("Database")
-        .WithSummary("Testa a conexão com o banco de dados MySQL")
-        .WithDescription("Endpoint para verificar se a conexão com o MySQL está ativa");
+        .WithSummary("Testa a conexão com o banco de dados PostgreSQL")
+        .WithDescription("Endpoint para verificar se a conexão com o PostgreSQL está ativa");
 
         return app;
     }
