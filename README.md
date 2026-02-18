@@ -2,7 +2,7 @@
 
 [![Deploy Monolith to VPS](https://github.com/erielmiquilino/JulliusFinancas/actions/workflows/deploy.yml/badge.svg)](https://github.com/erielmiquilino/JulliusFinancas/actions/workflows/deploy.yml)
 
-Um aplicativo completo de gerenciamento de finanças pessoais, construído com **Angular 21** no frontend, **ASP.NET Core 9** no backend e **MySQL** como banco de dados. Integra-se com **Telegram** para notificações e oferece recursos avançados como orçamentos, rastreamento de cartões e transações.
+Um aplicativo completo de gerenciamento de finanças pessoais, construído com **Angular 21** no frontend, **ASP.NET Core 10** no backend e **PostgreSQL** como banco de dados. Integra-se com **Telegram** para notificações e oferece recursos avançados como orçamentos, rastreamento de cartões e transações.
 
 ## 🎯 Sobre o Projeto
 
@@ -28,9 +28,9 @@ Um aplicativo completo de gerenciamento de finanças pessoais, construído com *
 
 ### Backend
 
-- **.NET 9** - Runtime ASP.NET Core
+- **.NET 10** - Runtime ASP.NET Core
 - **Entity Framework Core 9** - ORM para dados
-- **MySQL 8** - Banco de dados relacional
+- **PostgreSQL 16** - Banco de dados relacional
 - **Serilog** - Logging estruturado
 - **Telegram.Bot** - Integração com Telegram
 - **JWT** - Autenticação baseada em tokens
@@ -46,8 +46,8 @@ Um aplicativo completo de gerenciamento de finanças pessoais, construído com *
 Antes de começar, certifique-se de ter instalado:
 
 - **Node.js 20+** (para o frontend Angular)
-- **.NET 9 SDK** (para o backend ASP.NET Core)
-- **MySQL 8** ou superior (ou use Docker)
+- **.NET 10 SDK** (para o backend ASP.NET Core)
+- **PostgreSQL 16** ou superior (ou use Docker)
 - **Git** para clonar o repositório
 - **npm** (geralmente vem com Node.js)
 
@@ -59,10 +59,10 @@ node --version    # v20.x.x ou superior
 npm --version     # 10.x.x ou superior
 
 # Verificar .NET SDK
-dotnet --version  # 9.0.x ou superior
+dotnet --version  # 10.0.x ou superior
 
-# Verificar MySQL
-mysql --version   # 8.0.x ou superior
+# Verificar PostgreSQL
+psql --version   # 16.x ou superior
 ```
 
 ## 🚀 Instruções de Setup Local para Desenvolvimento
@@ -74,12 +74,12 @@ git clone https://github.com/erielmiquilino/JulliusFinancas.git
 cd JulliusFinancas
 ```
 
-### 2️⃣ Configurar o Banco de Dados (MySQL)
+### 2️⃣ Configurar o Banco de Dados (PostgreSQL)
 
 #### Opção A: Usando Docker Compose (Recomendado)
 
 ```bash
-# Inicie o MySQL em um container
+# Inicie o PostgreSQL em um container
 docker-compose up -d
 
 # Verifique se o container está rodando
@@ -90,7 +90,7 @@ docker-compose ps
 
 ```bash
 # No Windows
-mysql -u root -p
+psql -U postgres
 
 # Crie o banco de dados
 CREATE DATABASE jullius_financas;
@@ -101,7 +101,7 @@ Após criar o banco, atualize a string de conexão em `server/src/Jullius.Servic
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=127.0.0.1;Port=3306;Database=jullius_financas;User=root;Password=sua_senha;"
+    "DefaultConnection": "Host=127.0.0.1;Port=5432;Database=jullius_financas;Username=postgres;Password=sua_senha;"
   }
 }
 ```
@@ -284,7 +284,7 @@ cd server/src
 # Publicar como release
 dotnet publish JulliusApi.sln --configuration Release
 
-# Saída em: Jullius.ServiceApi/bin/Release/net9.0/publish/
+# Saída em: Jullius.ServiceApi/bin/Release/net10.0/publish/
 ```
 
 ### Docker
@@ -320,7 +320,7 @@ JulliusFinancas/
 │   ├── proxy.conf.json             # Dev proxy config
 │   └── package.json
 │
-├── server/src/                      # Backend ASP.NET Core 9
+├── server/src/                      # Backend ASP.NET Core 10
 │   ├── Jullius.ServiceApi/
 │   │   ├── Controllers/            # Endpoints REST API
 │   │   ├── Services/               # Lógica de negócio
@@ -361,7 +361,7 @@ JulliusFinancas/
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Server=127.0.0.1;Port=3306;Database=jullius_financas;User=root;Password=sua_senha;"
+    "DefaultConnection": "Host=127.0.0.1;Port=5432;Database=jullius_financas;Username=postgres;Password=sua_senha;"
   },
   "AllowedHosts": "*",
   "Firebase": {
@@ -395,10 +395,10 @@ dotnet run --project server/src/Jullius.ServiceApi/Jullius.ServiceApi.csproj --l
 - Confira `client/proxy.conf.json` aponta para o endereço correto
 - Limpe cache e reinicie: `npm cache clean --force` e `npm start`
 
-### "Erro de conexão com MySQL"
+### "Erro de conexão com PostgreSQL"
 
 ```bash
-# Verifique se MySQL está rodando
+# Verifique se PostgreSQL está rodando
 docker-compose ps
 
 # Reinicie o container

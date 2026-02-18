@@ -9,7 +9,7 @@ namespace Jullius.ServiceApi.Configuration;
 public static class DatabaseExtensions
 {
     /// <summary>
-    /// Configura o Entity Framework com MySQL
+    /// Configura o Entity Framework com PostgreSQL
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <param name="connectionString">String de conexão do banco</param>
@@ -18,17 +18,15 @@ public static class DatabaseExtensions
         this IServiceCollection services, 
         string connectionString)
     {
-        var serverVersion = ServerVersion.AutoDetect(connectionString);
-
         services.AddDbContext<JulliusDbContext>(options =>
-            options.UseMySql(connectionString, serverVersion, mySqlOptions =>
+            options.UseNpgsql(connectionString, npgsqlOptions =>
             {
-                mySqlOptions.EnableRetryOnFailure(
+                npgsqlOptions.EnableRetryOnFailure(
                     maxRetryCount: 5,
                     maxRetryDelay: TimeSpan.FromSeconds(30),
-                    errorNumbersToAdd: null);
+                    errorCodesToAdd: null);
                 
-                mySqlOptions.CommandTimeout(60);
+                npgsqlOptions.CommandTimeout(60);
             }));
 
         return services;

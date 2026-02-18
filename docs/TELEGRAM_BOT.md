@@ -60,7 +60,7 @@ Telegram ──webhook──▶ /api/telegram/webhook/{secret}
 Antes de configurar o bot, você precisa:
 
 - **Backend do Jullius Finanças rodando** (local ou em produção)
-- **Banco de dados MySQL** com as migrations aplicadas
+- **Banco de dados PostgreSQL** com as migrations aplicadas
 - **Conta no Telegram** para criar o bot
 - **Conta Google** para gerar a chave da API Gemini
 - **URL pública com HTTPS** para o webhook (em produção). Para desenvolvimento

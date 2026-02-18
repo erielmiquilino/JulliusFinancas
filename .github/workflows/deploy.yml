@@ -88,12 +88,12 @@ jobs:
             mkdir -p /home/eriel/jullius-financas
             cd /home/eriel/jullius-financas
             
-            # Criação do .env para conexão com o MySQL compartilhado e Firebase
+            # Criação do .env para conexão com o PostgreSQL compartilhado e Firebase
             echo "DOCKER_REGISTRY=${{ secrets.DOCKER_REGISTRY }}" > .env
             echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}" >> .env
-            echo "DB_HOST=mysql_shared" >> .env
+            echo "DB_HOST=postgres_shared" >> .env
             echo "DB_NAME=jullius_financas" >> .env
-            echo "DB_USER=root" >> .env
+            echo "DB_USER=postgres" >> .env
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
             
             # Firebase Configuration
@@ -122,12 +122,12 @@ jobs:
             mkdir -p /home/eriel/jullius-financas
             cd /home/eriel/jullius-financas
             
-            # Criação do .env para conexão com o MySQL compartilhado e Firebase
+            # Criação do .env para conexão com o PostgreSQL compartilhado e Firebase
             echo "DOCKER_REGISTRY=${{ secrets.DOCKER_REGISTRY }}" > .env
             echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}" >> .env
-            echo "DB_HOST=mysql_shared" >> .env
+            echo "DB_HOST=postgres_shared" >> .env
             echo "DB_NAME=jullius_financas" >> .env
-            echo "DB_USER=root" >> .env
+            echo "DB_USER=postgres" >> .env
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
             
             # Firebase Configuration

@@ -5,7 +5,7 @@ namespace Jullius.ServiceApi.Services;
 
 /// <summary>
 /// Serviço responsável por gerenciar migrations do banco de dados
-/// Otimizado para MySQL
+/// Otimizado para PostgreSQL
 /// </summary>
 public class DatabaseMigrationService
 {
@@ -37,7 +37,7 @@ public class DatabaseMigrationService
         IsRunning = true;
         StartTime = DateTime.UtcNow;
         
-        _logger.LogInformation("🔄 Iniciando migração do banco de dados (MySQL). " +
+        _logger.LogInformation("🔄 Iniciando migração do banco de dados (PostgreSQL). " +
             "Tentativas máximas: {MaxTentativas}, Hora de início: {HoraInicio}",
             maxRetries, StartTime);
         
@@ -78,12 +78,12 @@ public class DatabaseMigrationService
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<JulliusDbContext>();
         
-        _logger.LogInformation("🔍 Tentativa {TentativaAtual}/{TotalTentativas} - Testando conexão com MySQL. " +
+        _logger.LogInformation("🔍 Tentativa {TentativaAtual}/{TotalTentativas} - Testando conexão com PostgreSQL. " +
             "Tentando estabelecer conexão com o banco...", attempt, maxRetries);
         
         // Testa a conexão primeiro
         await dbContext.Database.CanConnectAsync();
-        _logger.LogInformation("✅ Conexão estabelecida com sucesso! Banco MySQL está ativo");
+        _logger.LogInformation("✅ Conexão estabelecida com sucesso! Banco PostgreSQL está ativo");
         
         // Executa as migrations
         _logger.LogInformation("📊 Executando migrations do banco de dados...");
@@ -167,7 +167,7 @@ public class DatabaseMigrationService
     private async Task HandleMaxRetriesExceeded(int maxRetries)
     {
         IsRunning = false;
-        ErrorMessage = "Falha após múltiplas tentativas de conexão com MySQL";
+        ErrorMessage = "Falha após múltiplas tentativas de conexão com PostgreSQL";
         _logger.LogError("❌ Não foi possível conectar ao banco após {MaxRetries} tentativas", maxRetries);
         
         await Task.CompletedTask;
