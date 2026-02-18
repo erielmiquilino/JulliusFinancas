@@ -20,7 +20,7 @@ RUN npm run build
 # ============================================
 # Stage 2: Backend Build (.NET)
 # ============================================
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS backend-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
 WORKDIR /app
 
 # Copiar arquivos .csproj primeiro para melhor cache
@@ -45,7 +45,7 @@ RUN dotnet publish server/src/Jullius.ServiceApi/Jullius.ServiceApi.csproj \
 # ============================================
 # Stage 3: Runtime (Nginx + .NET)
 # ============================================
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
 # Instalar Nginx e dependências
 RUN apt-get update && apt-get install -y \
