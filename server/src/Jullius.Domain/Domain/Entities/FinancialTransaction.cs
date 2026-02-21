@@ -25,7 +25,7 @@ public class FinancialTransaction
         Id = Guid.NewGuid();
         Description = description;
         Amount = amount;
-        DueDate = dueDate;
+        DueDate = EnsureUtc(dueDate);
         Type = type;
         CategoryId = categoryId;
         CreatedAt = DateTime.UtcNow;
@@ -55,7 +55,7 @@ public class FinancialTransaction
     {
         Description = description;
         Amount = amount;
-        DueDate = dueDate;
+        DueDate = EnsureUtc(dueDate);
         Type = type;
         CategoryId = categoryId;
         IsPaid = isPaid;
@@ -67,6 +67,9 @@ public class FinancialTransaction
     {
         IsPaid = isPaid;
     }
+
+    private static DateTime EnsureUtc(DateTime dateTime) =>
+        dateTime.Kind == DateTimeKind.Utc ? dateTime : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
 }
 
 public enum TransactionType

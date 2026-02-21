@@ -120,7 +120,7 @@ public class CardTransactionServiceTests
             CardId = _testCard.Id,
             Description = "Compra Virada de Ano",
             Amount = 300m,
-            Date = new DateTime(2025, 11, 1),
+            Date = new DateTime(2025, 11, 1, 0, 0, 0, DateTimeKind.Utc),
             IsInstallment = true,
             InstallmentCount = 3,
             Type = CardTransactionType.Expense,

@@ -217,16 +217,16 @@ public class CardService
     /// </summary>
     private (int Year, int Month) CalculateCurrentInvoicePeriod(int closingDay, int dueDay)
     {
-        var today = DateTime.Today;
+        var today = DateTime.UtcNow.Date;
 
         DateTime effectiveClosingDate;
 
         if (today.Day > closingDay)
             // Se hoje é depois do dia de fechamento, a data efetiva de fechamento é no próximo mês
-            effectiveClosingDate = new DateTime(today.Year, today.Month, closingDay).AddMonths(1);
+            effectiveClosingDate = new DateTime(today.Year, today.Month, closingDay, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
         else
             // Se hoje é antes ou no dia de fechamento, a data efetiva é neste mês
-            effectiveClosingDate = new DateTime(today.Year, today.Month, closingDay);
+            effectiveClosingDate = new DateTime(today.Year, today.Month, closingDay, 0, 0, 0, DateTimeKind.Utc);
 
         DateTime invoiceDueDate;
 
@@ -234,11 +234,11 @@ public class CardService
         {
             // Se o vencimento é antes ou no dia de fechamento, vai para o próximo mês
             var monthOfDueDate = effectiveClosingDate.AddMonths(1);
-            invoiceDueDate = new DateTime(monthOfDueDate.Year, monthOfDueDate.Month, dueDay);
+            invoiceDueDate = new DateTime(monthOfDueDate.Year, monthOfDueDate.Month, dueDay, 0, 0, 0, DateTimeKind.Utc);
         }
         else
             // Se o vencimento é depois do fechamento, fica no mesmo mês do fechamento
-            invoiceDueDate = new DateTime(effectiveClosingDate.Year, effectiveClosingDate.Month, dueDay);
+            invoiceDueDate = new DateTime(effectiveClosingDate.Year, effectiveClosingDate.Month, dueDay, 0, 0, 0, DateTimeKind.Utc);
 
         return (invoiceDueDate.Year, invoiceDueDate.Month);
     }

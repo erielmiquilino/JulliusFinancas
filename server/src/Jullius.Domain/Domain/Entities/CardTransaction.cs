@@ -25,7 +25,7 @@ public class CardTransaction
         CardId = cardId;
         Description = description;
         Amount = amount;
-        Date = date;
+        Date = EnsureUtc(date);
         Installment = installment;
         InvoiceYear = invoiceYear;
         InvoiceMonth = invoiceMonth;
@@ -63,7 +63,7 @@ public class CardTransaction
     {
         Description = description;
         Amount = amount;
-        Date = date;
+        Date = EnsureUtc(date);
         Installment = installment;
         InvoiceYear = invoiceYear;
         InvoiceMonth = invoiceMonth;
@@ -71,7 +71,8 @@ public class CardTransaction
 
         Validate();
     }
-}
+    private static DateTime EnsureUtc(DateTime dateTime) =>
+        dateTime.Kind == DateTimeKind.Utc ? dateTime : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);}
 
 public enum CardTransactionType
 {

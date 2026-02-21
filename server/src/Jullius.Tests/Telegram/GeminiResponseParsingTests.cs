@@ -91,7 +91,7 @@ public class GeminiResponseParsingTests
         result.Should().NotBeNull();
         result!.Transactions.Should().HaveCount(1);
         result.Transactions[0].Data.IsPaid.Should().BeFalse();
-        result.Transactions[0].Data.DueDate.Should().Be(new DateTime(2026, 2, 16));
+        result.Transactions[0].Data.DueDate.Should().Be(new DateTime(2026, 2, 16, 0, 0, 0, DateTimeKind.Utc));
     }
 
     [Fact]

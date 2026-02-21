@@ -46,7 +46,7 @@ public class CardTransactionService
                 var installmentDate = request.Date.AddMonths(i);
                 
                 // Usa o período da fatura recebido do frontend, mas calcula para cada parcela
-                var invoiceDate = new DateTime(request.InvoiceYear, request.InvoiceMonth, 1).AddMonths(i);
+                var invoiceDate = new DateTime(request.InvoiceYear, request.InvoiceMonth, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(i);
                 var invoiceYear = invoiceDate.Year;
                 var invoiceMonth = invoiceDate.Month;
                 
@@ -199,18 +199,18 @@ public class CardTransactionService
         DateTime effectiveClosingDate;
 
         if (transactionDate.Day > closingDay)
-            effectiveClosingDate = new DateTime(transactionDate.Year, transactionDate.Month, closingDay).AddMonths(1);
+            effectiveClosingDate = new DateTime(transactionDate.Year, transactionDate.Month, closingDay, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
         else
-            effectiveClosingDate = new DateTime(transactionDate.Year, transactionDate.Month, closingDay);
+            effectiveClosingDate = new DateTime(transactionDate.Year, transactionDate.Month, closingDay, 0, 0, 0, DateTimeKind.Utc);
 
         DateTime invoiceDueDate;
         if (dueDay <= closingDay)
         {
             var monthOfDueDate = effectiveClosingDate.AddMonths(1);
-            invoiceDueDate = new DateTime(monthOfDueDate.Year, monthOfDueDate.Month, dueDay);
+            invoiceDueDate = new DateTime(monthOfDueDate.Year, monthOfDueDate.Month, dueDay, 0, 0, 0, DateTimeKind.Utc);
         }
         else 
-            invoiceDueDate = new DateTime(effectiveClosingDate.Year, effectiveClosingDate.Month, dueDay);
+            invoiceDueDate = new DateTime(effectiveClosingDate.Year, effectiveClosingDate.Month, dueDay, 0, 0, 0, DateTimeKind.Utc);
 
         return (invoiceDueDate.Year, invoiceDueDate.Month);
     }

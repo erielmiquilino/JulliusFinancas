@@ -353,7 +353,7 @@ public class ConversationOrchestratorTests
                     Description = "Gasolina",
                     Amount = 60m,
                     CategoryName = "Essenciais",
-                    DueDate = new DateTime(2026, 2, 16)
+                    DueDate = new DateTime(2026, 2, 16, 0, 0, 0, DateTimeKind.Utc)
                 }
             },
             new()
@@ -365,7 +365,7 @@ public class ConversationOrchestratorTests
                     Description = "Gasolina",
                     Amount = 60m,
                     CategoryName = "Essenciais",
-                    DueDate = new DateTime(2026, 2, 23)
+                    DueDate = new DateTime(2026, 2, 23, 0, 0, 0, DateTimeKind.Utc)
                 }
             }
         };
@@ -382,8 +382,8 @@ public class ConversationOrchestratorTests
 
         var state = _stateStore.GetOrCreate(TestChatId);
         state.PendingTransactions.Should().HaveCount(2);
-        state.PendingTransactions[0].GetData<DateTime>("dueDate").Should().Be(new DateTime(2026, 2, 16));
-        state.PendingTransactions[1].GetData<DateTime>("dueDate").Should().Be(new DateTime(2026, 2, 23));
+        state.PendingTransactions[0].GetData<DateTime>("dueDate").Should().Be(new DateTime(2026, 2, 16, 0, 0, 0, DateTimeKind.Utc));
+        state.PendingTransactions[1].GetData<DateTime>("dueDate").Should().Be(new DateTime(2026, 2, 23, 0, 0, 0, DateTimeKind.Utc));
     }
 
     #endregion

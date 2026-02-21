@@ -76,7 +76,7 @@ public class FinancialTransactionServiceTests
         {
             Description = "Compra Parcelada",
             Amount = 600m,
-            DueDate = new DateTime(2025, 1, 15),
+            DueDate = new DateTime(2025, 1, 15, 0, 0, 0, DateTimeKind.Utc),
             Type = TransactionType.PayableBill,
             CategoryId = _testCategory.Id,
             IsPaid = false,
@@ -130,7 +130,7 @@ public class FinancialTransactionServiceTests
     public async Task CreateTransactionAsync_WithInstallments_ShouldIncrementDueDate()
     {
         // Arrange
-        var startDate = new DateTime(2025, 1, 15);
+        var startDate = new DateTime(2025, 1, 15, 0, 0, 0, DateTimeKind.Utc);
         var request = new CreateFinancialTransactionRequest
         {
             Description = "Compra",
@@ -147,9 +147,9 @@ public class FinancialTransactionServiceTests
 
         // Assert
         var transactions = result.ToList();
-        transactions[0].DueDate.Should().Be(new DateTime(2025, 1, 15));
-        transactions[1].DueDate.Should().Be(new DateTime(2025, 2, 15));
-        transactions[2].DueDate.Should().Be(new DateTime(2025, 3, 15));
+        transactions[0].DueDate.Should().Be(new DateTime(2025, 1, 15, 0, 0, 0, DateTimeKind.Utc));
+        transactions[1].DueDate.Should().Be(new DateTime(2025, 2, 15, 0, 0, 0, DateTimeKind.Utc));
+        transactions[2].DueDate.Should().Be(new DateTime(2025, 3, 15, 0, 0, 0, DateTimeKind.Utc));
     }
 
     #endregion

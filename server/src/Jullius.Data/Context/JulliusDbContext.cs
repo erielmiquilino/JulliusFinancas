@@ -1,5 +1,6 @@
 ﻿using Jullius.Domain.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Jullius.Data.Configurations;
 
 namespace Jullius.Data.Context;
@@ -27,5 +28,38 @@ public class JulliusDbContext(DbContextOptions<JulliusDbContext> options) : DbCo
         modelBuilder.ApplyConfiguration(new BudgetConfiguration());
         modelBuilder.ApplyConfiguration(new OverdueAccountConfiguration());
         modelBuilder.ApplyConfiguration(new BotConfigurationConfiguration());
+
+        // Garante que todos os DateTime sejam tratados como UTC ao ler/escrever no PostgreSQL
+        ApplyUtcDateTimeConvention(modelBuilder);
+    }
+
+    /// <summary>
+    /// Aplica um ValueConverter global para todas as propriedades DateTime e DateTime?,
+    /// garantindo que o Kind seja sempre UTC antes de enviar ao Npgsql.
+    /// </summary>
+    private static void ApplyUtcDateTimeConvention(ModelBuilder modelBuilder)
+    {
+        var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
+            v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var nullableDateTimeConverter = new ValueConverter<DateTime?, DateTime?>(
+            v => v.HasValue
+                ? (v.Value.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc))
+                : v,
+            v => v.HasValue
+                ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)
+                : v);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime))
+                    property.SetValueConverter(dateTimeConverter);
+                else if (property.ClrType == typeof(DateTime?))
+                    property.SetValueConverter(nullableDateTimeConverter);
+            }
+        }
     }
 }
