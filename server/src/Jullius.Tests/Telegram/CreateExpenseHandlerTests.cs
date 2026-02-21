@@ -316,6 +316,7 @@ public class CreateExpenseHandlerTests
         var result = await _handler.HandleAsync(state);
 
         state.Phase.Should().Be(ConversationPhase.CollectingData);
+        result.Should().Contain("categoria");
         result.Should().Contain("Alimentação");
         result.Should().Contain("Saúde");
         result.Should().Contain("Lazer");
