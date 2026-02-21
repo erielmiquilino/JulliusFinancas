@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
 using Jullius.ServiceApi.Application.Services;
@@ -18,6 +19,7 @@ public class ConversationOrchestratorTests
     private readonly Mock<IIntentHandler> _expenseHandlerMock;
     private readonly Mock<IIntentHandler> _cardPurchaseHandlerMock;
     private readonly Mock<IIntentHandler> _consultingHandlerMock;
+    private readonly Mock<ICategoryRepository> _categoryRepositoryMock;
     private readonly ConversationOrchestrator _orchestrator;
 
     public ConversationOrchestratorTests()
@@ -52,6 +54,11 @@ public class ConversationOrchestratorTests
         _consultingHandlerMock = new Mock<IIntentHandler>();
         _consultingHandlerMock.Setup(h => h.HandledIntent).Returns(IntentType.FinancialConsulting);
 
+        _categoryRepositoryMock = new Mock<ICategoryRepository>();
+        _categoryRepositoryMock
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(Enumerable.Empty<Category>());
+
         var handlers = new List<IIntentHandler>
         {
             _expenseHandlerMock.Object,
@@ -63,6 +70,7 @@ public class ConversationOrchestratorTests
             _stateStore,
             _geminiServiceMock.Object,
             handlers,
+            _categoryRepositoryMock.Object,
             Mock.Of<ILogger<ConversationOrchestrator>>()
         );
     }
@@ -647,6 +655,257 @@ public class ConversationOrchestratorTests
         state.PendingTransactions[0].Intent.Should().Be(IntentType.CreateExpense);
         state.PendingTransactions[1].Intent.Should().Be(IntentType.CreateCardPurchase);
         result.Should().Contain("2 lançamentos");
+    }
+
+    #endregion
+
+    #region Media Processing (Image/Audio)
+
+    [Fact]
+    public async Task ProcessMediaMessage_ShouldExtractTransactionFromImage_WhenGeminiReturnsData()
+    {
+        // Arrange
+        var geminiResponse = new List<GeminiIntentResponse>
+        {
+            new()
+            {
+                Intent = "CREATE_EXPENSE",
+                Confidence = 0.90,
+                Data = new GeminiExtractedData
+                {
+                    Description = "Supermercado",
+                    Amount = 150.00m,
+                    CategoryName = "Alimentação",
+                    IsPaid = true
+                }
+            }
+        };
+
+        _geminiServiceMock
+            .Setup(g => g.ClassifyIntentFromMediaAsync(It.IsAny<byte[]>(), "image/jpeg", null, It.IsAny<List<ChatMessage>>()))
+            .ReturnsAsync(geminiResponse);
+
+        _expenseHandlerMock
+            .Setup(h => h.GetMissingFields(It.IsAny<ConversationState>()))
+            .Returns(new List<string>());
+
+        _expenseHandlerMock
+            .Setup(h => h.BuildConfirmationMessage(It.IsAny<ConversationState>()))
+            .Returns("Confirma o lançamento?");
+
+        // Act
+        var result = await _orchestrator.ProcessMediaMessageAsync(TestChatId, new byte[] { 1, 2, 3 }, "image/jpeg", null);
+
+        // Assert
+        result.Should().Contain("Confirma");
+        var state = _stateStore.GetOrCreate(TestChatId);
+        state.Phase.Should().Be(ConversationPhase.AwaitingConfirmation);
+        state.PendingTransactions.Should().HaveCount(1);
+        state.PendingTransactions[0].GetData<string>("description").Should().Be("Supermercado");
+    }
+
+    [Fact]
+    public async Task ProcessMediaMessage_ShouldExtractTransactionFromAudio_WhenGeminiReturnsData()
+    {
+        // Arrange
+        var geminiResponse = new List<GeminiIntentResponse>
+        {
+            new()
+            {
+                Intent = "CREATE_EXPENSE",
+                Confidence = 0.85,
+                Data = new GeminiExtractedData
+                {
+                    Description = "Almoço",
+                    Amount = 35m,
+                    CategoryName = "Alimentação"
+                }
+            }
+        };
+
+        _geminiServiceMock
+            .Setup(g => g.ClassifyIntentFromMediaAsync(It.IsAny<byte[]>(), "audio/ogg", null, It.IsAny<List<ChatMessage>>()))
+            .ReturnsAsync(geminiResponse);
+
+        _expenseHandlerMock
+            .Setup(h => h.GetMissingFields(It.IsAny<ConversationState>()))
+            .Returns(new List<string>());
+
+        _expenseHandlerMock
+            .Setup(h => h.BuildConfirmationMessage(It.IsAny<ConversationState>()))
+            .Returns("Confirma o lançamento?");
+
+        // Act
+        var result = await _orchestrator.ProcessMediaMessageAsync(TestChatId, new byte[] { 1, 2, 3 }, "audio/ogg", null);
+
+        // Assert
+        result.Should().Contain("Confirma");
+        var state = _stateStore.GetOrCreate(TestChatId);
+        state.PendingTransactions.Should().HaveCount(1);
+        state.PendingTransactions[0].GetData<decimal>("amount").Should().Be(35m);
+    }
+
+    [Fact]
+    public async Task ProcessMediaMessage_ShouldReturnError_WhenGeminiReturnsNull()
+    {
+        _geminiServiceMock
+            .Setup(g => g.ClassifyIntentFromMediaAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<ChatMessage>>()))
+            .ReturnsAsync((List<GeminiIntentResponse>?)null);
+
+        var result = await _orchestrator.ProcessMediaMessageAsync(TestChatId, new byte[] { 1, 2, 3 }, "image/jpeg", null);
+
+        result.Should().Contain("Não consegui extrair informações");
+        result.Should().Contain("imagem");
+    }
+
+    [Fact]
+    public async Task ProcessMediaMessage_ShouldReturnAudioError_WhenAudioGeminiReturnsNull()
+    {
+        _geminiServiceMock
+            .Setup(g => g.ClassifyIntentFromMediaAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<ChatMessage>>()))
+            .ReturnsAsync((List<GeminiIntentResponse>?)null);
+
+        var result = await _orchestrator.ProcessMediaMessageAsync(TestChatId, new byte[] { 1, 2, 3 }, "audio/ogg", null);
+
+        result.Should().Contain("Não consegui extrair informações");
+        result.Should().Contain("áudio");
+    }
+
+    [Fact]
+    public async Task ProcessMediaMessage_ShouldAskMissingFields_WhenImageDataIncomplete()
+    {
+        var geminiResponse = new List<GeminiIntentResponse>
+        {
+            new()
+            {
+                Intent = "CREATE_EXPENSE",
+                Confidence = 0.80,
+                Data = new GeminiExtractedData
+                {
+                    Description = "Compra",
+                    Amount = 99m,
+                    CategoryName = null
+                }
+            }
+        };
+
+        _geminiServiceMock
+            .Setup(g => g.ClassifyIntentFromMediaAsync(It.IsAny<byte[]>(), "image/jpeg", null, It.IsAny<List<ChatMessage>>()))
+            .ReturnsAsync(geminiResponse);
+
+        _expenseHandlerMock
+            .Setup(h => h.GetMissingFields(It.IsAny<ConversationState>()))
+            .Returns(new List<string> { "categoryName" });
+
+        var result = await _orchestrator.ProcessMediaMessageAsync(TestChatId, new byte[] { 1, 2, 3 }, "image/jpeg", null);
+
+        result.Should().Contain("Categoria");
+        var state = _stateStore.GetOrCreate(TestChatId);
+        state.Phase.Should().Be(ConversationPhase.CollectingData);
+    }
+
+    #endregion
+
+    #region Category Listing When Missing
+
+    [Fact]
+    public async Task ProcessMessage_ShouldListCategories_WhenCategoryMissing()
+    {
+        // Arrange: categories exist in the repository
+        var categories = new List<Category>
+        {
+            new("Alimentação", "#4CAF50"),
+            new("Saúde", "#2196F3"),
+            new("Lazer", "#FF9800")
+        };
+
+        _categoryRepositoryMock
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(categories);
+
+        var geminiResponse = new List<GeminiIntentResponse>
+        {
+            new()
+            {
+                Intent = "CREATE_EXPENSE",
+                Confidence = 0.95,
+                Data = new GeminiExtractedData
+                {
+                    Description = "Almoço",
+                    Amount = 45m,
+                    CategoryName = null
+                }
+            }
+        };
+
+        _geminiServiceMock
+            .Setup(g => g.ClassifyIntentAsync(It.IsAny<string>(), It.IsAny<List<ChatMessage>>()))
+            .ReturnsAsync(geminiResponse);
+
+        _expenseHandlerMock
+            .Setup(h => h.GetMissingFields(It.IsAny<ConversationState>()))
+            .Returns(new List<string> { "categoryName" });
+
+        // Act
+        var result = await _orchestrator.ProcessMessageAsync(TestChatId, "Gastei 45 de almoço");
+
+        // Assert
+        result.Should().Contain("Categoria");
+        result.Should().Contain("Alimentação");
+        result.Should().Contain("Saúde");
+        result.Should().Contain("Lazer");
+    }
+
+    [Fact]
+    public async Task ProcessMessage_ShouldShowGenericPrompt_WhenNoCategoriesExist()
+    {
+        // Arrange: no categories
+        _categoryRepositoryMock
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(Enumerable.Empty<Category>());
+
+        var geminiResponse = new List<GeminiIntentResponse>
+        {
+            new()
+            {
+                Intent = "CREATE_EXPENSE",
+                Confidence = 0.95,
+                Data = new GeminiExtractedData
+                {
+                    Description = "Almoço",
+                    Amount = 45m,
+                    CategoryName = null
+                }
+            }
+        };
+
+        _geminiServiceMock
+            .Setup(g => g.ClassifyIntentAsync(It.IsAny<string>(), It.IsAny<List<ChatMessage>>()))
+            .ReturnsAsync(geminiResponse);
+
+        _expenseHandlerMock
+            .Setup(h => h.GetMissingFields(It.IsAny<ConversationState>()))
+            .Returns(new List<string> { "categoryName" });
+
+        // Act
+        var result = await _orchestrator.ProcessMessageAsync(TestChatId, "Gastei 45 de almoço");
+
+        // Assert
+        result.Should().Contain("Categoria");
+        result.Should().Contain("Alimentação"); // from the generic example
+    }
+
+    #endregion
+
+    #region Help Message Includes Media Support
+
+    [Fact]
+    public async Task ProcessMessage_HelpShouldMentionImageAndAudio()
+    {
+        var result = await _orchestrator.ProcessMessageAsync(TestChatId, "/start");
+
+        result.Should().Contain("imagem");
+        result.Should().Contain("áudio");
     }
 
     #endregion

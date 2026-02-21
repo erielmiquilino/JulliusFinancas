@@ -66,7 +66,7 @@ public class CreateExpenseHandler : IIntentHandler
         if (missing.Count > 0)
         {
             state.Phase = ConversationPhase.CollectingData;
-            return BuildMissingFieldQuestion(missing.First(), state);
+            return await BuildMissingFieldQuestionAsync(missing.First(), state);
         }
 
         state.Phase = ConversationPhase.AwaitingConfirmation;
@@ -119,19 +119,33 @@ public class CreateExpenseHandler : IIntentHandler
         }
     }
 
-    private static string BuildMissingFieldQuestion(string field, ConversationState state) => field switch
+    private async Task<string> BuildMissingFieldQuestionAsync(string field, ConversationState state)
     {
-        "description" => "📝 Qual a descrição do gasto?",
-        "amount" => "💰 Qual o valor?",
-        "categoryName" => FormatCategoryQuestion(state),
-        _ => $"❓ Informe o campo: {field}"
-    };
+        if (field == "categoryName")
+            return await FormatCategoryQuestionAsync(state);
 
-    private static string FormatCategoryQuestion(ConversationState state)
+        return field switch
+        {
+            "description" => "📝 Qual a descrição do gasto?",
+            "amount" => "💰 Qual o valor?",
+            _ => $"❓ Informe o campo: {field}"
+        };
+    }
+
+    private async Task<string> FormatCategoryQuestionAsync(ConversationState state)
     {
         var description = state.GetData<string>("description") ?? "";
         var amount = state.GetData<decimal>("amount");
         var amountText = amount > 0 ? $" de R$ {amount.ToString("N2", PtBrCulture)}" : "";
+
+        var categories = await _categoryRepository.GetAllAsync();
+        var categoryList = categories.ToList();
+
+        if (categoryList.Count > 0)
+        {
+            var categoryNames = string.Join(", ", categoryList.Select(c => c.Name));
+            return $"📂 Entendi! {description}{amountText}.\nEm qual categoria devo lançar?\nSuas categorias: {categoryNames}";
+        }
 
         return $"📂 Entendi! {description}{amountText}.\nEm qual categoria devo lançar? (ex: Alimentação, Saúde, Lazer)";
     }

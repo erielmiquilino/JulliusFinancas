@@ -123,6 +123,52 @@ public class GeminiAssistantService
         }
     }
 
+    public virtual async Task<List<GeminiIntentResponse>?> ClassifyIntentFromMediaAsync(byte[] mediaBytes, string mimeType, string? caption = null, List<Telegram.ChatMessage>? history = null)
+    {
+        var apiKey = await _configService.GetDecryptedValueAsync("GeminiApiKey");
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            _logger.LogError("Chave API do Gemini não configurada");
+            return null;
+        }
+
+        var contents = BuildMultimodalContents(mediaBytes, mimeType, caption, history);
+        var requestBody = new
+        {
+            system_instruction = new { parts = new[] { new { text = $"{SystemPrompt}\n\n{BuildDateContextInstruction(DateTime.UtcNow)}" } } },
+            contents,
+            generationConfig = new
+            {
+                temperature = 0.1,
+                topP = 0.95,
+                maxOutputTokens = 8192,
+                responseMimeType = "application/json"
+            }
+        };
+
+        try
+        {
+            var url = $"{GeminiApiBaseUrl}/{GeminiModel}:generateContent?key={apiKey}";
+            var jsonRequest = JsonSerializer.Serialize(requestBody);
+            var response = await _httpClient.PostAsync(url, new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Erro na API do Gemini (mídia). Status: {Status}, Resposta: {Resposta}", response.StatusCode, errorContent);
+                return null;
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            return ParseGeminiClassificationResponse(responseContent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao chamar API do Gemini para classificação de mídia");
+            return null;
+        }
+    }
+
     public virtual async Task<string> GetFinancialAdviceAsync(string question, string financialContext)
     {
         var apiKey = await _configService.GetDecryptedValueAsync("GeminiApiKey");
@@ -258,6 +304,52 @@ public class GeminiAssistantService
         {
             role = "user",
             parts = new[] { new { text = userMessage } }
+        });
+
+        return contents.ToArray();
+    }
+
+    private static object[] BuildMultimodalContents(byte[] mediaBytes, string mimeType, string? caption, List<Telegram.ChatMessage>? history)
+    {
+        var contents = new List<object>();
+
+        if (history != null)
+        {
+            foreach (var msg in history.TakeLast(6))
+            {
+                contents.Add(new
+                {
+                    role = msg.Role == "user" ? "user" : "model",
+                    parts = new[] { new { text = msg.Content } }
+                });
+            }
+        }
+
+        var parts = new List<object>
+        {
+            new
+            {
+                inline_data = new
+                {
+                    mime_type = mimeType,
+                    data = Convert.ToBase64String(mediaBytes)
+                }
+            }
+        };
+
+        var textInstruction = mimeType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase)
+            ? "Transcreva o áudio e extraia as informações financeiras da transcrição."
+            : "Analise esta imagem de comprovante/notificação e extraia as informações financeiras.";
+
+        if (!string.IsNullOrEmpty(caption))
+            textInstruction += $"\nMensagem adicional do usuário: {caption}";
+
+        parts.Add(new { text = textInstruction });
+
+        contents.Add(new
+        {
+            role = "user",
+            parts = parts.ToArray()
         });
 
         return contents.ToArray();

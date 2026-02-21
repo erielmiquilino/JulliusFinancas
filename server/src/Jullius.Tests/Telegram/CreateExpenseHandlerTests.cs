@@ -271,5 +271,55 @@ public class CreateExpenseHandlerTests
         result.Should().Contain("Confirma");
     }
 
+    [Fact]
+    public async Task HandleAsync_ShouldListExistingCategories_WhenCategoryMissing()
+    {
+        // Arrange: categories exist
+        var categories = new List<Category>
+        {
+            new("Alimentação", "#4CAF50"),
+            new("Saúde", "#2196F3"),
+            new("Lazer", "#FF9800")
+        };
+
+        _mocks.CategoryRepository
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(categories);
+
+        var state = new ConversationState();
+        state.SetData("description", "Almoço");
+        state.SetData("amount", 45m);
+        // categoryName missing
+
+        var result = await _handler.HandleAsync(state);
+
+        state.Phase.Should().Be(ConversationPhase.CollectingData);
+        result.Should().Contain("Alimentação");
+        result.Should().Contain("Saúde");
+        result.Should().Contain("Lazer");
+        result.Should().Contain("Suas categorias");
+    }
+
+    [Fact]
+    public async Task HandleAsync_ShouldShowGenericCategoryPrompt_WhenNoCategoriesExist()
+    {
+        // Arrange: no categories
+        _mocks.CategoryRepository
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(Enumerable.Empty<Category>());
+
+        var state = new ConversationState();
+        state.SetData("description", "Almoço");
+        state.SetData("amount", 45m);
+        // categoryName missing
+
+        var result = await _handler.HandleAsync(state);
+
+        state.Phase.Should().Be(ConversationPhase.CollectingData);
+        result.Should().Contain("Alimentação");
+        result.Should().Contain("Saúde");
+        result.Should().Contain("Lazer");
+    }
+
     #endregion
 }
