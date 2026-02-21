@@ -1,4 +1,5 @@
 using System.Text;
+using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
 using Jullius.ServiceApi.Application.Services;
 using Jullius.ServiceApi.Telegram.IntentHandlers;
@@ -9,6 +10,7 @@ public class ConversationOrchestrator(
     ConversationStateStore stateStore,
     GeminiAssistantService geminiService,
     IEnumerable<IIntentHandler> intentHandlers,
+    ICategoryRepository categoryRepository,
     ILogger<ConversationOrchestrator> logger)
 {
     private static readonly HashSet<string> ConfirmationYes = ["sim", "s", "confirma", "confirmo", "ok", "isso", "pode", "positivo", "yes", "y", "👍"];
@@ -41,6 +43,53 @@ public class ConversationOrchestrator(
             logger.LogError(ex, "Erro ao processar mensagem do chat {ChatId}", chatId);
             state.Reset();
             return "❌ Ocorreu um erro inesperado. Tente novamente.";
+        }
+    }
+
+    public async Task<string> ProcessMediaMessageAsync(long chatId, byte[] mediaBytes, string mimeType, string? caption)
+    {
+        var state = stateStore.GetOrCreate(chatId);
+
+        try
+        {
+            var intentResponses = await geminiService.ClassifyIntentFromMediaAsync(mediaBytes, mimeType, caption, state.History);
+            if (intentResponses is not { Count: > 0 })
+            {
+                var mediaType = mimeType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ? "áudio" : "imagem";
+                return $"❌ Não consegui extrair informações da {mediaType}. Tente enviar novamente ou descreva a transação por texto.";
+            }
+
+            // Reuse the same flow as text — populate pending transactions and advance
+            state.PendingTransactions.Clear();
+            foreach (var resp in intentResponses)
+            {
+                var intentType = MapIntent(resp.Intent);
+                if (intentType == IntentType.Unknown)
+                    continue;
+
+                var pending = new PendingTransaction { Intent = intentType };
+                PopulatePendingFromExtraction(pending, resp.Data);
+                state.PendingTransactions.Add(pending);
+            }
+
+            if (state.PendingTransactions.Count == 0)
+                return "🤔 Não consegui identificar transações na mídia enviada. Tente descrever por texto.";
+
+            var response = await TryAdvanceToNextIncompleteAsync(state)
+                ?? BuildBatchConfirmationMessage(state);
+
+            var mediaDescription = mimeType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ? "🎤 Áudio processado!" : "🖼️ Imagem processada!";
+            state.History.Add(new ChatMessage { Role = "user", Content = $"[{mediaDescription}] {caption ?? ""}" });
+            state.History.Add(new ChatMessage { Role = "assistant", Content = response });
+            state.Touch();
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Erro ao processar mídia do chat {ChatId}", chatId);
+            state.Reset();
+            return "❌ Ocorreu um erro ao processar a mídia. Tente novamente.";
         }
     }
 
@@ -85,7 +134,7 @@ public class ConversationOrchestrator(
             return "🤔 Não entendi. Você pode:\n• Registrar um gasto\n• Registrar compra no cartão\n• Fazer uma consulta financeira";
 
         // ── Verificar dados faltantes em cada transação ──
-        return TryAdvanceToNextIncomplete(state)
+        return await TryAdvanceToNextIncompleteAsync(state)
             ?? BuildBatchConfirmationMessage(state);
     }
 
@@ -118,10 +167,10 @@ public class ConversationOrchestrator(
         state.SaveToPending(state.CurrentTransactionIndex);
 
         if (missingFields.Count > 0)
-            return BuildMissingFieldsQuestion(missingFields, extraction?.ClarificationQuestion);
+            return await BuildMissingFieldsQuestionAsync(missingFields, extraction?.ClarificationQuestion);
 
         // Transação atual completa — avançar para a próxima incompleta ou confirmar
-        return TryAdvanceToNextIncomplete(state, state.CurrentTransactionIndex + 1)
+        return await TryAdvanceToNextIncompleteAsync(state, state.CurrentTransactionIndex + 1)
             ?? BuildBatchConfirmationMessage(state);
     }
 
@@ -166,7 +215,7 @@ public class ConversationOrchestrator(
     /// Procura a próxima transação com dados faltantes. Se encontrar, coloca o state em CollectingData.
     /// Retorna null se todas estão completas (prontas para confirmação).
     /// </summary>
-    private string? TryAdvanceToNextIncomplete(ConversationState state, int startIndex = 0)
+    private async Task<string?> TryAdvanceToNextIncompleteAsync(ConversationState state, int startIndex = 0)
     {
         for (var i = startIndex; i < state.PendingTransactions.Count; i++)
         {
@@ -184,7 +233,7 @@ public class ConversationOrchestrator(
                     ? $"📌 Transação {i + 1} de {state.PendingTransactions.Count}:\n"
                     : "";
 
-                return prefix + BuildMissingFieldsQuestion(missing, null);
+                return prefix + await BuildMissingFieldsQuestionAsync(missing, null);
             }
         }
 
@@ -283,19 +332,39 @@ public class ConversationOrchestrator(
         return string.Join(", ", parts);
     }
 
-    private static string BuildMissingFieldsQuestion(List<string> missingFields, string? clarificationQuestion)
+    private async Task<string> BuildMissingFieldsQuestionAsync(List<string> missingFields, string? clarificationQuestion)
     {
         if (!string.IsNullOrEmpty(clarificationQuestion))
             return clarificationQuestion;
 
-        var fieldNames = missingFields.Select(f => f switch
+        var fieldNames = new List<string>();
+        foreach (var f in missingFields)
         {
-            "description" => "📝 Descrição (ex: Almoço no restaurante)",
-            "amount" => "💰 Valor (ex: 45.90)",
-            "categoryName" => "🏷️ Categoria (ex: Alimentação)",
-            "cardName" => "💳 Cartão (ex: Nubank)",
-            _ => f
-        });
+            if (f == "categoryName")
+            {
+                var categories = await categoryRepository.GetAllAsync();
+                var categoryList = categories.ToList();
+                if (categoryList.Count > 0)
+                {
+                    var names = string.Join(", ", categoryList.Select(c => c.Name));
+                    fieldNames.Add($"🏷️ Categoria — Suas categorias: {names}");
+                }
+                else
+                {
+                    fieldNames.Add("🏷️ Categoria (ex: Alimentação)");
+                }
+            }
+            else
+            {
+                fieldNames.Add(f switch
+                {
+                    "description" => "📝 Descrição (ex: Almoço no restaurante)",
+                    "amount" => "💰 Valor (ex: 45.90)",
+                    "cardName" => "💳 Cartão (ex: Nubank)",
+                    _ => f
+                });
+            }
+        }
 
         return "Preciso das seguintes informações:\n" + string.Join("\n", fieldNames);
     }
@@ -323,6 +392,12 @@ public class ConversationOrchestrator(
             📦 **Múltiplas transações**
             "Gastei 50 de almoço e 30 de café, as duas pagas"
             "Lance 100 em saúde e 200 em transporte"
+
+            🖼️ **Enviar imagem**
+            Envie uma foto de comprovante ou notificação para registrar automaticamente.
+
+            🎤 **Enviar áudio**
+            Grave um áudio descrevendo seus gastos e eu transcrevo e registro.
 
             📌 **Comandos:**
             /start — Esta mensagem
