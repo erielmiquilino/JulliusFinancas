@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
 using Jullius.ServiceApi.Application.Services;
@@ -16,6 +17,8 @@ public class ConversationOrchestrator(
     private static readonly HashSet<string> ConfirmationYes = ["sim", "s", "confirma", "confirmo", "ok", "isso", "pode", "positivo", "yes", "y", "👍"];
     private static readonly HashSet<string> ConfirmationNo = ["não", "nao", "n", "cancela", "cancelar", "desistir", "no", "👎"];
     private static readonly HashSet<string> CancelCommands = ["/cancelar", "/cancel", "/reset"];
+    private static readonly Regex ItemNumberRegex = new(@"\b(?:item|transa(?:ç|c)ão|lan(?:ç|c)amento)\s*(?:n[ºo°]\s*)?(\d+)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex ReverseItemNumberRegex = new(@"\b(\d+)\s*(?:º|o)?\s*(?:item|transa(?:ç|c)ão|lan(?:ç|c)amento)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public async Task<string> ProcessMessageAsync(long chatId, string message)
     {
@@ -28,7 +31,7 @@ public class ConversationOrchestrator(
             {
                 ConversationPhase.Idle => await HandleIdlePhaseAsync(state, message, normalizedMessage),
                 ConversationPhase.CollectingData => await HandleCollectingPhaseAsync(state, message, normalizedMessage),
-                ConversationPhase.AwaitingConfirmation => await HandleConfirmationPhaseAsync(state, normalizedMessage),
+                ConversationPhase.AwaitingConfirmation => await HandleConfirmationPhaseAsync(state, message, normalizedMessage),
                 _ => "❌ Estado inesperado. Use /cancelar para recomeçar."
             };
 
@@ -174,7 +177,7 @@ public class ConversationOrchestrator(
             ?? BuildBatchConfirmationMessage(state);
     }
 
-    private async Task<string> HandleConfirmationPhaseAsync(ConversationState state, string normalizedMessage)
+    private async Task<string> HandleConfirmationPhaseAsync(ConversationState state, string message, string normalizedMessage)
     {
         if (CancelCommands.Contains(normalizedMessage))
         {
@@ -206,7 +209,11 @@ public class ConversationOrchestrator(
             return string.Join("\n\n", results);
         }
 
-        return "Por favor, responda **sim** para confirmar ou **não** para cancelar.";
+        var editResponse = await TryApplyEditDuringConfirmationAsync(state, message, normalizedMessage);
+        if (!string.IsNullOrEmpty(editResponse))
+            return editResponse;
+
+        return "Por favor, responda **sim** para confirmar ou **não** para cancelar. Se quiser ajustar algum item, diga algo como: *altere a categoria do item 2 para Essenciais*.";
     }
 
     // ──────────────── Helpers ────────────────
@@ -318,6 +325,166 @@ public class ConversationOrchestrator(
 
     private static DateTime EnsureUtc(DateTime dateTime) =>
         dateTime.Kind == DateTimeKind.Utc ? dateTime : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+
+    private async Task<string?> TryApplyEditDuringConfirmationAsync(ConversationState state, string message, string normalizedMessage)
+    {
+        if (!LooksLikeEditRequest(state, normalizedMessage))
+            return null;
+
+        if (!TryGetTargetTransactionIndex(state, normalizedMessage, out var targetIndex))
+        {
+            return state.PendingTransactions.Count > 1
+                ? "Não identifiquei qual item você quer editar. Informe o número, por exemplo: *altere a categoria do item 2 para Essenciais*."
+                : "Não consegui identificar o ajuste. Tente algo como: *altere a categoria para Essenciais* ou *altere a descrição para Myatã*.";
+        }
+
+        var pending = state.PendingTransactions[targetIndex];
+        var contextHint = $"Você está editando a transação {targetIndex + 1} de {state.PendingTransactions.Count}. Dados atuais: {FormatPendingData(pending)}";
+        var extraction = await geminiService.ExtractDataFromFollowUpAsync(message, contextHint);
+
+        if (extraction?.Data == null)
+            return "Não consegui entender a edição. Tente novamente com mais detalhes.";
+
+        var changed = ApplyEditsToPending(pending, extraction.Data, normalizedMessage);
+        if (!changed)
+            return "Não consegui identificar o campo a editar. Você pode alterar descrição, valor, categoria, cartão, parcelas, vencimento ou status de pago.";
+
+        state.LoadFromPending(pending);
+        var handler = GetHandler(pending.Intent);
+        var missingFields = handler.GetMissingFields(state);
+        state.SaveToPending(targetIndex);
+
+        if (missingFields.Count > 0)
+        {
+            state.CurrentTransactionIndex = targetIndex;
+            state.Phase = ConversationPhase.CollectingData;
+
+            var prefix = state.IsBatchMode
+                ? $"📌 Transação {targetIndex + 1} de {state.PendingTransactions.Count}:\n"
+                : string.Empty;
+
+            return prefix + await BuildMissingFieldsQuestionAsync(missingFields, extraction.ClarificationQuestion);
+        }
+
+        var updatedLabel = state.IsBatchMode
+            ? $"✅ Item {targetIndex + 1} atualizado."
+            : "✅ Lançamento atualizado.";
+
+        return $"{updatedLabel}\n\n{BuildBatchConfirmationMessage(state)}";
+    }
+
+    private static bool LooksLikeEditRequest(ConversationState state, string normalizedMessage)
+    {
+        if (state.PendingTransactions.Count == 0)
+            return false;
+
+        var editKeywords = new[]
+        {
+            "alter", "edita", "editar", "troca", "trocar", "muda", "mudar", "corrig",
+            "descri", "categoria", "valor", "item", "transação", "transacao", "lançamento", "lancamento"
+        };
+
+        return editKeywords.Any(normalizedMessage.Contains);
+    }
+
+    private static bool TryGetTargetTransactionIndex(ConversationState state, string normalizedMessage, out int targetIndex)
+    {
+        targetIndex = 0;
+
+        if (state.PendingTransactions.Count == 1)
+            return true;
+
+        var directMatch = ItemNumberRegex.Match(normalizedMessage);
+        if (directMatch.Success && int.TryParse(directMatch.Groups[1].Value, out var itemNumber))
+        {
+            targetIndex = itemNumber - 1;
+            return targetIndex >= 0 && targetIndex < state.PendingTransactions.Count;
+        }
+
+        var reverseMatch = ReverseItemNumberRegex.Match(normalizedMessage);
+        if (reverseMatch.Success && int.TryParse(reverseMatch.Groups[1].Value, out itemNumber))
+        {
+            targetIndex = itemNumber - 1;
+            return targetIndex >= 0 && targetIndex < state.PendingTransactions.Count;
+        }
+
+        if (normalizedMessage.Contains("primeiro") || normalizedMessage.Contains("primeira"))
+        {
+            targetIndex = 0;
+            return true;
+        }
+
+        if (normalizedMessage.Contains("segundo") || normalizedMessage.Contains("segunda"))
+        {
+            targetIndex = 1;
+            return targetIndex < state.PendingTransactions.Count;
+        }
+
+        if (normalizedMessage.Contains("terceiro") || normalizedMessage.Contains("terceira"))
+        {
+            targetIndex = 2;
+            return targetIndex < state.PendingTransactions.Count;
+        }
+
+        return false;
+    }
+
+    private static bool ApplyEditsToPending(PendingTransaction pending, GeminiExtractedData data, string normalizedMessage)
+    {
+        var changed = false;
+
+        if (!string.IsNullOrWhiteSpace(data.Description))
+        {
+            pending.SetData("description", data.Description);
+            changed = true;
+        }
+
+        if (data.Amount is > 0)
+        {
+            pending.SetData("amount", data.Amount.Value);
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(data.CategoryName))
+        {
+            pending.SetData("categoryName", data.CategoryName);
+            changed = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(data.CardName))
+        {
+            pending.SetData("cardName", data.CardName);
+            changed = true;
+        }
+
+        if (data.Installments is > 0)
+        {
+            pending.SetData("installments", data.Installments.Value);
+            changed = true;
+        }
+
+        var mentionsPaymentState = normalizedMessage.Contains("pago")
+            || normalizedMessage.Contains("paga")
+            || normalizedMessage.Contains("pendente")
+            || normalizedMessage.Contains("não pago")
+            || normalizedMessage.Contains("nao pago")
+            || normalizedMessage.Contains("quitado")
+            || normalizedMessage.Contains("quitada");
+
+        if (data.IsPaid.HasValue && mentionsPaymentState)
+        {
+            pending.SetData("isPaid", data.IsPaid.Value);
+            changed = true;
+        }
+
+        if (data.DueDate.HasValue)
+        {
+            pending.SetData("dueDate", EnsureUtc(data.DueDate.Value));
+            changed = true;
+        }
+
+        return changed;
+    }
 
     private static string FormatPendingData(PendingTransaction pending)
     {

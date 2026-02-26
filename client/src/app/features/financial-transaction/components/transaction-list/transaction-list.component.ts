@@ -467,22 +467,18 @@ export class TransactionListComponent implements OnInit, OnDestroy, AfterViewIni
     if (transaction.isPaid) {
       return false;
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dueDate = new Date(transaction.dueDate);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate < today;
+    const dueDateKey = this.getTransactionDueDateKey(transaction);
+    const todayKey = this.getTodayLocalDateKey();
+    return dueDateKey < todayKey;
   }
 
   isDueToday(transaction: FinancialTransaction): boolean {
     if (transaction.isPaid) {
       return false;
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dueDate = new Date(transaction.dueDate);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate.getTime() === today.getTime();
+    const dueDateKey = this.getTransactionDueDateKey(transaction);
+    const todayKey = this.getTodayLocalDateKey();
+    return dueDateKey === todayKey;
   }
 
   getDueDateStatus(transaction: FinancialTransaction): 'overdue' | 'due-today' | 'normal' {
@@ -493,6 +489,31 @@ export class TransactionListComponent implements OnInit, OnDestroy, AfterViewIni
       return 'due-today';
     }
     return 'normal';
+  }
+
+  private getTransactionDueDateKey(transaction: FinancialTransaction): string {
+    const rawDueDate = transaction.dueDate as unknown;
+
+    if (typeof rawDueDate === 'string') {
+      const isoMatch = rawDueDate.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (isoMatch) {
+        return isoMatch[1];
+      }
+    }
+
+    const parsedDate = new Date(transaction.dueDate);
+    return this.toLocalDateKey(parsedDate);
+  }
+
+  private getTodayLocalDateKey(): string {
+    return this.toLocalDateKey(new Date());
+  }
+
+  private toLocalDateKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private saveFiltersToStorage(): void {

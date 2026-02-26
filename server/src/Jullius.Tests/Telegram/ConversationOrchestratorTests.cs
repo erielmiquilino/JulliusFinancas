@@ -464,6 +464,92 @@ public class ConversationOrchestratorTests
         result.Should().Contain("não");
     }
 
+    [Fact]
+    public async Task ProcessMessage_ShouldAllowEditingCategoryInBatch_WhenAwaitingConfirmation()
+    {
+        var state = _stateStore.GetOrCreate(TestChatId);
+        state.Phase = ConversationPhase.AwaitingConfirmation;
+
+        var pending1 = new PendingTransaction { Intent = IntentType.CreateExpense };
+        pending1.SetData("description", "Lat chease");
+        pending1.SetData("amount", 31.00m);
+        pending1.SetData("categoryName", "Não planejado");
+        pending1.SetData("isPaid", true);
+
+        var pending2 = new PendingTransaction { Intent = IntentType.CreateExpense };
+        pending2.SetData("description", "Supermercados Myata");
+        pending2.SetData("amount", 31.72m);
+        pending2.SetData("categoryName", "Supermercados");
+        pending2.SetData("isPaid", true);
+
+        state.PendingTransactions.AddRange([pending1, pending2]);
+
+        _geminiServiceMock
+            .Setup(g => g.ExtractDataFromFollowUpAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new GeminiIntentResponse
+            {
+                Intent = "CONTINUE",
+                Data = new GeminiExtractedData
+                {
+                    CategoryName = "Essenciais"
+                }
+            });
+
+        _expenseHandlerMock
+            .Setup(h => h.GetMissingFields(It.IsAny<ConversationState>()))
+            .Returns(new List<string>());
+
+        var result = await _orchestrator.ProcessMessageAsync(TestChatId, "altere a categoria do item 2 para Essenciais");
+
+        state.Phase.Should().Be(ConversationPhase.AwaitingConfirmation);
+        state.PendingTransactions[1].GetData<string>("categoryName").Should().Be("Essenciais");
+        result.Should().Contain("Item 2 atualizado");
+        result.Should().Contain("Essenciais");
+    }
+
+    [Fact]
+    public async Task ProcessMessage_ShouldAllowEditingDescriptionInBatch_WhenAwaitingConfirmation()
+    {
+        var state = _stateStore.GetOrCreate(TestChatId);
+        state.Phase = ConversationPhase.AwaitingConfirmation;
+
+        var pending1 = new PendingTransaction { Intent = IntentType.CreateExpense };
+        pending1.SetData("description", "Item A");
+        pending1.SetData("amount", 10m);
+        pending1.SetData("categoryName", "Cat");
+        pending1.SetData("isPaid", true);
+
+        var pending2 = new PendingTransaction { Intent = IntentType.CreateExpense };
+        pending2.SetData("description", "Supermercados Myata Lages Bra");
+        pending2.SetData("amount", 31.72m);
+        pending2.SetData("categoryName", "Supermercados");
+        pending2.SetData("isPaid", true);
+
+        state.PendingTransactions.AddRange([pending1, pending2]);
+
+        _geminiServiceMock
+            .Setup(g => g.ExtractDataFromFollowUpAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new GeminiIntentResponse
+            {
+                Intent = "CONTINUE",
+                Data = new GeminiExtractedData
+                {
+                    Description = "Myatã"
+                }
+            });
+
+        _expenseHandlerMock
+            .Setup(h => h.GetMissingFields(It.IsAny<ConversationState>()))
+            .Returns(new List<string>());
+
+        var result = await _orchestrator.ProcessMessageAsync(TestChatId, "altere a descrição do item 2 para Myatã");
+
+        state.Phase.Should().Be(ConversationPhase.AwaitingConfirmation);
+        state.PendingTransactions[1].GetData<string>("description").Should().Be("Myatã");
+        result.Should().Contain("Item 2 atualizado");
+        result.Should().Contain("Myatã");
+    }
+
     #endregion
 
     #region Cancel During Collecting Phase
