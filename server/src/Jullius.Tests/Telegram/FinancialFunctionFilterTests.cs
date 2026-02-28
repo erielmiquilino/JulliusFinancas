@@ -87,4 +87,68 @@ public class FinancialFunctionFilterTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
     }
+
+    [Fact]
+    public async Task Filter_ShouldBlockExecution_WhenInvocationLimitExceeded()
+    {
+        // Cada instância do filtro (Scoped) começa com contador em 0
+        var freshFilter = new FinancialFunctionFilter(_loggerMock.Object);
+
+        var builder = Kernel.CreateBuilder();
+        builder.Services.AddSingleton<IFunctionInvocationFilter>(freshFilter);
+        var kernel = builder.Build();
+
+        var callCount = 0;
+        var function = KernelFunctionFactory.CreateFromMethod(
+            () => { callCount++; return "ok"; },
+            "RepeatableFunction",
+            "Função de teste");
+
+        // Executar 8 vezes (limite é 8) — todas devem funcionar
+        for (var i = 0; i < FinancialFunctionFilter.MaxInvocationsPerRequest; i++)
+            await kernel.InvokeAsync(function);
+
+        callCount.Should().Be(FinancialFunctionFilter.MaxInvocationsPerRequest,
+            "as primeiras invocações devem executar normalmente");
+
+        // A 9ª invocação deve ser bloqueada
+        var result = await kernel.InvokeAsync(function);
+        var blocked = result.GetValue<string>();
+
+        blocked.Should().Contain("Limite de chamadas atingido");
+        callCount.Should().Be(FinancialFunctionFilter.MaxInvocationsPerRequest,
+            "a invocação além do limite não deve executar a função real");
+    }
+
+    [Fact]
+    public async Task Filter_NewInstance_ShouldStartWithFreshCounter()
+    {
+        // Simula o comportamento Scoped: nova instância = novo contador = aceita chamadas
+        var filter1 = new FinancialFunctionFilter(_loggerMock.Object);
+        var filter2 = new FinancialFunctionFilter(_loggerMock.Object);
+
+        var builder1 = Kernel.CreateBuilder();
+        builder1.Services.AddSingleton<IFunctionInvocationFilter>(filter1);
+        var kernel1 = builder1.Build();
+
+        var function = KernelFunctionFactory.CreateFromMethod(
+            () => "ok",
+            "TestFunction",
+            "Função de teste");
+
+        // Esgotar o limite na primeira instância
+        for (var i = 0; i < FinancialFunctionFilter.MaxInvocationsPerRequest; i++)
+            await kernel1.InvokeAsync(function);
+
+        var blocked = await kernel1.InvokeAsync(function);
+        blocked.GetValue<string>().Should().Contain("Limite");
+
+        // Nova instância (simula nova requisição HTTP) deve funcionar normalmente
+        var builder2 = Kernel.CreateBuilder();
+        builder2.Services.AddSingleton<IFunctionInvocationFilter>(filter2);
+        var kernel2 = builder2.Build();
+
+        var fresh = await kernel2.InvokeAsync(function);
+        fresh.GetValue<string>().Should().Be("ok");
+    }
 }

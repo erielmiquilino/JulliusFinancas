@@ -204,6 +204,50 @@ public sealed class FinancialTransactionPlugin
         }
     }
 
+    [KernelFunction("SearchTransactions")]
+    [Description("Busca transações financeiras (contas a pagar/receber) por descrição em um mês/ano. Use para responder perguntas como 'quanto gastei com X', 'quais transações de Y'. Retorna cada transação individual com descrição, valor, status e categoria.")]
+    public async Task<string> SearchTransactionsAsync(
+        [Description("Termo de busca parcial na descrição (ex: 'myatã', 'aluguel', 'luz')")] string searchDescription,
+        [Description("Mês (1-12). Use o mês atual se não especificado.")] int month,
+        [Description("Ano (ex: 2026). Use o ano atual se não especificado.")] int year)
+    {
+        try
+        {
+            var allTransactions = await _transactionRepository.GetAllAsync();
+            var normalizedSearch = searchDescription.Trim().ToLowerInvariant();
+
+            var matches = allTransactions
+                .Where(t => t.DueDate.Month == month && t.DueDate.Year == year)
+                .Where(t => t.Description.ToLowerInvariant().Contains(normalizedSearch))
+                .OrderBy(t => t.DueDate)
+                .ToList();
+
+            if (matches.Count == 0)
+                return $"Nenhuma transação encontrada com \"{searchDescription}\" em {month:D2}/{year}.";
+
+            var lines = matches.Select(t =>
+            {
+                var typeLabel = t.Type == TransactionType.PayableBill ? "Despesa" : "Receita";
+                var statusLabel = t.IsPaid ? "✅ Pago" : "⏳ Pendente";
+                var categoryName = t.Category?.Name ?? "—";
+                return $"• {t.Description} — R$ {t.Amount.ToString("N2", PtBrCulture)} | {typeLabel} | {statusLabel} | {categoryName} | Venc: {t.DueDate:dd/MM/yyyy}";
+            });
+
+            var total = matches.Sum(t => t.Amount);
+            var paidTotal = matches.Where(t => t.IsPaid).Sum(t => t.Amount);
+            var pendingTotal = total - paidTotal;
+
+            var header = $"Transações com \"{searchDescription}\" em {month:D2}/{year} ({matches.Count} encontradas):";
+            var totals = $"Total: R$ {total.ToString("N2", PtBrCulture)} | Pago: R$ {paidTotal.ToString("N2", PtBrCulture)} | Pendente: R$ {pendingTotal.ToString("N2", PtBrCulture)}";
+            return $"{header}\n\n{string.Join("\n", lines)}\n\n{totals}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao buscar transações por descrição via Telegram SK");
+            return $"❌ Erro ao buscar transações: {ex.Message}";
+        }
+    }
+
     [KernelFunction("UpdatePaymentStatus")]
     [Description("Marca uma transação financeira como paga ou pendente. Use quando o usuário diz que pagou algo ou quer reverter um pagamento.")]
     public async Task<string> UpdatePaymentStatusAsync(

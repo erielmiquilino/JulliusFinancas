@@ -10,8 +10,36 @@ public class TelegramBotService(
     SemanticKernelOrchestrator orchestrator,
     ILogger<TelegramBotService> logger)
 {
+    /// <summary>
+    /// Rastreia update_ids já processados para ignorar retries do Telegram.
+    /// Quando o webhook demora mais que ~60s, o Telegram reenvia o mesmo update.
+    /// Sem dedup, dois processamentos concorrentes geram respostas duplicadas/erros.
+    /// </summary>
+    private static readonly HashSet<int> _processedUpdateIds = [];
+    private static readonly Lock _updateIdLock = new();
+    private const int MaxTrackedUpdateIds = 1000;
+
     public async Task<bool> ProcessUpdateAsync(Update update)
     {
+        // Deduplicação: ignorar updates já processados (retries do Telegram)
+        lock (_updateIdLock)
+        {
+            if (!_processedUpdateIds.Add(update.Id))
+            {
+                logger.LogWarning(
+                    "Update {UpdateId} já processado — ignorando retry do Telegram",
+                    update.Id);
+                return false;
+            }
+
+            // Evitar crescimento ilimitado do HashSet
+            if (_processedUpdateIds.Count > MaxTrackedUpdateIds)
+            {
+                _processedUpdateIds.Clear();
+                _processedUpdateIds.Add(update.Id);
+            }
+        }
+
         if (update.Message is null)
             return false;
 
