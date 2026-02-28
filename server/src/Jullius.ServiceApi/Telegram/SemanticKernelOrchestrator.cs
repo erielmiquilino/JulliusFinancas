@@ -184,21 +184,33 @@ public sealed class SemanticKernelOrchestrator
             result.Items?.Count ?? 0,
             result.Metadata is not null ? string.Join(",", result.Metadata.Keys) : "(none)");
 
-        // Extrair texto dos Items filtrando conteúdo de pensamento (Thinking models).
-        // Thinking models podem retornar Items com metadata IsThinking/IsThought que não
-        // devem ser enviados ao usuário.
-        var responseText = result.Content;
-        if (string.IsNullOrWhiteSpace(responseText) && result.Items is { Count: > 0 })
+        // SEMPRE extrair dos Items filtrando conteúdo de pensamento (Thinking models).
+        // result.Content concatena TODOS os TextContent (incluindo thinking), o que causa
+        // duplicação. Extraímos manualmente apenas os itens que NÃO são pensamento.
+        string? responseText = null;
+
+        if (result.Items is { Count: > 0 })
         {
-            responseText = string.Join("", result.Items
-                .OfType<TextContent>()
+            var textItems = result.Items.OfType<TextContent>().ToList();
+
+            // Filtrar items de pensamento se houver metadata de thinking
+            var nonThinkingItems = textItems
                 .Where(t => t.Metadata is null ||
                     (!t.Metadata.ContainsKey("IsThinking") && !t.Metadata.ContainsKey("IsThought")))
-                .Select(t => t.Text));
-            if (!string.IsNullOrWhiteSpace(responseText))
-            {
-                _logger.LogInformation("Resposta extraída dos Items (TextContent) ao invés de Content direto.");
-            }
+                .ToList();
+
+            _logger.LogDebug(
+                "TextContent items: Total={Total}, NonThinking={NonThinking}",
+                textItems.Count,
+                nonThinkingItems.Count);
+
+            responseText = string.Join("", nonThinkingItems.Select(t => t.Text));
+        }
+
+        // Fallback para result.Content quando Items está vazio (modelos que não usam thinking)
+        if (string.IsNullOrWhiteSpace(responseText))
+        {
+            responseText = result.Content;
         }
 
         if (string.IsNullOrWhiteSpace(responseText))
