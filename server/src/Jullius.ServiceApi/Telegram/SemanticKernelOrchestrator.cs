@@ -47,12 +47,17 @@ public sealed class SemanticKernelOrchestrator
             var kernel = await BuildKernelAsync();
             var history = PrepareHistory(chatId);
 
+            // Adiciona a mensagem do usuário UMA ÚNICA VEZ ao ChatHistory compartilhado.
+            // PrepareHistory retorna o mesmo objeto gerenciado pelo ChatHistoryStore,
+            // então NÃO devemos chamar _chatHistoryStore.AddUserMessage — isso duplicaria
+            // a mensagem e faria o LLM gerar respostas duplicadas.
             history.AddUserMessage(message);
-            _chatHistoryStore.AddUserMessage(chatId, message);
 
             var response = await ExecuteChatAsync(kernel, history);
 
-            _chatHistoryStore.AddAssistantMessage(chatId, response);
+            // ExecuteChatAsync já adiciona o result ao history via history.Add(result).
+            // Não chamar _chatHistoryStore.AddAssistantMessage para evitar duplicação.
+            _chatHistoryStore.TrimHistory(chatId);
 
             return response;
         }
@@ -94,14 +99,17 @@ public sealed class SemanticKernelOrchestrator
             items.Add(new ImageContent(mediaBytes, mimeType));
 
             var userMessage = new ChatMessageContent(AuthorRole.User, items);
+            // Adiciona a mensagem multimodal UMA ÚNICA VEZ ao ChatHistory compartilhado.
+            // PrepareHistory retorna o mesmo objeto do ChatHistoryStore — chamar
+            // _chatHistoryStore.AddUserMessage adicionaria uma segunda mensagem (texto puro)
+            // ao mesmo history, fazendo o LLM ver duas mensagens do usuário e potencialmente
+            // duplicar a resposta.
             history.Add(userMessage);
-
-            // Adicionar descrição textual ao store (ele não suporta binário)
-            _chatHistoryStore.AddUserMessage(chatId, $"[{mediaDescription}] {caption ?? ""}".Trim());
 
             var response = await ExecuteChatAsync(kernel, history);
 
-            _chatHistoryStore.AddAssistantMessage(chatId, response);
+            // ExecuteChatAsync já adiciona o result ao history.
+            _chatHistoryStore.TrimHistory(chatId);
 
             return response;
         }

@@ -100,6 +100,17 @@ public sealed class ChatHistoryStore : IDisposable
             _histories.TryRemove(chatId, out _);
     }
 
+    /// <summary>
+    /// Aplica trim ao histórico de um chatId, removendo mensagens antigas se necessário.
+    /// Útil quando mensagens são adicionadas diretamente ao ChatHistory compartilhado
+    /// (fora dos métodos AddUserMessage/AddAssistantMessage).
+    /// </summary>
+    public void TrimHistory(long chatId)
+    {
+        var history = GetOrCreate(chatId);
+        TrimIfNeeded(history);
+    }
+
     public void Dispose()
     {
         _cleanupTimer.Dispose();
