@@ -15,7 +15,7 @@ namespace Jullius.ServiceApi.Telegram;
 /// </summary>
 public sealed class SemanticKernelOrchestrator
 {
-    private const string GeminiModel = "gemini-2.5-flash-preview-05-20";
+    private const string GeminiModel = "gemini-3-flash-preview";
 
     private readonly ChatHistoryStore _chatHistoryStore;
     private readonly BotConfigurationService _configService;
