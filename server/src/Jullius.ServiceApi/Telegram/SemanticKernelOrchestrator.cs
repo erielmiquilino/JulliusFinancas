@@ -183,53 +183,33 @@ public sealed class SemanticKernelOrchestrator
 
         var result = await chatService.GetChatMessageContentAsync(history, settings, kernel);
 
-        _logger.LogDebug(
-            "Gemini raw response — ModelId={ModelId}, Role={Role}, Content IsNull={IsNull}, ContentLength={Length}, ItemsCount={Items}, MetadataKeys={MetaKeys}",
+        _logger.LogInformation(
+            "Gemini response — ModelId={ModelId}, Role={Role}, ContentLength={Length}, ItemsCount={Items}, ItemTypes={ItemTypes}",
             result.ModelId,
             result.Role,
-            result.Content is null,
             result.Content?.Length ?? -1,
             result.Items?.Count ?? 0,
-            result.Metadata is not null ? string.Join(",", result.Metadata.Keys) : "(none)");
+            result.Items is not null
+                ? string.Join(", ", result.Items.Select(i => i.GetType().Name))
+                : "(none)");
 
-        // SEMPRE extrair dos Items filtrando conteúdo de pensamento (Thinking models).
-        // result.Content concatena TODOS os TextContent (incluindo thinking), o que causa
-        // duplicação. Extraímos manualmente apenas os itens que NÃO são pensamento.
-        string? responseText = null;
-
-        if (result.Items is { Count: > 0 })
-        {
-            var textItems = result.Items.OfType<TextContent>().ToList();
-
-            // Filtrar items de pensamento se houver metadata de thinking
-            var nonThinkingItems = textItems
-                .Where(t => t.Metadata is null ||
-                    (!t.Metadata.ContainsKey("IsThinking") && !t.Metadata.ContainsKey("IsThought")))
-                .ToList();
-
-            _logger.LogDebug(
-                "TextContent items: Total={Total}, NonThinking={NonThinking}",
-                textItems.Count,
-                nonThinkingItems.Count);
-
-            responseText = string.Join("", nonThinkingItems.Select(t => t.Text));
-        }
-
-        // Fallback para result.Content quando Items está vazio (modelos que não usam thinking)
-        if (string.IsNullOrWhiteSpace(responseText))
-        {
-            responseText = result.Content;
-        }
+        // O connector Google 1.72.0-alpha usa part.Thought==true e separa conteúdo de
+        // pensamento em ReasoningContent (NÃO TextContent). O texto regular vai para
+        // result.Content via o campo _content no construtor.
+        //
+        // NÃO extrair via Items.OfType<TextContent>() porque o Items pode conter
+        // TextContent duplicados (um do construtor + um adicionado pelo connector),
+        // causando duplicação ao concatenar.
+        var responseText = result.Content;
 
         if (string.IsNullOrWhiteSpace(responseText))
         {
             _logger.LogWarning(
-                "Gemini retornou resposta vazia. Content IsNull={IsNull}, Content='{Content}', ModelId={ModelId}, Items={ItemTypes}",
-                result.Content is null,
-                result.Content ?? "(null)",
+                "Gemini retornou resposta vazia. ContentLength={Length}, ModelId={ModelId}, ItemTypes={ItemTypes}",
+                result.Content?.Length ?? -1,
                 result.ModelId,
                 result.Items is not null
-                    ? string.Join(",", result.Items.Select(i => i.GetType().Name))
+                    ? string.Join(", ", result.Items.Select(i => $"{i.GetType().Name}({(i is TextContent tc ? tc.Text?.Length : 0)})"))
                     : "(none)");
 
             responseText = "🤔 Não obtive resposta. Tente reformular sua mensagem.";
