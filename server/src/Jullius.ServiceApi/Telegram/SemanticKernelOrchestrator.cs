@@ -20,17 +20,20 @@ public sealed class SemanticKernelOrchestrator
     private readonly ChatHistoryStore _chatHistoryStore;
     private readonly BotConfigurationService _configService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<SemanticKernelOrchestrator> _logger;
 
     public SemanticKernelOrchestrator(
         ChatHistoryStore chatHistoryStore,
         BotConfigurationService configService,
         IServiceProvider serviceProvider,
+        IHttpClientFactory httpClientFactory,
         ILogger<SemanticKernelOrchestrator> logger)
     {
         _chatHistoryStore = chatHistoryStore;
         _configService = configService;
         _serviceProvider = serviceProvider;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -120,9 +123,14 @@ public sealed class SemanticKernelOrchestrator
 
         var builder = Kernel.CreateBuilder();
 
+        // Usar HttpClient com timeout estendido (5 min) para Thinking models.
+        // O default de 100s causa TaskCanceledException após function calling chains longas.
+        var httpClient = _httpClientFactory.CreateClient("GeminiApi");
+
         builder.AddGoogleAIGeminiChatCompletion(
             modelId: GeminiModel,
-            apiKey: apiKey);
+            apiKey: apiKey,
+            httpClient: httpClient);
 
         // Registrar plugins resolvendo do container DI
         builder.Plugins.AddFromObject(_serviceProvider.GetRequiredService<DateTimePlugin>(), "DateTime");
