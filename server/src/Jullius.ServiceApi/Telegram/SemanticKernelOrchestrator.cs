@@ -173,7 +173,16 @@ public sealed class SemanticKernelOrchestrator
 
         var result = await chatService.GetChatMessageContentAsync(history, settings, kernel);
 
-        var responseText = result.Content ?? "🤔 Não obtive resposta. Tente reformular sua mensagem.";
+        var responseText = string.IsNullOrWhiteSpace(result.Content)
+            ? "🤔 Não obtive resposta. Tente reformular sua mensagem."
+            : result.Content;
+
+        if (string.IsNullOrWhiteSpace(result.Content))
+        {
+            _logger.LogWarning(
+                "Gemini retornou resposta vazia. Content IsNull={IsNull}, Content='{Content}', ModelId={ModelId}",
+                result.Content is null, result.Content ?? "(null)", result.ModelId);
+        }
 
         // Adicionar resposta ao histórico real do SK (para function-calling chain)
         history.Add(result);

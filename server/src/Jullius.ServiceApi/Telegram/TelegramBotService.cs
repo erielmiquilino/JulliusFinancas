@@ -103,6 +103,12 @@ public class TelegramBotService(
 
         var client = new TelegramBotClient(botToken);
 
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            logger.LogWarning("Tentativa de enviar mensagem vazia para chat {ChatId}. Ignorando.", chatId);
+            return;
+        }
+
         try
         {
             await client.SendMessage(
