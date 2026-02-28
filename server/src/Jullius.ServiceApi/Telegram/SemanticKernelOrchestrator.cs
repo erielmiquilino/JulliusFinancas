@@ -167,21 +167,52 @@ public sealed class SemanticKernelOrchestrator
         {
             FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
             Temperature = 0.7,
-            TopP = 0.9,
-            MaxTokens = 2048
+            TopP = 0.9
+            // MaxTokens omitido intencionalmente: com Thinking models (Gemini 3 Flash),
+            // tokens de raciocínio consomem o budget de MaxTokens. Deixar null permite
+            // que o modelo use seu default, evitando respostas vazias (SK Issue #12334).
         };
 
         var result = await chatService.GetChatMessageContentAsync(history, settings, kernel);
 
-        var responseText = string.IsNullOrWhiteSpace(result.Content)
-            ? "🤔 Não obtive resposta. Tente reformular sua mensagem."
-            : result.Content;
+        _logger.LogDebug(
+            "Gemini raw response — ModelId={ModelId}, Role={Role}, Content IsNull={IsNull}, ContentLength={Length}, ItemsCount={Items}, MetadataKeys={MetaKeys}",
+            result.ModelId,
+            result.Role,
+            result.Content is null,
+            result.Content?.Length ?? -1,
+            result.Items?.Count ?? 0,
+            result.Metadata is not null ? string.Join(",", result.Metadata.Keys) : "(none)");
 
-        if (string.IsNullOrWhiteSpace(result.Content))
+        // Extrair texto dos Items filtrando conteúdo de pensamento (Thinking models).
+        // Thinking models podem retornar Items com metadata IsThinking/IsThought que não
+        // devem ser enviados ao usuário.
+        var responseText = result.Content;
+        if (string.IsNullOrWhiteSpace(responseText) && result.Items is { Count: > 0 })
+        {
+            responseText = string.Join("", result.Items
+                .OfType<TextContent>()
+                .Where(t => t.Metadata is null ||
+                    (!t.Metadata.ContainsKey("IsThinking") && !t.Metadata.ContainsKey("IsThought")))
+                .Select(t => t.Text));
+            if (!string.IsNullOrWhiteSpace(responseText))
+            {
+                _logger.LogInformation("Resposta extraída dos Items (TextContent) ao invés de Content direto.");
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(responseText))
         {
             _logger.LogWarning(
-                "Gemini retornou resposta vazia. Content IsNull={IsNull}, Content='{Content}', ModelId={ModelId}",
-                result.Content is null, result.Content ?? "(null)", result.ModelId);
+                "Gemini retornou resposta vazia. Content IsNull={IsNull}, Content='{Content}', ModelId={ModelId}, Items={ItemTypes}",
+                result.Content is null,
+                result.Content ?? "(null)",
+                result.ModelId,
+                result.Items is not null
+                    ? string.Join(",", result.Items.Select(i => i.GetType().Name))
+                    : "(none)");
+
+            responseText = "🤔 Não obtive resposta. Tente reformular sua mensagem.";
         }
 
         // Adicionar resposta ao histórico real do SK (para function-calling chain)
