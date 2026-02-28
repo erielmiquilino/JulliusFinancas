@@ -7,7 +7,7 @@ namespace Jullius.ServiceApi.Telegram;
 
 public class TelegramBotService(
     BotConfigurationService configService,
-    ConversationOrchestrator orchestrator,
+    SemanticKernelOrchestrator orchestrator,
     ILogger<TelegramBotService> logger)
 {
     public async Task<bool> ProcessUpdateAsync(Update update)

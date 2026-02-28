@@ -57,7 +57,7 @@ public class Program
         services.AddDatabaseConfiguration(connectionString);
         services.AddDatabaseHealthChecks();
         services.AddApplicationDependencies();
-        services.AddTelegramServices();
+        services.AddSemanticKernelServices();
         ConfigureDataProtection(services, configuration);
         services.AddSingleton<DatabaseMigrationService>();
         await Task.CompletedTask;
