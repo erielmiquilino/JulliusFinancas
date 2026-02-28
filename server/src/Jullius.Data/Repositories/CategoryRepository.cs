@@ -39,7 +39,7 @@ public class CategoryRepository(JulliusDbContext context) : ICategoryRepository
     public async Task<Category?> GetByNameAsync(string name)
     {
         return await context.Set<Category>()
-            .FirstOrDefaultAsync(c => c.Name == name);
+            .FirstOrDefaultAsync(c => c.Name.ToLower() == name.ToLower());
     }
 
     public async Task<bool> IsInUseAsync(Guid id)

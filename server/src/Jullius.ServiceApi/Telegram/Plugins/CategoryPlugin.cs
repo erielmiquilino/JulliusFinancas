@@ -44,13 +44,21 @@ public sealed class CategoryPlugin
     }
 
     [KernelFunction("CreateCategory")]
-    [Description("Cria uma nova categoria financeira. Use apenas quando o usuário pedir explicitamente para criar uma categoria.")]
+    [Description("Cria uma nova categoria financeira. IMPORTANTE: chame ListCategories ANTES para verificar se já existe uma categoria semelhante. Use apenas quando nenhuma categoria existente for adequada.")]
     public async Task<string> CreateCategoryAsync(
         [Description("Nome da categoria (ex: 'Alimentação', 'Saúde', 'Educação')")] string name,
-        [Description("Cor em hexadecimal (ex: '#FF5722'). Se não informada, usa cor padrão.")] string color = "#607D8B")
+        [Description("Cor em hexadecimal OBRIGATÓRIA — escolha uma cor vibrante e distinta (ex: '#4CAF50' verde, '#FF9800' laranja, '#9C27B0' roxo, '#2196F3' azul, '#F44336' vermelho, '#E91E63' rosa). NUNCA use cinza.")] string color = "#4CAF50")
     {
         try
         {
+            // Verificar se já existe categoria com o mesmo nome (case-insensitive)
+            var existing = await _categoryService.GetAllCategoriesAsync();
+            var duplicate = existing.FirstOrDefault(c =>
+                c.Name.Trim().Equals(name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (duplicate != null)
+                return $"⚠️ Já existe a categoria \"{duplicate.Name}\". Use a existente em vez de criar uma nova.";
+
             var request = new CreateCategoryRequest
             {
                 Name = name,
@@ -58,7 +66,7 @@ public sealed class CategoryPlugin
             };
 
             var created = await _categoryService.CreateCategoryAsync(request);
-            return $"✅ Categoria \"{created.Name}\" criada com sucesso!";
+            return $"✅ Categoria \"{created.Name}\" criada com sucesso (cor: {color})!";
         }
         catch (Exception ex)
         {

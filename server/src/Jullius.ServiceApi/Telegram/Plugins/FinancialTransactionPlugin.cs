@@ -15,7 +15,26 @@ namespace Jullius.ServiceApi.Telegram.Plugins;
 public sealed class FinancialTransactionPlugin
 {
     private static readonly CultureInfo PtBrCulture = new("pt-BR");
-    private const string DefaultCategoryColor = "#607D8B";
+
+    /// <summary>
+    /// Paleta de cores vibrantes para categorias criadas automaticamente.
+    /// A cor é selecionada deterministicamente com base no nome da categoria.
+    /// </summary>
+    private static readonly string[] CategoryColors =
+    [
+        "#4CAF50", // Verde
+        "#2196F3", // Azul
+        "#FF9800", // Laranja
+        "#9C27B0", // Roxo
+        "#F44336", // Vermelho
+        "#00BCD4", // Ciano
+        "#FF5722", // Laranja escuro
+        "#3F51B5", // Índigo
+        "#E91E63", // Rosa
+        "#009688", // Teal
+        "#FFC107", // Âmbar
+        "#795548", // Marrom
+    ];
 
     private readonly FinancialTransactionService _transactionService;
     private readonly ICategoryRepository _categoryRepository;
@@ -38,22 +57,17 @@ public sealed class FinancialTransactionPlugin
     }
 
     [KernelFunction("CreateExpense")]
-    [Description("Registra uma nova despesa (conta a pagar). Use quando o usuário informa um gasto realizado. Retorna confirmação com os dados registrados.")]
+    [Description("Registra uma nova despesa (conta a pagar). Use quando o usuário informa um gasto realizado. IMPORTANTE: chame ListCategories ANTES e use uma categoria existente sempre que possível. Retorna confirmação com os dados registrados.")]
     public async Task<string> CreateExpenseAsync(
         [Description("Descrição do gasto, com primeira letra maiúscula (ex: 'Almoço', 'Conta de luz')")] string description,
         [Description("Valor numérico da despesa (ex: 45.90, 200, 2000)")] decimal amount,
-        [Description("Nome da categoria (ex: 'Alimentação', 'Saúde', 'Lazer'). Será criada automaticamente se não existir.")] string categoryName,
+        [Description("Nome EXATO de uma categoria existente (chame ListCategories antes). Só use um nome novo se nenhuma categoria existente for adequada.")] string categoryName,
         [Description("Se a despesa já foi paga. True para 'pago/paga/quitado', false caso contrário.")] bool isPaid = false,
         [Description("Data de vencimento no formato yyyy-MM-dd. Se não informada, usa a data atual.")] string? dueDate = null)
     {
         try
         {
-            var category = await _categoryRepository.GetByNameAsync(categoryName);
-            if (category == null)
-            {
-                category = await _categoryRepository.GetOrCreateSystemCategoryAsync(categoryName, DefaultCategoryColor);
-                _logger.LogInformation("Categoria criada automaticamente via Telegram: {Categoria}", categoryName);
-            }
+            var category = await ResolveCategoryAsync(categoryName);
 
             var parsedDueDate = ParseDate(dueDate) ?? DateTime.UtcNow;
 
@@ -83,22 +97,17 @@ public sealed class FinancialTransactionPlugin
     }
 
     [KernelFunction("CreateIncome")]
-    [Description("Registra uma nova receita (conta a receber). Use quando o usuário informa um recebimento, salário, rendimento, entrada de dinheiro.")]
+    [Description("Registra uma nova receita (conta a receber). Use quando o usuário informa um recebimento, salário, rendimento, entrada de dinheiro. IMPORTANTE: chame ListCategories ANTES e use uma categoria existente sempre que possível.")]
     public async Task<string> CreateIncomeAsync(
         [Description("Descrição da receita (ex: 'Salário', 'Freelance', 'Rendimento')")] string description,
         [Description("Valor numérico da receita")] decimal amount,
-        [Description("Nome da categoria (ex: 'Salário', 'Investimentos'). Será criada automaticamente se não existir.")] string categoryName,
+        [Description("Nome EXATO de uma categoria existente (chame ListCategories antes). Só use um nome novo se nenhuma categoria existente for adequada.")] string categoryName,
         [Description("Se a receita já foi recebida. True para 'recebido/recebida', false caso contrário.")] bool isPaid = false,
         [Description("Data de vencimento/recebimento no formato yyyy-MM-dd. Se não informada, usa a data atual.")] string? dueDate = null)
     {
         try
         {
-            var category = await _categoryRepository.GetByNameAsync(categoryName);
-            if (category == null)
-            {
-                category = await _categoryRepository.GetOrCreateSystemCategoryAsync(categoryName, DefaultCategoryColor);
-                _logger.LogInformation("Categoria criada automaticamente via Telegram: {Categoria}", categoryName);
-            }
+            var category = await ResolveCategoryAsync(categoryName);
 
             var parsedDueDate = ParseDate(dueDate) ?? DateTime.UtcNow;
 
@@ -224,6 +233,51 @@ public sealed class FinancialTransactionPlugin
             _logger.LogError(ex, "Erro ao atualizar status de pagamento via Telegram SK");
             return $"❌ Erro ao atualizar o status: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Resolve a categoria buscando por nome (case-insensitive). Se não encontrar correspondência exata,
+    /// tenta correspondência parcial com categorias existentes. Cria nova categoria apenas como último recurso,
+    /// atribuindo uma cor vibrante automaticamente.
+    /// </summary>
+    private async Task<Category> ResolveCategoryAsync(string categoryName)
+    {
+        // 1. Busca exata (case-insensitive — tratado no repositório)
+        var exact = await _categoryRepository.GetByNameAsync(categoryName);
+        if (exact != null)
+            return exact;
+
+        // 2. Correspondência parcial: "Não Planejado" → "Não planejado", etc.
+        var all = await _categoryRepository.GetAllAsync();
+        var normalized = categoryName.Trim().ToLowerInvariant();
+
+        var partial = all.FirstOrDefault(c =>
+            c.Name.ToLowerInvariant().Contains(normalized) ||
+            normalized.Contains(c.Name.ToLowerInvariant()));
+
+        if (partial != null)
+        {
+            _logger.LogInformation(
+                "Categoria '{Solicitada}' resolvida para existente '{Existente}' via correspondência parcial",
+                categoryName, partial.Name);
+            return partial;
+        }
+
+        // 3. Nenhuma correspondência — criar com cor vibrante
+        var color = GetColorForCategory(categoryName);
+        _logger.LogInformation(
+            "Categoria '{Categoria}' criada automaticamente via Telegram com cor {Cor}",
+            categoryName, color);
+        return await _categoryRepository.GetOrCreateSystemCategoryAsync(categoryName, color);
+    }
+
+    /// <summary>
+    /// Gera uma cor da paleta de forma determinística baseada no nome da categoria.
+    /// </summary>
+    private static string GetColorForCategory(string categoryName)
+    {
+        var hash = categoryName.ToLowerInvariant().Aggregate(0, (h, c) => h * 31 + c);
+        return CategoryColors[Math.Abs(hash) % CategoryColors.Length];
     }
 
     private static DateTime? ParseDate(string? dateStr)

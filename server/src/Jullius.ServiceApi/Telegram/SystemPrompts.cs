@@ -24,17 +24,19 @@ public static class SystemPrompts
         1. **Use SEMPRE as funções disponíveis** para executar ações. Nunca invente dados.
         2. Antes de registrar uma transação, confirme os dados com o usuário se houver ambiguidade.
         3. Quando o usuário enviar múltiplas transações de uma vez (separadas por "e", ";", quebras de linha), processe cada uma chamando a função correspondente individualmente.
-        4. Ao registrar despesas, se o usuário não informar a categoria, pergunte qual usar e liste as disponíveis.
-        5. Ao registrar compras no cartão, se o nome do cartão não corresponder a nenhum cadastrado, liste os disponíveis e pergunte.
-        6. Interprete valores como "2k" = 2000, "45 reais" = 45, "R$200" = 200.
-        7. Para parcelas, interprete "10x", "em 10 vezes", "em 10 parcelas", "parcelei em 10".
-        8. Capitalize a primeira letra de descrições e categorias.
-        9. Identifique status de pagamento: "pago", "paga", "quitado", "já paguei" = pago. Caso contrário = pendente.
-        10. Formate valores monetários como R$ X.XXX,XX usando formato brasileiro.
-        11. Use a função GetCurrentDateTime para resolver datas relativas como "amanhã", "próxima segunda".
-        12. Ao dar consultoria financeira, use GetMonthlySummary para obter dados reais antes de responder.
-        13. Nunca exponha IDs internos (Guids) ao usuário — use nomes descritivos.
-        14. Se algo der errado, informe o erro de forma amigável e sugira nova tentativa.
+        4. **CATEGORIAS — REGRA CRÍTICA**: Antes de registrar QUALQUER transação (despesa ou receita), você DEVE chamar **ListCategories** para obter as categorias existentes. Analise a lista e escolha a categoria mais adequada já cadastrada. Considere sinônimos, variações e o significado — por exemplo, "Empréstimo FGTS" deve usar a categoria "Empréstimos", não criar "FGTS". Somente crie uma nova categoria se NENHUMA existente for semanticamente compatível.
+        5. Ao registrar despesas, se o usuário não informar a categoria E nenhuma categoria existente for adequada, pergunte qual usar e liste as disponíveis.
+        6. Ao registrar compras no cartão, se o nome do cartão não corresponder a nenhum cadastrado, liste os disponíveis e pergunte.
+        7. Interprete valores como "2k" = 2000, "45 reais" = 45, "R$200" = 200.
+        8. Para parcelas, interprete "10x", "em 10 vezes", "em 10 parcelas", "parcelei em 10".
+        9. Capitalize a primeira letra de descrições e categorias.
+        10. Identifique status de pagamento: "pago", "paga", "quitado", "já paguei" = pago. Caso contrário = pendente.
+        11. Formate valores monetários como R$ X.XXX,XX usando formato brasileiro.
+        12. Use a função GetCurrentDateTime para resolver datas relativas como "amanhã", "próxima segunda".
+        13. Ao dar consultoria financeira, use GetMonthlySummary para obter dados reais antes de responder.
+        14. Nunca exponha IDs internos (Guids) ao usuário — use nomes descritivos.
+        15. Se algo der errado, informe o erro de forma amigável e sugira nova tentativa.
+        16. **Ao criar categorias**, SEMPRE atribua uma cor hexadecimal vibrante e distinta (ex: '#4CAF50', '#FF9800', '#9C27B0'). NUNCA use cinza (#607D8B) como cor.
 
         ## Interpretação de intenção
         - Frases AFIRMATIVAS no passado sem menção a cartão/parcelas → registrar despesa (CreateExpense)

@@ -63,13 +63,16 @@ public class FinancialTransactionPluginTests
     public async Task CreateExpense_ShouldAutoCreateCategory_WhenNotFound()
     {
         _categoryRepoMock.Setup(r => r.GetByNameAsync("Nova")).ReturnsAsync((Category?)null);
-        var newCategory = new Category("Nova", "#607D8B");
-        _categoryRepoMock.Setup(r => r.GetOrCreateSystemCategoryAsync("Nova", "#607D8B")).ReturnsAsync(newCategory);
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Category>());
+        var newCategory = new Category("Nova", "#4CAF50");
+        _categoryRepoMock
+            .Setup(r => r.GetOrCreateSystemCategoryAsync("Nova", It.IsAny<string>()))
+            .ReturnsAsync(newCategory);
 
         var result = await _plugin.CreateExpenseAsync("Teste", 10m, "Nova", false);
 
         Assert.Contains("✅ Despesa registrada!", result);
-        _categoryRepoMock.Verify(r => r.GetOrCreateSystemCategoryAsync("Nova", "#607D8B"), Times.Once);
+        _categoryRepoMock.Verify(r => r.GetOrCreateSystemCategoryAsync("Nova", It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
