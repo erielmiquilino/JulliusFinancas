@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -22,17 +22,14 @@ export interface TestResult {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class BotConfigurationService {
-  private apiUrl = `${environment.apiUrl}/BotConfiguration`;
-  private refreshList = new Subject<void>();
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/BotConfiguration`;
+  private readonly refreshList = new Subject<void>();
 
-  constructor(private http: HttpClient) { }
-
-  get refresh$() {
-    return this.refreshList.asObservable();
-  }
+  readonly refresh$ = this.refreshList.asObservable();
 
   getAll(): Observable<BotConfigurationDto[]> {
     return this.http.get<BotConfigurationDto[]>(this.apiUrl);
@@ -43,12 +40,14 @@ export class BotConfigurationService {
   }
 
   upsert(key: string, request: UpdateBotConfigurationRequest): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/${key}`, request)
+    return this.http
+      .put<void>(`${this.apiUrl}/${key}`, request)
       .pipe(tap(() => this.refreshList.next()));
   }
 
   delete(key: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${key}`)
+    return this.http
+      .delete<void>(`${this.apiUrl}/${key}`)
       .pipe(tap(() => this.refreshList.next()));
   }
 
@@ -59,6 +58,4 @@ export class BotConfigurationService {
   testGemini(): Observable<TestResult> {
     return this.http.post<TestResult>(`${this.apiUrl}/test-gemini`, {});
   }
-
-
 }

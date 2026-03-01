@@ -21,9 +21,9 @@
         <span class="section-subtitle">Token do bot e configuração de acesso</span>
       </div>
       <span class="section-status-chip"
-        [class.all-configured]="getSectionStatus('telegram').allConfigured"
-        [class.partial]="getSectionStatus('telegram').partial">
-        {{ getSectionStatus('telegram').label }}
+        [class.all-configured]="telegramStatus().allConfigured"
+        [class.partial]="telegramStatus().partial">
+        {{ telegramStatus().label }}
       </span>
     </div>
 
@@ -37,8 +37,8 @@
           [icon]="field.icon"
           [placeholder]="field.placeholder"
           [control]="getFormControl(field.key)"
-          [isConfigured]="configStatus[field.key]"
-          [isSaving]="saving[field.key]"
+          [isConfigured]="configStatus()[field.key]"
+          [isSaving]="saving()[field.key]"
           [inputType]="field.type"
           (save)="saveConfig(field.key, field.description)"
         />
@@ -47,8 +47,8 @@
 
     <div class="card-action-bar">
       <button mat-stroked-button class="test-btn telegram-btn"
-        (click)="testTelegram()" [disabled]="testingTelegram">
-        @if (testingTelegram) {
+        (click)="testTelegram()" [disabled]="testingTelegram()">
+        @if (testingTelegram()) {
           <mat-spinner diameter="18"></mat-spinner>
         } @else {
           <mat-icon>check_circle_outline</mat-icon>
@@ -69,9 +69,9 @@
         <span class="section-subtitle">Chave de API para inteligência artificial</span>
       </div>
       <span class="section-status-chip"
-        [class.all-configured]="getSectionStatus('gemini').allConfigured"
-        [class.partial]="getSectionStatus('gemini').partial">
-        {{ getSectionStatus('gemini').label }}
+        [class.all-configured]="geminiStatus().allConfigured"
+        [class.partial]="geminiStatus().partial">
+        {{ geminiStatus().label }}
       </span>
     </div>
 
@@ -85,8 +85,8 @@
           [icon]="field.icon"
           [placeholder]="field.placeholder"
           [control]="getFormControl(field.key)"
-          [isConfigured]="configStatus[field.key]"
-          [isSaving]="saving[field.key]"
+          [isConfigured]="configStatus()[field.key]"
+          [isSaving]="saving()[field.key]"
           [inputType]="field.type"
           (save)="saveConfig(field.key, field.description)"
         />
@@ -95,8 +95,8 @@
 
     <div class="card-action-bar">
       <button mat-stroked-button class="test-btn gemini-btn"
-        (click)="testGemini()" [disabled]="testingGemini">
-        @if (testingGemini) {
+        (click)="testGemini()" [disabled]="testingGemini()">
+        @if (testingGemini()) {
           <mat-spinner diameter="18"></mat-spinner>
         } @else {
           <mat-icon>check_circle_outline</mat-icon>

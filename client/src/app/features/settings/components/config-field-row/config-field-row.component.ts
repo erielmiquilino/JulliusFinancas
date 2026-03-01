@@ -1,5 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -12,7 +11,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   selector: 'app-config-field-row',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -21,31 +19,32 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     MatTooltipModule,
     MatProgressSpinnerModule,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="field-row">
       <mat-form-field appearance="outline" class="field-input">
-        <mat-label>{{ label }}</mat-label>
+        <mat-label>{{ label() }}</mat-label>
         <input matInput
-          [type]="showValue ? 'text' : inputType"
-          [placeholder]="placeholder"
-          [formControl]="control"
+          [type]="showValue() ? 'text' : inputType()"
+          [placeholder]="placeholder()"
+          [formControl]="control()"
         >
-        <mat-icon matPrefix class="field-prefix-icon">{{ icon }}</mat-icon>
-        @if (inputType === 'password') {
+        <mat-icon matPrefix class="field-prefix-icon">{{ icon() }}</mat-icon>
+        @if (inputType() === 'password') {
           <button mat-icon-button matSuffix
             (click)="toggleVisibility()" type="button"
-            [matTooltip]="showValue ? 'Ocultar' : 'Mostrar'">
-            <mat-icon>{{ showValue ? 'visibility_off' : 'visibility' }}</mat-icon>
+            [matTooltip]="showValue() ? 'Ocultar' : 'Mostrar'">
+            <mat-icon>{{ showValue() ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
         }
-        <mat-hint>{{ description }}</mat-hint>
+        <mat-hint>{{ description() }}</mat-hint>
       </mat-form-field>
 
       <div class="field-actions">
         <button mat-flat-button class="save-btn"
           (click)="save.emit()"
-          [disabled]="!control.value || isSaving">
-          @if (isSaving) {
+          [disabled]="!control().value || isSaving()">
+          @if (isSaving()) {
             <mat-spinner diameter="18"></mat-spinner>
           } @else {
             <mat-icon>save</mat-icon>
@@ -54,9 +53,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </button>
 
         <span class="status-indicator"
-          [class.configured]="isConfigured"
-          [matTooltip]="isConfigured ? 'Configurado' : 'Não configurado'">
-          <mat-icon>{{ isConfigured ? 'check_circle' : 'cancel' }}</mat-icon>
+          [class.configured]="isConfigured()"
+          [matTooltip]="isConfigured() ? 'Configurado' : 'Não configurado'">
+          <mat-icon>{{ isConfigured() ? 'check_circle' : 'cancel' }}</mat-icon>
         </span>
       </div>
     </div>
@@ -140,20 +139,20 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   `],
 })
 export class ConfigFieldRowComponent {
-  @Input() label = '';
-  @Input() description = '';
-  @Input() icon = '';
-  @Input() placeholder = '';
-  @Input() control!: FormControl;
-  @Input() isConfigured = false;
-  @Input() isSaving = false;
-  @Input() inputType: 'text' | 'password' = 'password';
+  readonly label = input('');
+  readonly description = input('');
+  readonly icon = input('');
+  readonly placeholder = input('');
+  readonly control = input.required<FormControl>();
+  readonly isConfigured = input(false);
+  readonly isSaving = input(false);
+  readonly inputType = input<'text' | 'password'>('password');
 
-  @Output() save = new EventEmitter<void>();
+  readonly save = output<void>();
 
-  showValue = false;
+  readonly showValue = signal(false);
 
   toggleVisibility(): void {
-    this.showValue = !this.showValue;
+    this.showValue.update(v => !v);
   }
 }
