@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Globalization;
+using System.Text;
 using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
@@ -214,11 +215,11 @@ public sealed class FinancialTransactionPlugin
         try
         {
             var allTransactions = await _transactionRepository.GetAllAsync();
-            var normalizedSearch = searchDescription.Trim().ToLowerInvariant();
+            var normalizedSearch = RemoveDiacritics(searchDescription.Trim());
 
             var matches = allTransactions
                 .Where(t => t.DueDate.Month == month && t.DueDate.Year == year)
-                .Where(t => t.Description.ToLowerInvariant().Contains(normalizedSearch))
+                .Where(t => RemoveDiacritics(t.Description).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(t => t.DueDate)
                 .ToList();
 
@@ -257,10 +258,10 @@ public sealed class FinancialTransactionPlugin
         try
         {
             var allTransactions = await _transactionRepository.GetAllAsync();
-            var normalizedSearch = searchDescription.Trim().ToLowerInvariant();
+            var normalizedSearch = RemoveDiacritics(searchDescription.Trim());
 
             var match = allTransactions
-                .Where(t => t.Description.ToLowerInvariant().Contains(normalizedSearch))
+                .Where(t => RemoveDiacritics(t.Description).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefault();
 
@@ -313,6 +314,22 @@ public sealed class FinancialTransactionPlugin
             "Categoria '{Categoria}' criada automaticamente via Telegram com cor {Cor}",
             categoryName, color);
         return await _categoryRepository.GetOrCreateSystemCategoryAsync(categoryName, color);
+    }
+
+    /// <summary>
+    /// Remove diacríticos (acentos) de uma string para busca tolerante.
+    /// Ex: "Myatã" → "Myata", "café" → "cafe".
+    /// </summary>
+    private static string RemoveDiacritics(string text)
+    {
+        var normalized = text.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(normalized.Length);
+        foreach (var c in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+        }
+        return sb.ToString().Normalize(NormalizationForm.FormC);
     }
 
     /// <summary>

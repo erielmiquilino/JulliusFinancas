@@ -214,6 +214,30 @@ public class FinancialTransactionPluginTests
     }
 
     [Fact]
+    public async Task SearchTransactions_ShouldMatchIgnoringDiacritics()
+    {
+        var categoryId = Guid.NewGuid();
+        var transactions = new List<FinancialTransaction>
+        {
+            new("Myatã", 44.10m, new DateTime(2026, 2, 14, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
+            new("Myata", 22.50m, new DateTime(2026, 2, 14, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
+            new("Myatã", 13.02m, new DateTime(2026, 2, 20, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
+        };
+
+        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
+
+        // Busca COM acento deve encontrar ambos ("Myatã" e "Myata")
+        var resultWithAccent = await _plugin.SearchTransactionsAsync("myatã", 2, 2026);
+        resultWithAccent.Should().Contain("3 encontradas");
+        resultWithAccent.Should().Contain("79,62"); // 44.10 + 22.50 + 13.02
+
+        // Busca SEM acento também deve encontrar ambos
+        var resultWithoutAccent = await _plugin.SearchTransactionsAsync("myata", 2, 2026);
+        resultWithoutAccent.Should().Contain("3 encontradas");
+        resultWithoutAccent.Should().Contain("79,62");
+    }
+
+    [Fact]
     public async Task SearchTransactions_ShouldReturnNotFound_WhenNoMatches()
     {
         _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<FinancialTransaction>());
