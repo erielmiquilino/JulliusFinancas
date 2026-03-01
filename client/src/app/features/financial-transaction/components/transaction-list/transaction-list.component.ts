@@ -125,7 +125,9 @@ export class TransactionListComponent implements OnInit, OnDestroy, AfterViewIni
     this.dataSource = new MatTableDataSource<FinancialTransaction>();
     this.dataSource.filterPredicate = (data: FinancialTransaction, filter: string) => {
       const normalized = filter.trim().toLowerCase();
-      return data.description?.toLowerCase().includes(normalized);
+      const matchesDescription = data.description?.toLowerCase().includes(normalized) ?? false;
+      const matchesCategory = data.category?.name?.toLowerCase().includes(normalized) ?? false;
+      return matchesDescription || matchesCategory;
     };
     this.refreshSubscription = this.transactionService.refresh$.subscribe(() => {
       this.loadTransactions();

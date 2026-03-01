@@ -97,8 +97,8 @@
         </mat-form-field>
 
         <mat-form-field class="search-field filter-field" appearance="outline">
-          <mat-label>Filtrar Descrição</mat-label>
-          <input matInput (keyup)="applyFilter($event)" [(ngModel)]="textFilter" placeholder="Ex. Salário" #input>
+          <mat-label>Filtrar Descrição / Categoria</mat-label>
+          <input matInput (keyup)="applyFilter($event)" [(ngModel)]="textFilter" placeholder="Ex. Salário, Alimentação" #input>
         </mat-form-field>
       </div>
 
@@ -174,8 +174,8 @@
             </mat-form-field>
 
             <mat-form-field class="search-field filter-field" appearance="outline">
-              <mat-label>Filtrar Descrição</mat-label>
-              <input matInput (keyup)="applyFilter($event)" [(ngModel)]="textFilter" placeholder="Ex. Salário">
+              <mat-label>Filtrar Descrição / Categoria</mat-label>
+              <input matInput (keyup)="applyFilter($event)" [(ngModel)]="textFilter" placeholder="Ex. Salário, Alimentação" #inputMobile>
             </mat-form-field>
           </div>
         </mat-expansion-panel>
@@ -383,7 +383,11 @@
           </div>
         } @empty {
           <div class="no-data-message">
-            <span>Nenhuma transação encontrada</span>
+            @if (textFilter) {
+              <span>Nenhuma transação encontrada para o filtro: "{{textFilter}}"</span>
+            } @else {
+              <span>Nenhuma transação encontrada</span>
+            }
           </div>
         }
         <div class="mobile-totals">
