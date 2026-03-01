@@ -1,0 +1,109 @@
+<div class="settings-container">
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="header-icon-wrapper">
+      <mat-icon>settings</mat-icon>
+    </div>
+    <div class="header-text">
+      <h1>Configurações</h1>
+      <p>Configure a integração com Telegram e Google Gemini</p>
+    </div>
+  </header>
+
+  <!-- Telegram Section -->
+  <mat-card class="config-card telegram-accent">
+    <div class="card-header-row">
+      <div class="section-badge telegram">
+        <mat-icon>send</mat-icon>
+      </div>
+      <div class="section-info">
+        <h2>Telegram Bot</h2>
+        <span class="section-subtitle">Token do bot e configuração de acesso</span>
+      </div>
+      <span class="section-status-chip"
+        [class.all-configured]="getSectionStatus('telegram').allConfigured"
+        [class.partial]="getSectionStatus('telegram').partial">
+        {{ getSectionStatus('telegram').label }}
+      </span>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="card-fields">
+      @for (field of telegramFields; track field.key) {
+        <app-config-field-row
+          [label]="field.label"
+          [description]="field.description"
+          [icon]="field.icon"
+          [placeholder]="field.placeholder"
+          [control]="getFormControl(field.key)"
+          [isConfigured]="configStatus[field.key]"
+          [isSaving]="saving[field.key]"
+          [inputType]="field.type"
+          (save)="saveConfig(field.key, field.description)"
+        />
+      }
+    </div>
+
+    <div class="card-action-bar">
+      <button mat-stroked-button class="test-btn telegram-btn"
+        (click)="testTelegram()" [disabled]="testingTelegram">
+        @if (testingTelegram) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          <mat-icon>check_circle_outline</mat-icon>
+        }
+        Testar Conexão Telegram
+      </button>
+    </div>
+  </mat-card>
+
+  <!-- Gemini Section -->
+  <mat-card class="config-card gemini-accent">
+    <div class="card-header-row">
+      <div class="section-badge gemini">
+        <mat-icon>auto_awesome</mat-icon>
+      </div>
+      <div class="section-info">
+        <h2>Google Gemini</h2>
+        <span class="section-subtitle">Chave de API para inteligência artificial</span>
+      </div>
+      <span class="section-status-chip"
+        [class.all-configured]="getSectionStatus('gemini').allConfigured"
+        [class.partial]="getSectionStatus('gemini').partial">
+        {{ getSectionStatus('gemini').label }}
+      </span>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="card-fields">
+      @for (field of geminiFields; track field.key) {
+        <app-config-field-row
+          [label]="field.label"
+          [description]="field.description"
+          [icon]="field.icon"
+          [placeholder]="field.placeholder"
+          [control]="getFormControl(field.key)"
+          [isConfigured]="configStatus[field.key]"
+          [isSaving]="saving[field.key]"
+          [inputType]="field.type"
+          (save)="saveConfig(field.key, field.description)"
+        />
+      }
+    </div>
+
+    <div class="card-action-bar">
+      <button mat-stroked-button class="test-btn gemini-btn"
+        (click)="testGemini()" [disabled]="testingGemini">
+        @if (testingGemini) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          <mat-icon>check_circle_outline</mat-icon>
+        }
+        Testar Conexão Gemini
+      </button>
+    </div>
+  </mat-card>
+
+</div>

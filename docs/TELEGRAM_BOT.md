@@ -243,36 +243,22 @@ ngrok http 8081
 
 O ngrok fornecerá uma URL como `https://abc123.ngrok-free.app`.
 
-### 6.2. Registrar via Interface Web
+### 6.2. Registro Automático via appsettings (Recomendado)
 
-1. Na página **Configurações** (`/settings`), na seção **Webhook**:
-2. Informe a URL base (exemplo: `https://abc123.ngrok-free.app` ou
-   `https://seu-dominio.com`).
-3. Clique em **Registrar Webhook**.
-4. O sistema irá:
-   - Gerar automaticamente um `TelegramWebhookSecret` (se ainda não existir).
-   - Construir a URL final: `https://seu-dominio.com/api/telegram/webhook/{secret}`.
-   - Chamar a API do Telegram para registrar o webhook.
+O webhook é registrado automaticamente quando a aplicação inicia. A URL base é lida de `Telegram:WebhookBaseUrl` no `appsettings.json` (varia por ambiente).
 
-### 6.3. Registrar via API REST
+- **Produção** (`appsettings.json`): `https://jullius.erielmiquilino.me/`
+- **Desenvolvimento** (`appsettings.Development.json`): URL do Cloudflare Tunnel
 
-```bash
-curl -X POST "$API_URL/register-webhook" \
-  -H "Authorization: Bearer $AUTH_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"baseUrl": "https://seu-dominio.com"}'
-```
+O sistema irá:
+- Gerar automaticamente um `TelegramWebhookSecret` (se ainda não existir).
+- Construir a URL final: `https://seu-dominio.com/api/telegram/webhook/{secret}`.
+- Chamar a API do Telegram para registrar o webhook.
+- Aguardar 5 segundos após o startup para garantir que o banco esteja pronto.
 
-**Resposta de sucesso:**
+> **Nota:** Se o `TelegramBotToken` ainda não estiver configurado no banco, o registro será ignorado com um log de aviso.
 
-```json
-{
-  "success": true,
-  "webhookUrl": "https://seu-dominio.com/api/telegram/webhook/a1b2c3d4..."
-}
-```
-
-### 6.4. Verificar o Webhook
+### 6.3. Verificar o Webhook
 
 Para confirmar que o webhook está ativo:
 
@@ -522,7 +508,6 @@ Todos os endpoints requerem autenticação (`Authorization: Bearer <token>`).
 | `DELETE` | `/api/BotConfiguration/{key}` | Remove uma chave |
 | `POST` | `/api/BotConfiguration/test-telegram` | Testa conexão com o bot Telegram |
 | `POST` | `/api/BotConfiguration/test-gemini` | Testa conexão com a API Gemini |
-| `POST` | `/api/BotConfiguration/register-webhook` | Registra o webhook no Telegram |
 
 ### 13.2. Modelo de IA
 

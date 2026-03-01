@@ -60,6 +60,7 @@ public class Program
         services.AddSemanticKernelServices();
         ConfigureDataProtection(services, configuration);
         services.AddSingleton<DatabaseMigrationService>();
+        services.AddHostedService<TelegramWebhookRegistrationService>();
         await Task.CompletedTask;
     }
 

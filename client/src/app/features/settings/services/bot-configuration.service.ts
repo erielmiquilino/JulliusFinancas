@@ -60,7 +60,5 @@ export class BotConfigurationService {
     return this.http.post<TestResult>(`${this.apiUrl}/test-gemini`, {});
   }
 
-  registerWebhook(baseUrl: string): Observable<TestResult> {
-    return this.http.post<TestResult>(`${this.apiUrl}/register-webhook`, { baseUrl });
-  }
+
 }
