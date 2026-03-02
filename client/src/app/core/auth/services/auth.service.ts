@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
-import { catchError, map, tap, finalize } from 'rxjs/operators';
+import { BehaviorSubject, Observable, throwError, of, firstValueFrom } from 'rxjs';
+import { catchError, filter, map, tap, finalize, take } from 'rxjs/operators';
 import {
   User,
   LoginCredentials,
@@ -33,73 +33,88 @@ export class AuthService {
 
   public authState$ = this.authStateSubject.asObservable();
 
+  /** Promise que resolve quando a inicialização da auth completa */
+  private _ready: Promise<void>;
+
   constructor(
     private http: HttpClient,
     private router: Router
   ) {
-    this.initializeAuth();
+    this._ready = this.initializeAuth();
   }
 
   /**
-   * Inicializa o estado de autenticação verificando tokens armazenados
+   * Retorna uma Promise que resolve quando o estado de auth é determinado.
+   * Usado pelo APP_INITIALIZER para bloquear o bootstrap até a auth resolver.
    */
-  private initializeAuth(): void {
+  whenReady(): Promise<void> {
+    return this._ready;
+  }
+
+  /**
+   * Inicializa o estado de autenticação verificando tokens armazenados.
+   * Retorna Promise para uso com APP_INITIALIZER.
+   */
+  private initializeAuth(): Promise<void> {
     const accessToken = this.getAccessToken();
     if (accessToken && !this.isTokenExpired(accessToken)) {
-      this.loadCurrentUser();
+      return this.loadCurrentUser();
     } else if (this.getRefreshToken()) {
-      this.refreshTokenSilently();
+      return this.refreshTokenSilently();
     } else {
       this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+      return Promise.resolve();
     }
   }
 
   /**
    * Carrega dados do usuário atual via API
    */
-  private loadCurrentUser(): void {
-    this.http.get<User>(`${this.apiUrl}/me`).pipe(
-      catchError(() => {
-        this.clearTokens();
-        return of(null);
-      })
-    ).subscribe(user => {
-      if (user) {
-        this.setAuthState({ user, isAuthenticated: true, isLoading: false, error: null });
-      } else {
-        this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
-      }
-    });
+  private loadCurrentUser(): Promise<void> {
+    return firstValueFrom(
+      this.http.get<User>(`${this.apiUrl}/me`).pipe(
+        tap(user => {
+          this.setAuthState({ user, isAuthenticated: true, isLoading: false, error: null });
+        }),
+        catchError(() => {
+          this.clearTokens();
+          this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+          return of(null);
+        }),
+        map(() => void 0)
+      )
+    );
   }
 
   /**
    * Tenta renovar o token silenciosamente
    */
-  private refreshTokenSilently(): void {
+  private refreshTokenSilently(): Promise<void> {
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) {
       this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
-      return;
+      return Promise.resolve();
     }
 
-    this.http.post<LoginResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
-      catchError(() => {
-        this.clearTokens();
-        return of(null);
-      })
-    ).subscribe(response => {
-      if (response) {
-        this.storeTokens(response.accessToken, response.refreshToken);
-        this.setAuthState({
-          user: response.user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
-      } else {
-        this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
-      }
-    });
+    return firstValueFrom(
+      this.http.post<LoginResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
+        tap(response => {
+          this.storeTokens(response.accessToken, response.refreshToken);
+          this.setAuthState({
+            user: response.user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null
+          });
+        }),
+        catchError(() => {
+          this.clearTokens();
+          this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+          return of(null);
+        }),
+        map(() => void 0)
+      )
+    );
   }
 
   /**

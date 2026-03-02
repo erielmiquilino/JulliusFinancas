@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { filter, take, map, tap } from 'rxjs/operators';
+import { filter, take, map } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 export const authGuard = () => {
@@ -10,11 +10,11 @@ export const authGuard = () => {
   return authService.authState$.pipe(
     filter(state => !state.isLoading),
     take(1),
-    map(state => state.isAuthenticated),
-    tap(isAuthenticated => {
-      if (!isAuthenticated) {
-        router.navigate(['/auth/login']);
+    map(state => {
+      if (state.isAuthenticated) {
+        return true;
       }
+      return router.createUrlTree(['/auth/login']);
     })
   );
 };

@@ -170,10 +170,10 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
 
     .login-header {
       text-align: center;
-      padding: 40px 32px 20px;
+      padding: 40px 32px 24px;
       background: var(--primary-gradient);
       color: white;
-      margin: -24px -24px 0;
+      margin: -24px -24px 16px -24px;
     }
 
     .logo-container {
@@ -261,7 +261,8 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
       }
 
       .login-header {
-        padding: 32px 24px 16px;
+        padding: 28px 24px 20px;
+        margin: -24px -24px 12px -24px;
       }
 
       .login-content {
@@ -301,7 +302,8 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
       }
 
       .login-header {
-        padding: 24px 20px 12px;
+        padding: 24px 20px 16px;
+        margin: -24px -24px 10px -24px;
       }
 
       .login-content {
