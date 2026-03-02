@@ -1,27 +1,41 @@
 import { HttpInterceptorFn, HttpHandlerFn, HttpRequest, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { inject, Injector } from '@angular/core';
 import { BehaviorSubject, throwError, EMPTY } from 'rxjs';
 import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+
+/**
+ * Chave do access token no localStorage.
+ * Duplicada aqui para evitar inject(AuthService) durante a inicialização,
+ * o que causaria dependência circular (NG0200) quando o APP_INITIALIZER
+ * ainda está construindo o AuthService.
+ */
+const ACCESS_TOKEN_KEY = 'jullius_access_token';
 
 let isRefreshing = false;
 /** null = aguardando, string = novo token, '' = falha no refresh */
 const refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
 export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, next: HttpHandlerFn) => {
-  const authService = inject(AuthService);
+  // Captura o Injector (em vez do AuthService diretamente) para evitar
+  // dependência circular durante a construção do AuthService no APP_INITIALIZER.
+  // O AuthService é resolvido sob demanda apenas quando necessário (refresh de token em 401).
+  const injector = inject(Injector);
 
   // Não adiciona token em rotas de auth (login, refresh, forgot-password, reset-password)
   if (isAuthRoute(req.url)) {
     return next(req);
   }
 
-  const accessToken = authService.getAccessToken();
+  // Lê o token diretamente do localStorage para evitar inject(AuthService)
+  const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
   const authReq = accessToken ? addTokenHeader(req, accessToken) : req;
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401 && accessToken) {
+        // Neste ponto o AuthService já está totalmente construído
+        const authService = injector.get(AuthService);
         return handleUnauthorized(req, next, authService);
       }
       return throwError(() => error);

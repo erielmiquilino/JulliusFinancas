@@ -87,3 +87,4 @@ exmplos-de-faturas/
 .config/
 .github/instructions/snyk_rules.instructions.md
 keys_debug/
+.playwright-mcp/
