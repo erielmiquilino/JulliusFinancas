@@ -1,10 +1,11 @@
 import { HttpInterceptorFn, HttpHandlerFn, HttpRequest, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { BehaviorSubject, throwError } from 'rxjs';
+import { BehaviorSubject, throwError, EMPTY } from 'rxjs';
 import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 let isRefreshing = false;
+/** null = aguardando, string = novo token, '' = falha no refresh */
 const refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
 export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, next: HttpHandlerFn) => {
@@ -50,7 +51,9 @@ function handleUnauthorized(
       }),
       catchError(error => {
         isRefreshing = false;
-        refreshTokenSubject.next(null);
+        // Emitir string vazia para desbloquear requisições na fila (sinal de falha)
+        refreshTokenSubject.next('');
+        // O authService.refreshToken() já chama handleSessionExpired() internamente
         return throwError(() => error);
       })
     );
@@ -60,7 +63,13 @@ function handleUnauthorized(
   return refreshTokenSubject.pipe(
     filter(token => token !== null),
     take(1),
-    switchMap(token => next(addTokenHeader(req, token!)))
+    switchMap(token => {
+      if (token === '') {
+        // Refresh falhou — sessão expirada, descartar requisição silenciosamente
+        return EMPTY;
+      }
+      return next(addTokenHeader(req, token!));
+    })
   );
 }
 
@@ -71,6 +80,6 @@ function addTokenHeader(req: HttpRequest<unknown>, token: string): HttpRequest<u
 }
 
 function isAuthRoute(url: string): boolean {
-  const authPaths = ['/auth/login', '/auth/refresh', '/auth/forgot-password', '/auth/reset-password'];
+  const authPaths = ['/auth/login', '/auth/refresh', '/auth/forgot-password', '/auth/reset-password', '/auth/logout'];
   return authPaths.some(path => url.includes(path));
 }

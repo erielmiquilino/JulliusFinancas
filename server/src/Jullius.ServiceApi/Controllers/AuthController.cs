@@ -57,7 +57,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
     {
