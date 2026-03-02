@@ -1,3 +1,4 @@
+using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Configuration;
 using Jullius.ServiceApi.Services;
 using Jullius.ServiceApi.Middleware;
@@ -48,7 +49,7 @@ public class Program
     private static async Task ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddApiConfiguration();
-        services.AddFirebaseAuthentication(configuration);
+        services.AddJwtAuthentication(configuration);
         services.AddSwaggerConfiguration();
         services.AddCorsConfiguration();
         var connectionString = configuration.GetConnectionString("DefaultConnection") 
@@ -117,12 +118,46 @@ public class Program
             }
 
             logger.LogInformation("Base de dados atualizada e pronta!");
+            
+            await SeedAdminUserAsync(app);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Erro fatal durante a inicialização do banco: {ErrorMessage}", ex.Message);
             throw; 
         }
+    }
+
+    private static async Task SeedAdminUserAsync(WebApplication app)
+    {
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        var configuration = app.Services.GetRequiredService<IConfiguration>();
+
+        var adminEmail = configuration["Admin:Email"];
+        var adminPassword = configuration["Admin:Password"];
+        var adminName = configuration["Admin:Name"] ?? "Administrador";
+
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+        {
+            logger.LogWarning("Configuração Admin:Email ou Admin:Password não definida. Seed do usuário admin ignorado.");
+            return;
+        }
+
+        using var scope = app.Services.CreateScope();
+        var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+
+        var existingUser = await userRepository.GetByEmailAsync(adminEmail);
+        if (existingUser is not null)
+        {
+            logger.LogInformation("Usuário admin '{Email}' já existe. Seed ignorado.", adminEmail);
+            return;
+        }
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword, workFactor: 12);
+        var adminUser = new Jullius.Domain.Domain.Entities.User(adminEmail, passwordHash, adminName);
+
+        await userRepository.CreateAsync(adminUser);
+        logger.LogInformation("Usuário admin '{Email}' criado com sucesso durante o seed.", adminEmail);
     }
 
     private static void ConfigureSerilog()

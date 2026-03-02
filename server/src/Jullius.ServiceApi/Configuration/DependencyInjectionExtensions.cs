@@ -26,6 +26,11 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IOverdueAccountRepository, OverdueAccountRepository>();
         services.AddScoped<IBotConfigurationRepository, BotConfigurationRepository>();
 
+        // Repositórios de autenticação
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+
         return services;
     }
 
@@ -45,6 +50,11 @@ public static class DependencyInjectionExtensions
         services.AddScoped<OverdueAccountService>();
         services.AddScoped<AutocompleteService>();
         services.AddScoped<BotConfigurationService>();
+
+        // Serviços de autenticação
+        services.AddScoped<TokenService>();
+        services.AddScoped<AuthService>();
+        services.AddScoped<EmailService>();
 
         return services;
     }

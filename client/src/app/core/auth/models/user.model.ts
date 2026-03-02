@@ -1,19 +1,45 @@
 export interface User {
-  uid: string;
-  email: string | null;
-  displayName: string | null;
-  photoURL: string | null;
-  emailVerified: boolean;
-  isAnonymous: boolean;
-  metadata: {
-    creationTime?: string;
-    lastSignInTime?: string;
-  };
+  id: string;
+  email: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface LoginCredentials {
   email: string;
   password: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+  user: User;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface CreateUserRequest {
+  email: string;
+  password: string;
+  name: string;
 }
 
 export interface AuthState {

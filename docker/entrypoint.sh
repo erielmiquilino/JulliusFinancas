@@ -44,10 +44,6 @@ echo "Backend iniciado com PID: $BACKEND_PID"
 # Gerar env.js para o frontend (usando /api relativo para proxy do Nginx)
 echo "Gerando env.js para frontend..."
 mkdir -p /usr/share/nginx/html/assets
-if [ -z "$FIREBASE_API_KEY" ]; then
-        echo "ERRO: FIREBASE_API_KEY não definida no ambiente do container."
-        exit 1
-fi
 
 cat > /usr/share/nginx/html/assets/env.js << EOF
 (function (window) {
@@ -57,14 +53,6 @@ cat > /usr/share/nginx/html/assets/env.js << EOF
   window.env.apiUrl = '/api';
   window.env.production = true;
   window.env.enableDebug = false;
-
-  // Firebase config (should be passed as environment variables)
-  window.env.firebaseProjectId = '${FIREBASE_PROJECT_ID}';
-  window.env.firebaseAppId = '${FIREBASE_APP_ID}';
-  window.env.firebaseStorageBucket = '${FIREBASE_STORAGE_BUCKET}';
-  window.env.firebaseApiKey = '${FIREBASE_API_KEY}';
-  window.env.firebaseAuthDomain = '${FIREBASE_AUTH_DOMAIN}';
-  window.env.firebaseMessagingSenderId = '${FIREBASE_MESSAGING_SENDER_ID}';
 })(this);
 EOF
 

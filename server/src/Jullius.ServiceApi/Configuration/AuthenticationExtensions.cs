@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -5,22 +6,34 @@ namespace Jullius.ServiceApi.Configuration;
 
 public static class AuthenticationExtensions
 {
-    public static IServiceCollection AddFirebaseAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var projectId = configuration["Firebase:ProjectId"];
-        
+        var jwtSettings = configuration.GetSection("Jwt");
+        var secretKey = jwtSettings["SecretKey"]
+            ?? throw new InvalidOperationException("Jwt:SecretKey não configurado.");
+        var issuer = jwtSettings["Issuer"] ?? "JulliusFinancas";
+        var audience = jwtSettings["Audience"] ?? "JulliusFinancas";
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+
         services
-            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
             .AddJwtBearer(options =>
             {
-                options.Authority = $"https://securetoken.google.com/{projectId}";
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = key,
                     ValidateIssuer = true,
-                    ValidIssuer = $"https://securetoken.google.com/{projectId}",
+                    ValidIssuer = issuer,
                     ValidateAudience = true,
-                    ValidAudience = projectId,
-                    ValidateLifetime = true
+                    ValidAudience = audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(30)
                 };
             });
 

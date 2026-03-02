@@ -15,6 +15,9 @@ public class JulliusDbContext(DbContextOptions<JulliusDbContext> options) : DbCo
     public DbSet<Budget> Budgets { get; set; } = null!;
     public DbSet<OverdueAccount> OverdueAccounts { get; set; } = null!;
     public DbSet<BotConfiguration> BotConfigurations { get; set; } = null!;
+    public DbSet<User> Users { get; set; } = null!;
+    public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +31,9 @@ public class JulliusDbContext(DbContextOptions<JulliusDbContext> options) : DbCo
         modelBuilder.ApplyConfiguration(new BudgetConfiguration());
         modelBuilder.ApplyConfiguration(new OverdueAccountConfiguration());
         modelBuilder.ApplyConfiguration(new BotConfigurationConfiguration());
+        modelBuilder.ApplyConfiguration(new UserConfiguration());
+        modelBuilder.ApplyConfiguration(new RefreshTokenConfiguration());
+        modelBuilder.ApplyConfiguration(new PasswordResetTokenConfiguration());
 
         // Garante que todos os DateTime sejam tratados como UTC ao ler/escrever no PostgreSQL
         ApplyUtcDateTimeConvention(modelBuilder);

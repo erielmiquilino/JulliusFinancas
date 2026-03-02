@@ -10,6 +10,22 @@ services:
       - proxy-net
     environment:
       - ConnectionStrings__DefaultConnection=Host=${DB_HOST};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD};Port=5432;
+      - Jwt__SecretKey=${JWT_SECRET_KEY}
+      - Jwt__Issuer=JulliusFinancas
+      - Jwt__Audience=JulliusFinancas
+      - Jwt__AccessTokenExpirationMinutes=15
+      - Jwt__RefreshTokenExpirationDays=30
+      - Smtp__Host=${SMTP_HOST}
+      - Smtp__Port=${SMTP_PORT}
+      - Smtp__Username=${SMTP_USERNAME}
+      - Smtp__Password=${SMTP_PASSWORD}
+      - Smtp__UseSsl=true
+      - Smtp__FromName=Jullius Finanças
+      - Smtp__FromEmail=${SMTP_FROM_EMAIL}
+      - Admin__Email=${ADMIN_EMAIL}
+      - Admin__Password=${ADMIN_PASSWORD}
+      - Admin__Name=Administrador
+      - App__FrontendBaseUrl=https://${DOMAIN_NAME}
     volumes:
       - jullius_dataprotection_keys:/var/jullius/keys
     labels:

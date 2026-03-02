@@ -20,5 +20,12 @@ export const authRoutes: Routes = [
       .then(c => c.ForgotPasswordComponent),
     canActivate: [noAuthGuard],
     title: 'Recuperar Senha - Jullius Finanças'
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./components/reset-password/reset-password.component')
+      .then(c => c.ResetPasswordComponent),
+    canActivate: [noAuthGuard],
+    title: 'Redefinir Senha - Jullius Finanças'
   }
 ];

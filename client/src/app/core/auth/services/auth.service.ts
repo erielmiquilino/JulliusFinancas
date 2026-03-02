@@ -1,100 +1,156 @@
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, from, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
+import { catchError, map, tap, finalize } from 'rxjs/operators';
 import {
-  Auth,
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  onAuthStateChanged,
-  User as FirebaseUser,
-  UserCredential
-} from '@angular/fire/auth';
-import { User, LoginCredentials, AuthState } from '../models/user.model';
+  User,
+  LoginCredentials,
+  LoginResponse,
+  AuthState,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  ChangePasswordRequest,
+  CreateUserRequest
+} from '../models/user.model';
+import { environment } from '../../../../environments/environment';
+
+const ACCESS_TOKEN_KEY = 'jullius_access_token';
+const REFRESH_TOKEN_KEY = 'jullius_refresh_token';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
+
   private authStateSubject = new BehaviorSubject<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: false, // Mudando para false por padrão
+    isLoading: true,
     error: null
   });
 
   public authState$ = this.authStateSubject.asObservable();
 
   constructor(
-    private auth: Auth,
+    private http: HttpClient,
     private router: Router
   ) {
-    // Define loading como true enquanto verifica o estado inicial
-    this.setLoading(true);
+    this.initializeAuth();
+  }
 
-    // Escuta mudanças no estado de autenticação
-    onAuthStateChanged(this.auth, (firebaseUser: FirebaseUser | null) => {
-      const currentState = this.authStateSubject.value;
+  /**
+   * Inicializa o estado de autenticação verificando tokens armazenados
+   */
+  private initializeAuth(): void {
+    const accessToken = this.getAccessToken();
+    if (accessToken && !this.isTokenExpired(accessToken)) {
+      this.loadCurrentUser();
+    } else if (this.getRefreshToken()) {
+      this.refreshTokenSilently();
+    } else {
+      this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+    }
+  }
 
-      if (firebaseUser) {
-        const user: User = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified,
-          isAnonymous: firebaseUser.isAnonymous,
-          metadata: {
-            creationTime: firebaseUser.metadata.creationTime || undefined,
-            lastSignInTime: firebaseUser.metadata.lastSignInTime || undefined
-          }
-        };
+  /**
+   * Carrega dados do usuário atual via API
+   */
+  private loadCurrentUser(): void {
+    this.http.get<User>(`${this.apiUrl}/me`).pipe(
+      catchError(() => {
+        this.clearTokens();
+        return of(null);
+      })
+    ).subscribe(user => {
+      if (user) {
+        this.setAuthState({ user, isAuthenticated: true, isLoading: false, error: null });
+      } else {
+        this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+      }
+    });
+  }
 
-        this.authStateSubject.next({
-          ...currentState,
-          user,
+  /**
+   * Tenta renovar o token silenciosamente
+   */
+  private refreshTokenSilently(): void {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+      return;
+    }
+
+    this.http.post<LoginResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
+      catchError(() => {
+        this.clearTokens();
+        return of(null);
+      })
+    ).subscribe(response => {
+      if (response) {
+        this.storeTokens(response.accessToken, response.refreshToken);
+        this.setAuthState({
+          user: response.user,
           isAuthenticated: true,
           isLoading: false,
           error: null
         });
       } else {
-        this.authStateSubject.next({
-          ...currentState,
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: null
-        });
+        this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
       }
-    }, (error) => {
-      console.error('Erro ao verificar estado de autenticação:', error);
-      const currentState = this.authStateSubject.value;
-      this.authStateSubject.next({
-        ...currentState,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: 'Erro ao verificar autenticação'
-      });
     });
   }
 
   /**
    * Realiza login com email e senha
    */
-  login(credentials: LoginCredentials): Observable<UserCredential> {
+  login(credentials: LoginCredentials): Observable<LoginResponse> {
     this.setLoading(true);
     this.clearError();
 
-    return from(signInWithEmailAndPassword(this.auth, credentials.email, credentials.password)).pipe(
-      tap(() => {
-        this.setLoading(false);
+    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, credentials).pipe(
+      tap(response => {
+        this.storeTokens(response.accessToken, response.refreshToken);
+        this.setAuthState({
+          user: response.user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
+        });
         this.router.navigate(['/dashboard']);
       }),
-      catchError((error) => {
+      catchError((error: HttpErrorResponse) => {
         this.setLoading(false);
-        this.setError(this.getErrorMessage(error.code));
+        this.setError(this.getErrorMessage(error));
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Renova o token de acesso usando o refresh token.
+   * Retorna Observable<LoginResponse> para uso pelo interceptor.
+   */
+  refreshToken(): Observable<LoginResponse> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      this.handleSessionExpired();
+      return throwError(() => new Error('No refresh token available'));
+    }
+
+    return this.http.post<LoginResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
+      tap(response => {
+        this.storeTokens(response.accessToken, response.refreshToken);
+        this.setAuthState({
+          user: response.user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
+        });
+      }),
+      catchError((error: HttpErrorResponse) => {
+        this.handleSessionExpired();
         return throwError(() => error);
       })
     );
@@ -104,13 +160,17 @@ export class AuthService {
    * Realiza logout
    */
   logout(): Observable<void> {
-    return from(signOut(this.auth)).pipe(
-      tap(() => {
+    const refreshToken = this.getRefreshToken();
+
+    return this.http.post<void>(`${this.apiUrl}/logout`, { refreshToken }).pipe(
+      finalize(() => {
+        this.clearTokens();
+        this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
         this.router.navigate(['/auth/login']);
       }),
       catchError((error) => {
-        console.error('Erro ao fazer logout:', error);
-        return throwError(() => error);
+        console.error('Erro ao fazer logout no servidor:', error);
+        return of(void 0);
       })
     );
   }
@@ -118,17 +178,57 @@ export class AuthService {
   /**
    * Envia email de recuperação de senha
    */
-  resetPassword(email: string): Observable<void> {
+  forgotPassword(email: string): Observable<void> {
     this.setLoading(true);
     this.clearError();
 
-    return from(sendPasswordResetEmail(this.auth, email)).pipe(
-      tap(() => {
+    const request: ForgotPasswordRequest = { email };
+    return this.http.post<void>(`${this.apiUrl}/forgot-password`, request).pipe(
+      tap(() => this.setLoading(false)),
+      catchError((error: HttpErrorResponse) => {
         this.setLoading(false);
-      }),
-      catchError((error) => {
+        this.setError(this.getErrorMessage(error));
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Reseta a senha com token
+   */
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    this.setLoading(true);
+    this.clearError();
+
+    const request: ResetPasswordRequest = { token, newPassword };
+    return this.http.post<void>(`${this.apiUrl}/reset-password`, request).pipe(
+      tap(() => this.setLoading(false)),
+      catchError((error: HttpErrorResponse) => {
         this.setLoading(false);
-        this.setError(this.getErrorMessage(error.code));
+        this.setError(this.getErrorMessage(error));
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Altera a senha do usuário autenticado
+   */
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    const request: ChangePasswordRequest = { currentPassword, newPassword };
+    return this.http.put<void>(`${this.apiUrl}/change-password`, request).pipe(
+      catchError((error: HttpErrorResponse) => {
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Cria um novo usuário (admin only)
+   */
+  createUser(request: CreateUserRequest): Observable<User> {
+    return this.http.post<User>(`${this.apiUrl}/users`, request).pipe(
+      catchError((error: HttpErrorResponse) => {
         return throwError(() => error);
       })
     );
@@ -162,60 +262,94 @@ export class AuthService {
     return this.authState$.pipe(map(state => state.error));
   }
 
+  // ==================== Token Management ====================
+
+  getAccessToken(): string | null {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  }
+
+  private storeTokens(accessToken: string, refreshToken: string): void {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
+
+  private clearTokens(): void {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+
   /**
-   * Define estado de loading
+   * Verifica se o JWT está expirado (decodifica payload base64)
    */
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiresAt = payload.exp * 1000;
+      // Considera expirado 30s antes para evitar edge cases
+      return Date.now() >= expiresAt - 30000;
+    } catch {
+      return true;
+    }
+  }
+
+  // ==================== State Helpers ====================
+
+  private setAuthState(state: AuthState): void {
+    this.authStateSubject.next(state);
+  }
+
   private setLoading(loading: boolean): void {
     const currentState = this.authStateSubject.value;
-    this.authStateSubject.next({
-      ...currentState,
-      isLoading: loading
-    });
+    this.authStateSubject.next({ ...currentState, isLoading: loading });
   }
 
-  /**
-   * Define erro
-   */
   private setError(error: string): void {
     const currentState = this.authStateSubject.value;
-    this.authStateSubject.next({
-      ...currentState,
-      error
-    });
+    this.authStateSubject.next({ ...currentState, error });
   }
 
-  /**
-   * Limpa erro
-   */
   private clearError(): void {
     const currentState = this.authStateSubject.value;
-    this.authStateSubject.next({
-      ...currentState,
-      error: null
-    });
+    this.authStateSubject.next({ ...currentState, error: null });
+  }
+
+  private handleSessionExpired(): void {
+    this.clearTokens();
+    this.setAuthState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+    this.router.navigate(['/auth/login']);
   }
 
   /**
-   * Converte códigos de erro do Firebase em mensagens amigáveis
+   * Converte erros HTTP em mensagens amigáveis
    */
-  private getErrorMessage(errorCode: string): string {
-    switch (errorCode) {
-      case 'auth/user-not-found':
-        return 'Usuário não encontrado. Verifique o email informado.';
-      case 'auth/wrong-password':
-        return 'Senha incorreta. Tente novamente.';
-      case 'auth/weak-password':
-        return 'A senha deve ter pelo menos 6 caracteres.';
-      case 'auth/invalid-email':
-        return 'Email inválido. Verifique o formato do email.';
-      case 'auth/operation-not-allowed':
-        return 'Operação não permitida. Entre em contato com o suporte.';
-      case 'auth/user-disabled':
-        return 'Esta conta foi desabilitada. Entre em contato com o suporte.';
-      case 'auth/too-many-requests':
-        return 'Muitas tentativas de login. Tente novamente mais tarde.';
-      case 'auth/network-request-failed':
-        return 'Erro de conexão. Verifique sua conexão com a internet.';
+  private getErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 0) {
+      return 'Erro de conexão. Verifique sua conexão com a internet.';
+    }
+
+    // Tenta extrair mensagem do backend
+    const backendMessage = error.error?.message || error.error;
+    if (typeof backendMessage === 'string' && backendMessage.length < 200) {
+      return backendMessage;
+    }
+
+    switch (error.status) {
+      case 400:
+        return 'Dados inválidos. Verifique as informações fornecidas.';
+      case 401:
+        return 'Email ou senha incorretos.';
+      case 403:
+        return 'Acesso negado. Você não tem permissão para esta ação.';
+      case 404:
+        return 'Recurso não encontrado.';
+      case 409:
+        return 'Conflito. Este email já está em uso.';
+      case 429:
+        return 'Muitas tentativas. Tente novamente mais tarde.';
       default:
         return 'Ocorreu um erro inesperado. Tente novamente.';
     }

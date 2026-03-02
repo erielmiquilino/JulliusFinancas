@@ -343,7 +343,7 @@ export class ForgotPasswordComponent implements OnInit {
     if (this.forgotPasswordForm.valid) {
       const { email } = this.forgotPasswordForm.value;
 
-      this.authService.resetPassword(email).subscribe({
+      this.authService.forgotPassword(email).subscribe({
         next: () => {
           this.snackBar.open(
             'Instruções de recuperação enviadas para seu email!',

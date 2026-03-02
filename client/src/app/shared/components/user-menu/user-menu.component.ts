@@ -29,33 +29,17 @@ import { User } from '../../../core/auth/models/user.model';
       class="user-menu-trigger"
     >
       <div class="user-avatar">
-        <img
-          *ngIf="(currentUser$ | async)?.photoURL; else defaultAvatar"
-          [src]="(currentUser$ | async)?.photoURL!"
-          [alt]="(currentUser$ | async)?.displayName || 'Avatar do usuário'"
-          class="avatar-image"
-        >
-        <ng-template #defaultAvatar>
-          <mat-icon class="default-avatar-icon">account_circle</mat-icon>
-        </ng-template>
+        <mat-icon class="default-avatar-icon">account_circle</mat-icon>
       </div>
     </button>
 
     <mat-menu #userMenu="matMenu" class="user-menu">
       <div class="user-info" *ngIf="currentUser$ | async as user">
         <div class="user-avatar-large">
-          <img
-            *ngIf="user.photoURL; else defaultAvatarLarge"
-            [src]="user.photoURL"
-            [alt]="user.displayName || 'Avatar do usuário'"
-            class="avatar-image-large"
-          >
-          <ng-template #defaultAvatarLarge>
-            <mat-icon class="default-avatar-icon-large">account_circle</mat-icon>
-          </ng-template>
+          <mat-icon class="default-avatar-icon-large">account_circle</mat-icon>
         </div>
         <div class="user-details">
-          <div class="user-name">{{ user.displayName || 'Usuário' }}</div>
+          <div class="user-name">{{ user.name || 'Usuário' }}</div>
           <div class="user-email">{{ user.email }}</div>
         </div>
       </div>

@@ -13,11 +13,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 
-// Firebase imports
-import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
-import { provideAuth, getAuth } from '@angular/fire/auth';
-import { environment } from '../environments/environment';
-
 import { AppComponent } from './app.component';
 import { routes } from './app.routes';
 import { HeaderComponent } from './layout/header/header.component';
@@ -56,8 +51,6 @@ const MY_DATE_FORMATS = {
   ],
   providers: [
     provideHttpClient(withInterceptors([authInterceptor])),
-    provideFirebaseApp(() => initializeApp(environment.firebase)),
-    provideAuth(() => getAuth()),
     { provide: MAT_DATE_LOCALE, useValue: 'pt-BR' },
     { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS }
   ],
