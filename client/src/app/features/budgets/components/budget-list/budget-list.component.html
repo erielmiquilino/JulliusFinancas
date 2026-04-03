@@ -86,7 +86,7 @@
               <div class="progress-bar-wrapper">
                 <div class="progress-bar"
                      [ngClass]="getProgressBarClass((budget.usedAmount / budget.limitAmount) * 100)"
-                     [style.width.%]="(budget.usedAmount / budget.limitAmount) * 100">
+                     [style.width.%]="Math.min((budget.usedAmount / budget.limitAmount) * 100, 100)">
                 </div>
               </div>
               <span class="progress-percentage"

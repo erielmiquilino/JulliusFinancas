@@ -49,6 +49,7 @@ interface BudgetFilterState {
 export class BudgetListComponent implements OnInit, OnDestroy {
   private readonly FILTER_STORAGE_KEY = 'budget-list-filters';
 
+  readonly Math = Math;
   budgets: Budget[] = [];
   private refreshSubscription: Subscription;
 
