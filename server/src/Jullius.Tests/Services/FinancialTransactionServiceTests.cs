@@ -365,13 +365,32 @@ public class FinancialTransactionServiceTests
     {
         // Arrange
         var transactionId = Guid.NewGuid();
+        var transaction = new FinancialTransaction("Conta", 150m, DateTime.UtcNow, TransactionType.PayableBill, _testCategory.Id);
+        _mocks.SetupFinancialTransactionById(transaction);
+
+        // Act
+        var result = await _service.DeleteTransactionAsync(transaction.Id);
+
+        // Assert
+        result.Should().BeTrue();
+        _mocks.FinancialTransactionRepository.Verify(r => r.DeleteAsync(transaction.Id), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteTransactionAsync_WhenTransactionDoesNotExist_ShouldReturnFalse()
+    {
+        // Arrange
+        var transactionId = Guid.NewGuid();
+        _mocks.FinancialTransactionRepository
+            .Setup(r => r.GetByIdAsync(transactionId))
+            .ReturnsAsync((FinancialTransaction?)null);
 
         // Act
         var result = await _service.DeleteTransactionAsync(transactionId);
 
         // Assert
-        result.Should().BeTrue();
-        _mocks.FinancialTransactionRepository.Verify(r => r.DeleteAsync(transactionId), Times.Once);
+        result.Should().BeFalse();
+        _mocks.FinancialTransactionRepository.Verify(r => r.DeleteAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     #endregion

@@ -94,6 +94,10 @@ public class FinancialTransactionService
 
     public async Task<bool> DeleteTransactionAsync(Guid id)
     {
+        var transaction = await _repository.GetByIdAsync(id);
+        if (transaction == null)
+            return false;
+
         await _repository.DeleteAsync(id);
         return true;
     }
@@ -111,6 +115,8 @@ public class FinancialTransactionService
         if (transaction == null)
             return null;
 
+        var previousIsPaid = transaction.IsPaid;
+
         transaction.UpdateDetails(
             request.Description,
             request.Amount,
@@ -118,10 +124,21 @@ public class FinancialTransactionService
             request.Type,
             request.CategoryId,
             request.IsPaid,
+            cardId: transaction.CardId,
             budgetId: request.BudgetId
         );
 
         await _repository.UpdateAsync(transaction);
+
+        if (transaction.CardId.HasValue && previousIsPaid != request.IsPaid)
+        {
+            await UpdateCardCurrentLimitForPaymentAsync(
+                transaction.CardId.Value,
+                request.Amount,
+                request.IsPaid,
+                previousIsPaid);
+        }
+
         return transaction;
     }
 

@@ -44,7 +44,7 @@ public sealed class CategoryPlugin
     }
 
     [KernelFunction("CreateCategory")]
-    [Description("Cria uma nova categoria financeira. IMPORTANTE: chame ListCategories ANTES para verificar se já existe uma categoria semelhante. Use apenas quando nenhuma categoria existente for adequada.")]
+    [Description("Cria uma nova categoria financeira. IMPORTANTE: use apenas quando o usuário pedir explicitamente para criar a categoria ou confirmar que deseja criar uma nova.")]
     public async Task<string> CreateCategoryAsync(
         [Description("Nome da categoria (ex: 'Alimentação', 'Saúde', 'Educação')")] string name,
         [Description("Cor em hexadecimal OBRIGATÓRIA — escolha uma cor vibrante e distinta (ex: '#4CAF50' verde, '#FF9800' laranja, '#9C27B0' roxo, '#2196F3' azul, '#F44336' vermelho, '#E91E63' rosa). NUNCA use cinza.")] string color = "#4CAF50")
@@ -100,6 +100,38 @@ public sealed class CategoryPlugin
         {
             _logger.LogError(ex, "Erro ao remover categoria via Telegram SK");
             return $"❌ Erro ao remover a categoria: {ex.Message}";
+        }
+    }
+
+    [KernelFunction("UpdateCategory")]
+    [Description("Atualiza uma categoria financeira existente. Permite alterar nome e cor. Se a categoria não existir, pergunte ao usuário qual categoria deve ser usada.")]
+    public async Task<string> UpdateCategoryAsync(
+        [Description("Nome atual da categoria")] string currentName,
+        [Description("Novo nome da categoria. Deixe vazio para manter o atual.")] string? newName = null,
+        [Description("Nova cor hexadecimal. Deixe vazio para manter a atual.")] string? newColor = null)
+    {
+        try
+        {
+            var category = await _categoryService.GetCategoryByNameAsync(currentName);
+            if (category == null)
+                return $"❌ Não encontrei a categoria \"{currentName}\". Qual categoria você quer alterar?";
+
+            var request = new UpdateCategoryRequest
+            {
+                Name = string.IsNullOrWhiteSpace(newName) ? category.Name : newName.Trim(),
+                Color = string.IsNullOrWhiteSpace(newColor) ? category.Color : newColor.Trim()
+            };
+
+            var updatedCategory = await _categoryService.UpdateCategoryAsync(category.Id, request);
+            if (updatedCategory == null)
+                return $"❌ Não consegui atualizar a categoria \"{currentName}\".";
+
+            return $"✅ Categoria atualizada!\n• {updatedCategory.Name} | Cor: {updatedCategory.Color}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao atualizar categoria via Telegram SK");
+            return $"❌ Erro ao atualizar a categoria: {ex.Message}";
         }
     }
 }

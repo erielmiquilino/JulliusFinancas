@@ -134,6 +134,38 @@ public class CategoryServiceTests
         result.Should().BeNull();
     }
 
+    [Fact]
+    public async Task GetCategoryByNameAsync_WhenExists_ShouldReturnCategory()
+    {
+        // Arrange
+        var category = new Category("Alimentação", "#FF5722");
+        _mocks.CategoryRepository
+            .Setup(r => r.GetByNameAsync("Alimentação"))
+            .ReturnsAsync(category);
+
+        // Act
+        var result = await _service.GetCategoryByNameAsync("Alimentação");
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Name.Should().Be("Alimentação");
+    }
+
+    [Fact]
+    public async Task GetCategoryByNameAsync_WhenNotExists_ShouldReturnNull()
+    {
+        // Arrange
+        _mocks.CategoryRepository
+            .Setup(r => r.GetByNameAsync("Inexistente"))
+            .ReturnsAsync((Category?)null);
+
+        // Act
+        var result = await _service.GetCategoryByNameAsync("Inexistente");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
     #endregion
 
     #region UpdateCategoryAsync Tests

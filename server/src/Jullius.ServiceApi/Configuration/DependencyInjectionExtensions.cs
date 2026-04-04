@@ -50,6 +50,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<OverdueAccountService>();
         services.AddScoped<AutocompleteService>();
         services.AddScoped<BotConfigurationService>();
+        services.AddScoped<CategoryResolutionService>();
+        services.AddScoped<TransactionResolutionService>();
 
         // Serviços de autenticação
         services.AddScoped<TokenService>();

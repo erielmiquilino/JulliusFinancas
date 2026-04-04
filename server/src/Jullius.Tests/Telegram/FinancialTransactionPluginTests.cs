@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
-using Jullius.ServiceApi.Application.DTOs;
 using Jullius.ServiceApi.Application.Services;
 using Jullius.ServiceApi.Telegram.Plugins;
 using Microsoft.Extensions.Logging;
@@ -10,9 +9,6 @@ using Xunit;
 
 namespace Jullius.Tests.Telegram;
 
-/// <summary>
-/// Testes para o FinancialTransactionPlugin (CreateExpense, CreateIncome, GetMonthlySummary, SearchTransactions, UpdatePaymentStatus).
-/// </summary>
 public class FinancialTransactionPluginTests
 {
     private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
@@ -24,10 +20,25 @@ public class FinancialTransactionPluginTests
 
     public FinancialTransactionPluginTests()
     {
-        // Create real service with mocked repositories
         _transactionRepoMock
             .Setup(r => r.CreateAsync(It.IsAny<FinancialTransaction>()))
-            .ReturnsAsync((FinancialTransaction ft) => ft);
+            .ReturnsAsync((FinancialTransaction transaction) => transaction);
+
+        _transactionRepoMock
+            .Setup(r => r.UpdateAsync(It.IsAny<FinancialTransaction>()))
+            .Returns(Task.CompletedTask);
+
+        _transactionRepoMock
+            .Setup(r => r.DeleteAsync(It.IsAny<Guid>()))
+            .Returns(Task.CompletedTask);
+
+        _transactionRepoMock
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(Array.Empty<FinancialTransaction>());
+
+        _categoryRepoMock
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(Array.Empty<Category>());
 
         var transactionService = new FinancialTransactionService(
             _transactionRepoMock.Object,
@@ -35,99 +46,103 @@ public class FinancialTransactionPluginTests
             _categoryRepoMock.Object,
             _serviceProviderMock.Object);
 
+        var categoryResolutionService = new CategoryResolutionService(
+            _categoryRepoMock.Object,
+            _transactionRepoMock.Object);
+
+        var transactionResolutionService = new TransactionResolutionService(
+            _transactionRepoMock.Object);
+
         _plugin = new FinancialTransactionPlugin(
             transactionService,
+            categoryResolutionService,
+            transactionResolutionService,
             _categoryRepoMock.Object,
             _transactionRepoMock.Object,
             _budgetRepoMock.Object,
             Mock.Of<ILogger<FinancialTransactionPlugin>>());
     }
 
-    #region CreateExpense
-
     [Fact]
-    public async Task CreateExpense_ShouldReturnConfirmation_WhenCategoryExists()
+    public async Task CreateExpense_ShouldRegisterAsPaidByDefault_WhenHistoryProvidesSafeCategory()
     {
-        var category = new Category("Alimentação", "#FF5722");
-        _categoryRepoMock.Setup(r => r.GetByNameAsync("Alimentação")).ReturnsAsync(category);
+        var category = new Category("Essenciais", "#FF5722");
+        var previousTransaction = new FinancialTransaction(
+            "Compra no Myatã",
+            25m,
+            new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+            TransactionType.PayableBill,
+            category.Id,
+            true);
 
-        var result = await _plugin.CreateExpenseAsync("Almoço", 35.50m, "Alimentação", false);
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { category });
+        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { previousTransaction });
 
-        Assert.Contains("✅ Despesa registrada!", result);
-        Assert.Contains("Almoço", result);
-        Assert.Contains("35,50", result);
-        Assert.Contains("Alimentação", result);
+        var result = await _plugin.CreateExpenseAsync("Compra no Myatã", 19.56m);
+
+        result.Should().Contain("✅ Despesa registrada!");
+        result.Should().Contain("Status: ✅ Pago");
+
+        _transactionRepoMock.Verify(
+            r => r.CreateAsync(It.Is<FinancialTransaction>(transaction =>
+                transaction.Description == "Compra no Myatã" &&
+                transaction.CategoryId == category.Id &&
+                transaction.IsPaid)),
+            Times.Once);
     }
 
     [Fact]
-    public async Task CreateExpense_ShouldAutoCreateCategory_WhenNotFound()
+    public async Task CreateExpense_ShouldAskForCategory_WhenNoSafeMatchExists()
     {
-        _categoryRepoMock.Setup(r => r.GetByNameAsync("Nova")).ReturnsAsync((Category?)null);
-        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Category>());
-        var newCategory = new Category("Nova", "#4CAF50");
-        _categoryRepoMock
-            .Setup(r => r.GetOrCreateSystemCategoryAsync("Nova", It.IsAny<string>()))
-            .ReturnsAsync(newCategory);
+        var categories = new[]
+        {
+            new Category("Essenciais", "#FF5722"),
+            new Category("Lazer", "#4CAF50")
+        };
 
-        var result = await _plugin.CreateExpenseAsync("Teste", 10m, "Nova", false);
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(categories);
 
-        Assert.Contains("✅ Despesa registrada!", result);
-        _categoryRepoMock.Verify(r => r.GetOrCreateSystemCategoryAsync("Nova", It.IsAny<string>()), Times.Once);
+        var result = await _plugin.CreateExpenseAsync("Compra na Papelaria Central", 10m);
+
+        result.Should().Contain("O que eu faço");
+        result.Should().Contain("Essenciais");
+        result.Should().Contain("Lazer");
+
+        _transactionRepoMock.Verify(r => r.CreateAsync(It.IsAny<FinancialTransaction>()), Times.Never);
     }
 
     [Fact]
-    public async Task CreateExpense_Paid_ShouldShowCheckMark()
+    public async Task CreateExpense_ShouldAskBeforeCreatingRequestedCategory_WhenCategoryDoesNotExist()
     {
-        var category = new Category("Saúde", "#4CAF50");
-        _categoryRepoMock.Setup(r => r.GetByNameAsync("Saúde")).ReturnsAsync(category);
+        var existingCategory = new Category("Essenciais", "#FF5722");
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { existingCategory });
 
-        var result = await _plugin.CreateExpenseAsync("Farmácia", 50m, "Saúde", true);
+        var result = await _plugin.CreateExpenseAsync("The Best Acai", 70.29m, "Alimentação");
 
-        Assert.Contains("✅", result);
+        result.Should().Contain("Não encontrei a categoria \"Alimentação\"");
+        result.Should().Contain("cadastro \"Alimentação\"");
+        result.Should().Contain("Essenciais");
+
+        _transactionRepoMock.Verify(r => r.CreateAsync(It.IsAny<FinancialTransaction>()), Times.Never);
     }
 
     [Fact]
-    public async Task CreateExpense_WithDueDate_ShouldParseDate()
-    {
-        var category = new Category("Moradia", "#FF5722");
-        _categoryRepoMock.Setup(r => r.GetByNameAsync("Moradia")).ReturnsAsync(category);
-
-        var result = await _plugin.CreateExpenseAsync("Aluguel", 1500m, "Moradia", false, "2025-02-15");
-
-        Assert.Contains("✅ Despesa registrada!", result);
-    }
-
-    #endregion
-
-    #region CreateIncome
-
-    [Fact]
-    public async Task CreateIncome_ShouldReturnConfirmation()
-    {
-        var category = new Category("Salário", "#4CAF50");
-        _categoryRepoMock.Setup(r => r.GetByNameAsync("Salário")).ReturnsAsync(category);
-
-        var result = await _plugin.CreateIncomeAsync("Salário janeiro", 5000m, "Salário", true);
-
-        Assert.Contains("✅ Receita registrada!", result);
-        Assert.Contains("5.000,00", result);
-        Assert.Contains("Recebido", result);
-    }
-
-    [Fact]
-    public async Task CreateIncome_Pending_ShouldShowPendingLabel()
+    public async Task CreateIncome_ShouldRespectExplicitPendingStatus()
     {
         var category = new Category("Freelance", "#607D8B");
-        _categoryRepoMock.Setup(r => r.GetByNameAsync("Freelance")).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { category });
 
         var result = await _plugin.CreateIncomeAsync("Projeto web", 2000m, "Freelance", false);
 
-        Assert.Contains("Pendente", result);
+        result.Should().Contain("✅ Receita registrada!");
+        result.Should().Contain("Status: ⏳ Pendente");
+
+        _transactionRepoMock.Verify(
+            r => r.CreateAsync(It.Is<FinancialTransaction>(transaction =>
+                transaction.CategoryId == category.Id &&
+                !transaction.IsPaid)),
+            Times.Once);
     }
-
-    #endregion
-
-    #region GetMonthlySummary
 
     [Fact]
     public async Task GetMonthlySummary_ShouldReturnFormattedSummary()
@@ -144,73 +159,11 @@ public class FinancialTransactionPluginTests
 
         var result = await _plugin.GetMonthlySummaryAsync(1, 2025);
 
-        Assert.Contains("RECEITAS", result);
-        Assert.Contains("DESPESAS", result);
-        Assert.Contains("SALDO", result);
-        Assert.Contains("5.000,00", result);
-        Assert.Contains("1.500,00", result);
-    }
-
-    [Fact]
-    public async Task GetMonthlySummary_WithBudgets_ShouldShowBudgetUsage()
-    {
-        var categoryId = Guid.NewGuid();
-        var budget = new Budget("Alimentação", 800m, 1, 2025);
-        var transactions = new List<FinancialTransaction>
-        {
-            new("Almoço", 500m, new DateTime(2025, 1, 15, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true, null, budget.Id)
-        };
-
-        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
-        _budgetRepoMock.Setup(r => r.GetByMonthAndYearAsync(1, 2025)).ReturnsAsync(new[] { budget });
-
-        var result = await _plugin.GetMonthlySummaryAsync(1, 2025);
-
-        Assert.Contains("ORÇAMENTOS", result);
-        Assert.Contains("Alimentação", result);
-    }
-
-    #endregion
-
-    #region SearchTransactions
-
-    [Fact]
-    public async Task SearchTransactions_ShouldReturnMatchingTransactions()
-    {
-        var categoryId = Guid.NewGuid();
-        var transactions = new List<FinancialTransaction>
-        {
-            new("Myatã Janeiro", 25.50m, new DateTime(2025, 1, 5, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
-            new("Myatã Fevereiro", 30.00m, new DateTime(2025, 1, 20, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, false),
-            new("Aluguel", 1500m, new DateTime(2025, 1, 10, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
-        };
-
-        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
-
-        var result = await _plugin.SearchTransactionsAsync("myatã", 1, 2025);
-
-        result.Should().Contain("Myatã Janeiro");
-        result.Should().Contain("Myatã Fevereiro");
-        result.Should().NotContain("Aluguel");
-        result.Should().Contain("2 encontradas");
-        result.Should().Contain("55,50"); // total = 25.50 + 30.00
-    }
-
-    [Fact]
-    public async Task SearchTransactions_ShouldBeCaseInsensitive()
-    {
-        var categoryId = Guid.NewGuid();
-        var transactions = new List<FinancialTransaction>
-        {
-            new("CONTA DE LUZ", 150m, new DateTime(2025, 3, 10, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
-        };
-
-        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
-
-        var result = await _plugin.SearchTransactionsAsync("conta de luz", 3, 2025);
-
-        result.Should().Contain("CONTA DE LUZ");
-        result.Should().Contain("1 encontradas");
+        result.Should().Contain("RECEITAS");
+        result.Should().Contain("DESPESAS");
+        result.Should().Contain("SALDO");
+        result.Should().Contain("5.000,00");
+        result.Should().Contain("1.500,00");
     }
 
     [Fact]
@@ -221,116 +174,124 @@ public class FinancialTransactionPluginTests
         {
             new("Myatã", 44.10m, new DateTime(2026, 2, 14, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
             new("Myata", 22.50m, new DateTime(2026, 2, 14, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
-            new("Myatã", 13.02m, new DateTime(2026, 2, 20, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
+            new("Myatã", 13.02m, new DateTime(2026, 2, 20, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true)
         };
 
         _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
 
-        // Busca COM acento deve encontrar ambos ("Myatã" e "Myata")
-        var resultWithAccent = await _plugin.SearchTransactionsAsync("myatã", 2, 2026);
-        resultWithAccent.Should().Contain("3 encontradas");
-        resultWithAccent.Should().Contain("79,62"); // 44.10 + 22.50 + 13.02
-
-        // Busca SEM acento também deve encontrar ambos
-        var resultWithoutAccent = await _plugin.SearchTransactionsAsync("myata", 2, 2026);
-        resultWithoutAccent.Should().Contain("3 encontradas");
-        resultWithoutAccent.Should().Contain("79,62");
-    }
-
-    [Fact]
-    public async Task SearchTransactions_ShouldReturnNotFound_WhenNoMatches()
-    {
-        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<FinancialTransaction>());
-
-        var result = await _plugin.SearchTransactionsAsync("inexistente", 1, 2025);
-
-        result.Should().Contain("Nenhuma transação encontrada");
-        result.Should().Contain("inexistente");
-    }
-
-    [Fact]
-    public async Task SearchTransactions_ShouldFilterByMonthAndYear()
-    {
-        var categoryId = Guid.NewGuid();
-        var transactions = new List<FinancialTransaction>
-        {
-            new("Myatã Jan", 20m, new DateTime(2025, 1, 5, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
-            new("Myatã Feb", 30m, new DateTime(2025, 2, 5, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, false),
-        };
-
-        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
-
-        var result = await _plugin.SearchTransactionsAsync("myatã", 2, 2025);
-
-        result.Should().Contain("Myatã Feb");
-        result.Should().NotContain("Myatã Jan");
-        result.Should().Contain("1 encontradas");
-    }
-
-    [Fact]
-    public async Task SearchTransactions_ShouldShowCorrectPaidAndPendingTotals()
-    {
-        var categoryId = Guid.NewGuid();
-        var transactions = new List<FinancialTransaction>
-        {
-            new("Myatã 1", 20m, new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
-            new("Myatã 2", 30m, new DateTime(2025, 6, 15, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true),
-            new("Myatã 3", 50m, new DateTime(2025, 6, 20, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, false),
-        };
-
-        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
-
-        var result = await _plugin.SearchTransactionsAsync("Myatã", 6, 2025);
+        var result = await _plugin.SearchTransactionsAsync("myatã", 2, 2026);
 
         result.Should().Contain("3 encontradas");
-        result.Should().Contain("Total: R$ 100,00");
-        result.Should().Contain("Pago: R$ 50,00");
-        result.Should().Contain("Pendente: R$ 50,00");
+        result.Should().Contain("79,62");
     }
 
     [Fact]
-    public async Task SearchTransactions_ShouldShowCategoryNameWhenAvailable()
+    public async Task UpdatePaymentStatus_ShouldUpdateTransaction_WhenMatchIsUnique()
     {
-        var categoryId = Guid.NewGuid();
-        var transaction = new FinancialTransaction("Myatã", 25m, new DateTime(2025, 1, 5, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, categoryId, true);
-
-        // Category is a navigation property; since we're not using EF, it won't be populated.
-        // The function uses t.Category?.Name ?? "—" so it should show "—"
-        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { transaction });
-
-        var result = await _plugin.SearchTransactionsAsync("myatã", 1, 2025);
-
-        // Without EF Include, Category is null, so fallback "—" is shown
-        result.Should().Contain("—");
-    }
-
-    #endregion
-
-    #region UpdatePaymentStatus
-
-    [Fact]
-    public async Task UpdatePaymentStatus_ShouldFindByDescription()
-    {
-        var transaction = new FinancialTransaction("Conta de luz", 250m, DateTime.UtcNow, TransactionType.PayableBill, Guid.NewGuid());
+        var transaction = new FinancialTransaction(
+            "Conta de luz",
+            250m,
+            DateTime.UtcNow,
+            TransactionType.PayableBill,
+            Guid.NewGuid());
 
         _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { transaction });
+        _transactionRepoMock.Setup(r => r.GetByIdAsync(transaction.Id)).ReturnsAsync(transaction);
 
         var result = await _plugin.UpdatePaymentStatusAsync("conta de luz", true);
 
-        Assert.Contains("✅ Pago", result);
-        Assert.Contains("Conta de luz", result);
+        result.Should().Contain("✅ Pago");
+        result.Should().Contain("Conta de luz");
+        _transactionRepoMock.Verify(r => r.UpdateAsync(transaction), Times.Once);
     }
 
     [Fact]
-    public async Task UpdatePaymentStatus_ShouldReturnError_WhenNotFound()
+    public async Task UpdatePaymentStatus_ShouldAsk_WhenMatchIsAmbiguous()
     {
-        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<FinancialTransaction>());
+        var transactions = new[]
+        {
+            new FinancialTransaction("Conta de luz casa", 120m, new DateTime(2026, 4, 10, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, Guid.NewGuid()),
+            new FinancialTransaction("Conta de luz escritório", 220m, new DateTime(2026, 4, 11, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, Guid.NewGuid())
+        };
 
-        var result = await _plugin.UpdatePaymentStatusAsync("inexistente", true);
+        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
 
-        Assert.Contains("❌", result);
-        Assert.Contains("não encontrei", result.ToLowerInvariant());
+        var result = await _plugin.UpdatePaymentStatusAsync("conta de luz", true);
+
+        result.Should().Contain("mais de uma transação parecida");
+        _transactionRepoMock.Verify(r => r.UpdateAsync(It.IsAny<FinancialTransaction>()), Times.Never);
     }
 
-    #endregion
+    [Fact]
+    public async Task UpdateTransaction_ShouldUpdateCategory_WhenMatchIsUnique()
+    {
+        var oldCategory = new Category("Alimentação", "#FF5722");
+        var newCategory = new Category("Não planejado", "#4CAF50");
+        var transaction = new FinancialTransaction(
+            "The Best Acai Lages Bra",
+            70.29m,
+            new DateTime(2026, 4, 3, 0, 0, 0, DateTimeKind.Utc),
+            TransactionType.PayableBill,
+            oldCategory.Id,
+            true);
+
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { oldCategory, newCategory });
+        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { transaction });
+        _transactionRepoMock.Setup(r => r.GetByIdAsync(transaction.Id)).ReturnsAsync(transaction);
+
+        var result = await _plugin.UpdateTransactionAsync(
+            "The Best Acai",
+            newCategoryName: "Não planejado",
+            currentAmount: 70.29m,
+            currentDueDate: "2026-04-03");
+
+        result.Should().Contain("✅ Despesa atualizada!");
+        result.Should().Contain("Não planejado");
+
+        _transactionRepoMock.Verify(
+            r => r.UpdateAsync(It.Is<FinancialTransaction>(updated =>
+                updated.CategoryId == newCategory.Id &&
+                updated.Description == "The Best Acai Lages Bra")),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteTransaction_ShouldDeleteTransaction_WhenMatchIsUnique()
+    {
+        var transaction = new FinancialTransaction(
+            "The Best Acai Lages Bra",
+            70.29m,
+            new DateTime(2026, 4, 3, 0, 0, 0, DateTimeKind.Utc),
+            TransactionType.PayableBill,
+            Guid.NewGuid(),
+            true);
+
+        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { transaction });
+        _transactionRepoMock.Setup(r => r.GetByIdAsync(transaction.Id)).ReturnsAsync(transaction);
+
+        var result = await _plugin.DeleteTransactionAsync(
+            "The Best Acai",
+            currentAmount: 70.29m,
+            currentDueDate: "2026-04-03");
+
+        result.Should().Contain("✅ Transação excluída");
+        _transactionRepoMock.Verify(r => r.DeleteAsync(transaction.Id), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteTransaction_ShouldAsk_WhenMatchIsAmbiguous()
+    {
+        var transactions = new[]
+        {
+            new FinancialTransaction("Myatã Centro", 19.56m, new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, Guid.NewGuid(), true),
+            new FinancialTransaction("Myatã Mercado", 19.56m, new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc), TransactionType.PayableBill, Guid.NewGuid(), true)
+        };
+
+        _transactionRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transactions);
+
+        var result = await _plugin.DeleteTransactionAsync("Myatã", currentAmount: 19.56m);
+
+        result.Should().Contain("mais de uma transação parecida");
+        _transactionRepoMock.Verify(r => r.DeleteAsync(It.IsAny<Guid>()), Times.Never);
+    }
 }

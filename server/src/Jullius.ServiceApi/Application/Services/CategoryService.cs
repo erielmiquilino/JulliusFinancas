@@ -32,6 +32,12 @@ public class CategoryService
         return category == null ? null : MapToDto(category);
     }
 
+    public async Task<CategoryDto?> GetCategoryByNameAsync(string name)
+    {
+        var category = await _repository.GetByNameAsync(name);
+        return category == null ? null : MapToDto(category);
+    }
+
     public async Task<CategoryDto?> UpdateCategoryAsync(Guid id, UpdateCategoryRequest request)
     {
         var category = await _repository.GetByIdAsync(id);

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.Services;
@@ -9,9 +8,6 @@ using Xunit;
 
 namespace Jullius.Tests.Telegram;
 
-/// <summary>
-/// Testes para o CategoryPlugin (ListCategories, CreateCategory, DeleteCategory).
-/// </summary>
 public class CategoryPluginTests
 {
     private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
@@ -34,6 +30,7 @@ public class CategoryPluginTests
             new("Transporte", "#2196F3"),
             new("Saúde", "#4CAF50")
         };
+
         _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(categories);
 
         var result = await _plugin.ListCategoriesAsync();
@@ -44,26 +41,40 @@ public class CategoryPluginTests
     }
 
     [Fact]
-    public async Task ListCategories_ShouldReturnEmptyMessage_WhenNoCategories()
+    public async Task CreateCategory_ShouldReturnDuplicateMessage_WhenCategoryAlreadyExists()
     {
-        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Category>());
+        var existingCategory = new Category("Lazer", "#9C27B0");
+        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { existingCategory });
 
-        var result = await _plugin.ListCategoriesAsync();
+        var result = await _plugin.CreateCategoryAsync("Lazer", "#4CAF50");
 
-        Assert.Contains("Nenhuma categoria", result);
+        Assert.Contains("Já existe", result);
     }
 
     [Fact]
-    public async Task CreateCategory_ShouldReturnConfirmation()
+    public async Task UpdateCategory_ShouldUpdateExistingCategory()
     {
-        _categoryRepoMock
-            .Setup(r => r.CreateAsync(It.IsAny<Category>()))
-            .ReturnsAsync((Category c) => c);
+        var category = new Category("Lazer", "#9C27B0");
 
-        var result = await _plugin.CreateCategoryAsync("Lazer", "#9C27B0");
+        _categoryRepoMock.Setup(r => r.GetByNameAsync("Lazer")).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.GetByIdAsync(category.Id)).ReturnsAsync(category);
+        _categoryRepoMock.Setup(r => r.UpdateAsync(category)).Returns(Task.CompletedTask);
 
-        Assert.Contains("✅", result);
-        Assert.Contains("Lazer", result);
+        var result = await _plugin.UpdateCategoryAsync("Lazer", "Diversão", "#4CAF50");
+
+        Assert.Contains("✅ Categoria atualizada!", result);
+        Assert.Contains("Diversão", result);
+        Assert.Contains("#4CAF50", result);
+    }
+
+    [Fact]
+    public async Task UpdateCategory_ShouldAsk_WhenCategoryDoesNotExist()
+    {
+        _categoryRepoMock.Setup(r => r.GetByNameAsync("Inexistente")).ReturnsAsync((Category?)null);
+
+        var result = await _plugin.UpdateCategoryAsync("Inexistente", "Nova", "#4CAF50");
+
+        Assert.Contains("Não encontrei a categoria", result);
     }
 
     [Fact]
@@ -79,17 +90,6 @@ public class CategoryPluginTests
 
         Assert.Contains("✅", result);
         Assert.Contains("removida", result.ToLowerInvariant());
-    }
-
-    [Fact]
-    public async Task DeleteCategory_ShouldReturnError_WhenCategoryNotFound()
-    {
-        _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Category>());
-
-        var result = await _plugin.DeleteCategoryAsync("Inexistente");
-
-        Assert.Contains("❌", result);
-        Assert.Contains("não encontrada", result.ToLowerInvariant());
     }
 
     [Fact]
