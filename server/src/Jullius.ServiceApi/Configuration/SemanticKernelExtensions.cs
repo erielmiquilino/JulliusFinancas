@@ -15,6 +15,7 @@ public static class SemanticKernelExtensions
     /// </summary>
     public static IServiceCollection AddSemanticKernelServices(this IServiceCollection services)
     {
+        services.AddTransient<GeminiRetryHandler>();
         services.AddTransient<GeminiDiagnosticsHandler>();
 
         // HttpClient dedicado ao Gemini com timeout estendido.
@@ -25,6 +26,7 @@ public static class SemanticKernelExtensions
             client.Timeout = TimeSpan.FromMinutes(5);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         })
+        .AddHttpMessageHandler<GeminiRetryHandler>()
         .AddHttpMessageHandler<GeminiDiagnosticsHandler>();
 
         // Chat history — singleton pois mantém estado em memória entre requests

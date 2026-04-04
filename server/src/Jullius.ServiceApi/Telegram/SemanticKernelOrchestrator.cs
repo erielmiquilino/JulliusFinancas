@@ -17,7 +17,7 @@ namespace Jullius.ServiceApi.Telegram;
 /// </summary>
 public sealed partial class SemanticKernelOrchestrator
 {
-    private const string GeminiModel = "gemini-3-flash-preview";
+    private const string DefaultGeminiModel = "gemini-2.5-flash";
     private const int MaxLoggedPayloadLength = 2000;
 
     private readonly ChatHistoryStore _chatHistoryStore;
@@ -45,9 +45,13 @@ public sealed partial class SemanticKernelOrchestrator
     /// </summary>
     public async Task<string> ProcessMessageAsync(long chatId, string message)
     {
+        var modelId = DefaultGeminiModel;
+
         try
         {
-            var kernel = await BuildKernelAsync();
+            var kernelContext = await BuildKernelAsync();
+            var kernel = kernelContext.Kernel;
+            modelId = kernelContext.ModelId;
             var history = PrepareHistory(chatId);
 
             // Adiciona a mensagem do usuário UMA ÚNICA VEZ ao ChatHistory compartilhado.
@@ -66,7 +70,7 @@ public sealed partial class SemanticKernelOrchestrator
         }
         catch (HttpOperationException ex)
         {
-            LogGeminiHttpFailure(ex, chatId, "text");
+            LogGeminiHttpFailure(ex, chatId, "text", modelId);
             return BuildGeminiFailureMessage(ex.StatusCode);
         }
         catch (Exception ex)
@@ -82,9 +86,13 @@ public sealed partial class SemanticKernelOrchestrator
     /// </summary>
     public async Task<string> ProcessMediaMessageAsync(long chatId, byte[] mediaBytes, string mimeType, string? caption)
     {
+        var modelId = DefaultGeminiModel;
+
         try
         {
-            var kernel = await BuildKernelAsync();
+            var kernelContext = await BuildKernelAsync();
+            var kernel = kernelContext.Kernel;
+            modelId = kernelContext.ModelId;
             var history = PrepareHistory(chatId);
 
             // Construir mensagem multimodal com conteúdo binário + texto opcional
@@ -123,7 +131,7 @@ public sealed partial class SemanticKernelOrchestrator
         }
         catch (HttpOperationException ex)
         {
-            LogGeminiHttpFailure(ex, chatId, "media");
+            LogGeminiHttpFailure(ex, chatId, "media", modelId);
             return BuildGeminiFailureMessage(ex.StatusCode);
         }
         catch (Exception ex)
@@ -136,11 +144,13 @@ public sealed partial class SemanticKernelOrchestrator
     /// <summary>
     /// Constrói um Kernel fresco com o API key atual e todos os plugins registrados.
     /// </summary>
-    private async Task<Kernel> BuildKernelAsync()
+    private async Task<KernelContext> BuildKernelAsync()
     {
         var apiKey = await _configService.GetDecryptedValueAsync("GeminiApiKey");
         if (string.IsNullOrEmpty(apiKey))
             throw new InvalidOperationException("GeminiApiKey não configurada no banco.");
+
+        var modelId = await ResolveGeminiModelAsync();
 
         var builder = Kernel.CreateBuilder();
 
@@ -149,7 +159,7 @@ public sealed partial class SemanticKernelOrchestrator
         var httpClient = _httpClientFactory.CreateClient("GeminiApi");
 
         builder.AddGoogleAIGeminiChatCompletion(
-            modelId: GeminiModel,
+            modelId: modelId,
             apiKey: apiKey,
             httpClient: httpClient);
 
@@ -166,7 +176,7 @@ public sealed partial class SemanticKernelOrchestrator
         var filter = _serviceProvider.GetRequiredService<FinancialFunctionFilter>();
         kernel.FunctionInvocationFilters.Add(filter);
 
-        return kernel;
+        return new KernelContext(kernel, modelId);
     }
 
     /// <summary>
@@ -242,7 +252,7 @@ public sealed partial class SemanticKernelOrchestrator
         return responseText;
     }
 
-    private void LogGeminiHttpFailure(HttpOperationException exception, long chatId, string messageType)
+    private void LogGeminiHttpFailure(HttpOperationException exception, long chatId, string messageType, string modelId)
     {
         var requestUri = SanitizeRequestUri(GetExceptionDataValue(exception.Data, "Url"));
         var responseContent = Truncate(exception.ResponseContent);
@@ -255,7 +265,7 @@ public sealed partial class SemanticKernelOrchestrator
             "Falha HTTP ao chamar Gemini. ChatId: {ChatId}. MessageType: {MessageType}. ModelId: {ModelId}. StatusCode: {StatusCode}. RequestMethod: {RequestMethod}. RequestUri: {RequestUri}. RequestPayload: {RequestPayload}. ResponseContent: {ResponseContent}. TelemetryData: {TelemetryData}",
             chatId,
             messageType,
-            GeminiModel,
+            modelId,
             exception.StatusCode?.ToString() ?? "(not available)",
             requestMethod,
             requestUri,
@@ -310,6 +320,16 @@ public sealed partial class SemanticKernelOrchestrator
             : null;
     }
 
+    private async Task<string> ResolveGeminiModelAsync()
+    {
+        var configuredModel = await _configService.GetDecryptedValueAsync("GeminiModel");
+        return string.IsNullOrWhiteSpace(configuredModel)
+            ? DefaultGeminiModel
+            : configuredModel.Trim();
+    }
+
     [GeneratedRegex("([?&](?:key|api_key)=)[^&]+", RegexOptions.IgnoreCase)]
     private static partial Regex SensitiveQueryStringRegex();
+
+    private sealed record KernelContext(Kernel Kernel, string ModelId);
 }
