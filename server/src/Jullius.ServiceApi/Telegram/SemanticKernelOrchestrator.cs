@@ -17,7 +17,7 @@ namespace Jullius.ServiceApi.Telegram;
 /// </summary>
 public sealed partial class SemanticKernelOrchestrator
 {
-    private const string DefaultGeminiModel = "gemini-2.5-flash";
+    private const string DefaultGeminiModel = "gemini-3-flash-preview";
     private const int MaxLoggedPayloadLength = 2000;
 
     private readonly ChatHistoryStore _chatHistoryStore;
@@ -259,13 +259,15 @@ public sealed partial class SemanticKernelOrchestrator
         var requestPayload = Truncate(GetExceptionDataValue(exception.Data, "Data"));
         var requestMethod = Truncate(GetExceptionDataValue(exception.Data, "Name"));
         var telemetryData = FormatTelemetryData(exception.Data);
+        var fallbackFlow = Truncate(GetExceptionDataValue(exception.Data, "X-Jullius-Gemini-Fallback"));
 
         _logger.LogError(
             exception,
-            "Falha HTTP ao chamar Gemini. ChatId: {ChatId}. MessageType: {MessageType}. ModelId: {ModelId}. StatusCode: {StatusCode}. RequestMethod: {RequestMethod}. RequestUri: {RequestUri}. RequestPayload: {RequestPayload}. ResponseContent: {ResponseContent}. TelemetryData: {TelemetryData}",
+            "Falha HTTP ao chamar Gemini. ChatId: {ChatId}. MessageType: {MessageType}. ModelId: {ModelId}. FallbackFlow: {FallbackFlow}. StatusCode: {StatusCode}. RequestMethod: {RequestMethod}. RequestUri: {RequestUri}. RequestPayload: {RequestPayload}. ResponseContent: {ResponseContent}. TelemetryData: {TelemetryData}",
             chatId,
             messageType,
             modelId,
+            fallbackFlow,
             exception.StatusCode?.ToString() ?? "(not available)",
             requestMethod,
             requestUri,

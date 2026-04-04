@@ -31,11 +31,12 @@ public sealed partial class GeminiDiagnosticsHandler : DelegatingHandler
                     : Truncate(await response.Content.ReadAsStringAsync(cancellationToken));
 
                 _logger.LogWarning(
-                    "Gemini HTTP returned non-success status. StatusCode: {StatusCode}. ReasonPhrase: {ReasonPhrase}. Method: {Method}. Uri: {Uri}. DurationMs: {DurationMs}. ResponseHeaders: {ResponseHeaders}. ResponseContent: {ResponseContent}",
+                    "Gemini HTTP returned non-success status. StatusCode: {StatusCode}. ReasonPhrase: {ReasonPhrase}. Method: {Method}. Uri: {Uri}. FallbackFlow: {FallbackFlow}. DurationMs: {DurationMs}. ResponseHeaders: {ResponseHeaders}. ResponseContent: {ResponseContent}",
                     (int)response.StatusCode,
                     response.ReasonPhrase ?? "(none)",
                     request.Method.Method,
                     SanitizeUri(request.RequestUri),
+                    ExtractFallbackFlow(request.Headers),
                     stopwatch.ElapsedMilliseconds,
                     FormatHeaders(response.Headers),
                     responseContent);
@@ -49,9 +50,10 @@ public sealed partial class GeminiDiagnosticsHandler : DelegatingHandler
 
             _logger.LogError(
                 ex,
-                "Gemini HTTP request failed before receiving a successful response. Method: {Method}. Uri: {Uri}. DurationMs: {DurationMs}. RequestHeaders: {RequestHeaders}",
+                "Gemini HTTP request failed before receiving a successful response. Method: {Method}. Uri: {Uri}. FallbackFlow: {FallbackFlow}. DurationMs: {DurationMs}. RequestHeaders: {RequestHeaders}",
                 request.Method.Method,
                 SanitizeUri(request.RequestUri),
+                ExtractFallbackFlow(request.Headers),
                 stopwatch.ElapsedMilliseconds,
                 FormatHeaders(request.Headers));
 
@@ -73,6 +75,13 @@ public sealed partial class GeminiDiagnosticsHandler : DelegatingHandler
         var values = headers.Select(header => $"{header.Key}={string.Join(",", header.Value)}");
         var text = string.Join("; ", values);
         return string.IsNullOrWhiteSpace(text) ? "(none)" : Truncate(text);
+    }
+
+    private static string ExtractFallbackFlow(HttpHeaders headers)
+    {
+        return headers.TryGetValues("X-Jullius-Gemini-Fallback", out var values)
+            ? Truncate(string.Join(",", values))
+            : "(none)";
     }
 
     private static string Truncate(string? value)
