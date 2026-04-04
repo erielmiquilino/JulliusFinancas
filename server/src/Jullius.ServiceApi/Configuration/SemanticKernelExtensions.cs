@@ -1,5 +1,6 @@
 using Jullius.ServiceApi.Telegram;
 using Jullius.ServiceApi.Telegram.Plugins;
+using System.Net.Http.Headers;
 
 namespace Jullius.ServiceApi.Configuration;
 
@@ -14,13 +15,17 @@ public static class SemanticKernelExtensions
     /// </summary>
     public static IServiceCollection AddSemanticKernelServices(this IServiceCollection services)
     {
+        services.AddTransient<GeminiDiagnosticsHandler>();
+
         // HttpClient dedicado ao Gemini com timeout estendido.
         // Thinking models (Gemini 3 Flash) podem demorar >100s após function calling,
         // excedendo o default de 100s do HttpClient (.NET).
         services.AddHttpClient("GeminiApi", client =>
         {
             client.Timeout = TimeSpan.FromMinutes(5);
-        });
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        })
+        .AddHttpMessageHandler<GeminiDiagnosticsHandler>();
 
         // Chat history — singleton pois mantém estado em memória entre requests
         services.AddSingleton<ChatHistoryStore>();

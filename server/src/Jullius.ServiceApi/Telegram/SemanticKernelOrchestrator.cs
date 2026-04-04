@@ -1,5 +1,7 @@
 #pragma warning disable SKEXP0070 // Google AI connector is experimental
 
+using System.Net;
+using System.Text.RegularExpressions;
 using Jullius.ServiceApi.Application.Services;
 using Jullius.ServiceApi.Telegram.Plugins;
 using Microsoft.SemanticKernel;
@@ -13,9 +15,10 @@ namespace Jullius.ServiceApi.Telegram;
 /// Substitui o antigo ConversationOrchestrator + GeminiAssistantService.
 /// O LLM decide autonomamente quais funções invocar via FunctionChoiceBehavior.Auto().
 /// </summary>
-public sealed class SemanticKernelOrchestrator
+public sealed partial class SemanticKernelOrchestrator
 {
     private const string GeminiModel = "gemini-3-flash-preview";
+    private const int MaxLoggedPayloadLength = 2000;
 
     private readonly ChatHistoryStore _chatHistoryStore;
     private readonly BotConfigurationService _configService;
@@ -60,6 +63,11 @@ public sealed class SemanticKernelOrchestrator
             _chatHistoryStore.TrimHistory(chatId);
 
             return response;
+        }
+        catch (HttpOperationException ex)
+        {
+            LogGeminiHttpFailure(ex, chatId, "text");
+            return BuildGeminiFailureMessage(ex.StatusCode);
         }
         catch (Exception ex)
         {
@@ -112,6 +120,11 @@ public sealed class SemanticKernelOrchestrator
             _chatHistoryStore.TrimHistory(chatId);
 
             return response;
+        }
+        catch (HttpOperationException ex)
+        {
+            LogGeminiHttpFailure(ex, chatId, "media");
+            return BuildGeminiFailureMessage(ex.StatusCode);
         }
         catch (Exception ex)
         {
@@ -228,4 +241,75 @@ public sealed class SemanticKernelOrchestrator
 
         return responseText;
     }
+
+    private void LogGeminiHttpFailure(HttpOperationException exception, long chatId, string messageType)
+    {
+        var requestUri = SanitizeRequestUri(GetExceptionDataValue(exception.Data, "Url"));
+        var responseContent = Truncate(exception.ResponseContent);
+        var requestPayload = Truncate(GetExceptionDataValue(exception.Data, "Data"));
+        var requestMethod = Truncate(GetExceptionDataValue(exception.Data, "Name"));
+        var telemetryData = FormatTelemetryData(exception.Data);
+
+        _logger.LogError(
+            exception,
+            "Falha HTTP ao chamar Gemini. ChatId: {ChatId}. MessageType: {MessageType}. ModelId: {ModelId}. StatusCode: {StatusCode}. RequestMethod: {RequestMethod}. RequestUri: {RequestUri}. RequestPayload: {RequestPayload}. ResponseContent: {ResponseContent}. TelemetryData: {TelemetryData}",
+            chatId,
+            messageType,
+            GeminiModel,
+            exception.StatusCode?.ToString() ?? "(not available)",
+            requestMethod,
+            requestUri,
+            requestPayload,
+            responseContent,
+            telemetryData);
+    }
+
+    private static string BuildGeminiFailureMessage(HttpStatusCode? statusCode)
+    {
+        if (statusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests or HttpStatusCode.GatewayTimeout)
+            return "⚠️ O serviço de IA está temporariamente indisponível. Tente novamente em instantes.";
+
+        return "❌ Ocorreu um erro ao processar sua mensagem. Tente novamente em breve.";
+    }
+
+    private static string SanitizeRequestUri(string? requestUri)
+    {
+        if (string.IsNullOrWhiteSpace(requestUri))
+            return "(not available)";
+
+        var sanitized = SensitiveQueryStringRegex().Replace(requestUri, "$1***redacted***");
+        return Truncate(sanitized);
+    }
+
+    private static string Truncate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "(empty)";
+
+        return value.Length <= MaxLoggedPayloadLength
+            ? value
+            : $"{value[..MaxLoggedPayloadLength]}...(truncated)";
+    }
+
+    private static string FormatTelemetryData(System.Collections.IDictionary telemetryData)
+    {
+        if (telemetryData.Count == 0)
+            return "(none)";
+
+        var items = telemetryData
+            .Cast<System.Collections.DictionaryEntry>()
+            .Select(entry => $"{entry.Key}={Truncate(entry.Value?.ToString())}");
+
+        return Truncate(string.Join("; ", items));
+    }
+
+    private static string? GetExceptionDataValue(System.Collections.IDictionary telemetryData, string key)
+    {
+        return telemetryData.Contains(key)
+            ? telemetryData[key]?.ToString()
+            : null;
+    }
+
+    [GeneratedRegex("([?&](?:key|api_key)=)[^&]+", RegexOptions.IgnoreCase)]
+    private static partial Regex SensitiveQueryStringRegex();
 }
