@@ -21,7 +21,8 @@ import { extractApiError } from '../../services/api-error';
 import {
   BankAccount,
   DiscoveredAccount,
-  ReconciliationService
+  ReconciliationService,
+  ReconciliationSession
 } from '../../services/reconciliation.service';
 
 @Component({
@@ -56,6 +57,9 @@ export class BankAccountListComponent implements OnInit {
 
   readonly accounts = signal<BankAccount[]>([]);
   readonly discovered = signal<DiscoveredAccount[]>([]);
+
+  /** Conciliação aguardando revisão, para o usuário conseguir voltar a ela. */
+  readonly pendingSession = signal<ReconciliationSession | null>(null);
   readonly loading = signal(false);
   readonly discovering = signal(false);
   readonly syncing = signal(false);
@@ -75,6 +79,22 @@ export class BankAccountListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadAccounts();
+    this.loadPendingSession();
+  }
+
+  /** Enquanto houver revisão pendente, o sync fica bloqueado — então ela precisa estar visível. */
+  loadPendingSession(): void {
+    this.service.getOpenSession().subscribe({
+      next: session => this.pendingSession.set(session),
+      error: () => this.pendingSession.set(null)
+    });
+  }
+
+  openReview(): void {
+    const session = this.pendingSession();
+    this.router.navigate(
+      session ? ['/reconciliation/review', session.id] : ['/reconciliation/review']
+    );
   }
 
   loadAccounts(): void {

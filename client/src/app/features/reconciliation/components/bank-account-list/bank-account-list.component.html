@@ -20,6 +20,24 @@
     </mat-card-header>
 
     <mat-card-content>
+      @if (pendingSession(); as pending) {
+        <div class="pending-banner">
+          <mat-icon>pending_actions</mat-icon>
+          <div class="pending-text">
+            <strong>Há uma conciliação aguardando revisão</strong>
+            <span>
+              {{ pending.totalItems }} lançamento(s) —
+              {{ pending.needsAttentionCount }} precisam de atenção.
+              Novas sincronizações ficam bloqueadas até você confirmar ou descartar.
+            </span>
+          </div>
+          <button mat-raised-button color="primary" (click)="openReview()">
+            <mat-icon>rate_review</mat-icon>
+            Abrir revisão
+          </button>
+        </div>
+      }
+
       @if (loading() || syncing()) {
         <div class="loading-row">
           <mat-spinner diameter="28"></mat-spinner>
