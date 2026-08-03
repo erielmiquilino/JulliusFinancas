@@ -57,13 +57,23 @@
                   <mat-form-field appearance="outline" class="field-description">
                     <mat-label>Descrição</mat-label>
                     <input matInput
+                           type="text"
+                           name="descricao-lancamento"
+                           autocomplete="off"
+                           autocapitalize="off"
+                           spellcheck="false"
+                           data-form-type="other"
+                           data-lpignore="true"
+                           data-1p-ignore
                            [ngModel]="descriptionOf(item)"
+                           [ngModelOptions]="{ standalone: true }"
                            (ngModelChange)="onDescriptionChange(item, $event)">
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="field-category">
                     <mat-label>Categoria</mat-label>
                     <mat-select [ngModel]="categoryOf(item)"
+                                [ngModelOptions]="{ standalone: true }"
                                 (ngModelChange)="onCategoryChange(item, $event)">
                       @for (category of categories(); track category.id) {
                         <mat-option [value]="category.id">{{ category.name }}</mat-option>
@@ -127,13 +137,23 @@
                 <mat-form-field appearance="outline" class="field-description">
                   <mat-label>Descrição</mat-label>
                   <input matInput
+                         type="text"
+                         name="descricao-lancamento-pronto"
+                         autocomplete="off"
+                         autocapitalize="off"
+                         spellcheck="false"
+                         data-form-type="other"
+                         data-lpignore="true"
+                         data-1p-ignore
                          [ngModel]="descriptionOf(item)"
+                         [ngModelOptions]="{ standalone: true }"
                          (ngModelChange)="onDescriptionChange(item, $event)">
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="field-category">
                   <mat-label>Categoria</mat-label>
                   <mat-select [ngModel]="categoryOf(item)"
+                              [ngModelOptions]="{ standalone: true }"
                               (ngModelChange)="onCategoryChange(item, $event)">
                     @for (category of categories(); track category.id) {
                       <mat-option [value]="category.id">{{ category.name }}</mat-option>

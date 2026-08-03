@@ -56,7 +56,17 @@
         <div class="inline-form">
           <mat-form-field appearance="outline" class="grow">
             <mat-label>itemId da Pluggy</mat-label>
-            <input matInput [(ngModel)]="itemIdInput" placeholder="00000000-0000-0000-0000-000000000000">
+            <input matInput
+                   type="text"
+                   name="pluggy-item-id"
+                   autocomplete="off"
+                   autocapitalize="off"
+                   spellcheck="false"
+                   data-form-type="other"
+                   data-lpignore="true"
+                   data-1p-ignore
+                   [(ngModel)]="itemIdInput"
+                   placeholder="00000000-0000-0000-0000-000000000000">
           </mat-form-field>
 
           <button mat-raised-button color="primary" (click)="discoverAccounts()" [disabled]="discovering()">
