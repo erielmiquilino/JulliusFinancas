@@ -19,6 +19,20 @@ mat-card.review-card {
     padding: 16px;
     min-height: 0;
     overflow-y: auto;
+
+    // Sem isto os painéis encolhem para caber na altura do container (flex-shrink padrão)
+    // e o conteúdo é cortado, em vez de o container rolar.
+    > * {
+      flex-shrink: 0;
+    }
+  }
+}
+
+// O corpo do expansion panel do Material tem overflow hidden para a animação de colapso;
+// dentro de um container de altura limitada isso recorta as linhas.
+.review-card {
+  mat-expansion-panel .mat-expansion-panel-body {
+    overflow: visible;
   }
 }
 
@@ -179,6 +193,9 @@ mat-card.review-card {
 .footer {
   position: sticky;
   bottom: 0;
+  z-index: 2;
+  // Fica sempre colado no fim do conteúdo, mesmo quando sobra espaço.
+  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;

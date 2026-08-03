@@ -19,6 +19,12 @@ mat-card.reconciliation-card {
     padding: 16px;
     min-height: 0;
     overflow-y: auto;
+
+    // Mesma razão da tela de revisão: sem isto os blocos encolhem e cortam o conteúdo
+    // em vez de o container rolar.
+    > * {
+      flex-shrink: 0;
+    }
   }
 }
 

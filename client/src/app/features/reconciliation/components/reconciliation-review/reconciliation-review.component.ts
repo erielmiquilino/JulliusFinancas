@@ -16,7 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { finalize } from 'rxjs/operators';
 import { CanComponentDeactivate } from '../../../cards/guards/unsaved-changes.guard';
 import { Category, CategoryService } from '../../../categories/services/category.service';
-import { ConfirmDeleteDialogComponent } from '../../../../shared/components/confirm-delete-dialog/confirm-delete-dialog.component';
+import { ConfirmActionDialogComponent } from '../confirm-action-dialog/confirm-action-dialog.component';
 import { extractApiError } from '../../services/api-error';
 import {
   ReconciliationItem,
@@ -210,17 +210,20 @@ export class ReconciliationReviewComponent implements OnInit, CanComponentDeacti
       return;
     }
 
-    const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
+    const dialogRef = this.dialog.open(ConfirmActionDialogComponent, {
       width: '480px',
       data: {
-        entityName: 'conciliação',
-        itemDescription: `${this.ready().length} lançamento(s) serão gravados`,
+        title: 'Confirmar conciliação',
+        message: `${this.ready().length} lançamento(s) serão gravados no Jullius.`,
         details: [
           { label: 'Entradas', value: this.formatCurrency(current.totalIncome) },
           { label: 'Saídas', value: this.formatCurrency(current.totalExpenses) },
           { label: 'Saldo projetado', value: this.formatCurrency(current.projectedBalance) },
           { label: 'Saldo nos bancos', value: this.formatCurrency(current.bankBalance) }
         ],
+        confirmLabel: 'Confirmar e lançar',
+        confirmColor: 'primary',
+        confirmIcon: 'done_all',
         warningMessage: this.balanceMatches()
           ? undefined
           : 'O saldo projetado não bate com a soma das contas. Confira antes de confirmar.'
@@ -259,11 +262,14 @@ export class ReconciliationReviewComponent implements OnInit, CanComponentDeacti
       return;
     }
 
-    const dialogRef = this.dialog.open(ConfirmDeleteDialogComponent, {
+    const dialogRef = this.dialog.open(ConfirmActionDialogComponent, {
       width: '450px',
       data: {
-        entityName: 'conciliação',
-        itemDescription: 'Todos os lançamentos desta revisão serão descartados',
+        title: 'Descartar conciliação',
+        message: 'Todos os lançamentos desta revisão serão descartados e nada será gravado.',
+        confirmLabel: 'Descartar',
+        confirmColor: 'warn',
+        confirmIcon: 'delete_sweep',
         warningMessage: 'Eles poderão ser trazidos de novo numa sincronização futura.'
       }
     });
