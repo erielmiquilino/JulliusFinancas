@@ -2,6 +2,7 @@ using FluentAssertions;
 using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.Services;
+using Jullius.ServiceApi.Application.Services.Reconciliation;
 using Jullius.ServiceApi.Telegram.Plugins;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -15,11 +16,17 @@ public class FinancialTransactionPluginTests
     private readonly Mock<IFinancialTransactionRepository> _transactionRepoMock = new();
     private readonly Mock<IBudgetRepository> _budgetRepoMock = new();
     private readonly Mock<ICardRepository> _cardRepoMock = new();
+    private readonly Mock<IBankAccountRepository> _bankAccountRepoMock = new();
     private readonly Mock<IServiceProvider> _serviceProviderMock = new();
     private readonly FinancialTransactionPlugin _plugin;
 
     public FinancialTransactionPluginTests()
     {
+        // Sem conta bancária cadastrada, o resumo mantém o cálculo isolado do mês.
+        _bankAccountRepoMock
+            .Setup(r => r.GetActiveAsync())
+            .ReturnsAsync(Array.Empty<BankAccount>());
+
         _transactionRepoMock
             .Setup(r => r.CreateAsync(It.IsAny<FinancialTransaction>()))
             .ReturnsAsync((FinancialTransaction transaction) => transaction);
@@ -53,6 +60,10 @@ public class FinancialTransactionPluginTests
         var transactionResolutionService = new TransactionResolutionService(
             _transactionRepoMock.Object);
 
+        var balanceService = new ConsolidatedBalanceService(
+            _bankAccountRepoMock.Object,
+            _transactionRepoMock.Object);
+
         _plugin = new FinancialTransactionPlugin(
             transactionService,
             categoryResolutionService,
@@ -60,6 +71,7 @@ public class FinancialTransactionPluginTests
             _categoryRepoMock.Object,
             _transactionRepoMock.Object,
             _budgetRepoMock.Object,
+            balanceService,
             Mock.Of<ILogger<FinancialTransactionPlugin>>());
     }
 

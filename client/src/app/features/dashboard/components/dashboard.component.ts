@@ -7,12 +7,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin, Subscription, of } from 'rxjs';
 import { debounceTime, catchError, finalize } from 'rxjs/operators';
 import { DashboardService } from '../services/dashboard.service';
 import { FinancialTransaction, TransactionType } from '../../financial-transaction/services/financial-transaction.service';
 import { Budget } from '../../budgets/services/budget.service';
 import { FilterStorageService } from '../../../shared/services/filter-storage.service';
+import { ConsolidatedBalance, ReconciliationService } from '../../reconciliation/services/reconciliation.service';
 
 interface DashboardFilterState {
   selectedMonth: number;
@@ -61,6 +63,7 @@ interface ConsolidatedSummary {
     MatInputModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     CurrencyPipe,
     DecimalPipe
   ]
@@ -104,6 +107,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   budgetSummary: BudgetSummary | null = null;
   consolidatedSummary: ConsolidatedSummary | null = null;
 
+  /**
+   * Saldo consolidado da conciliação bancária. Quando há marco zero definido, ele substitui
+   * o "Em Conta" calculado só com o mês, porque é o único que fecha com o saldo real das contas.
+   */
+  consolidatedBalance: ConsolidatedBalance | null = null;
+
   currentMonth: number;
   currentYear: number;
   months = [
@@ -118,6 +127,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private dashboardService: DashboardService,
     private filterStorage: FilterStorageService,
+    private reconciliationService: ReconciliationService,
     private cdr: ChangeDetectorRef
   ) {
     const today = new Date();
@@ -171,6 +181,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
           console.error('Erro ao buscar budgets:', err);
           return of([]);
         })
+      ),
+      balance: this.reconciliationService.getConsolidatedBalance(month, year).pipe(
+        catchError(err => {
+          console.error('Erro ao buscar saldo consolidado:', err);
+          return of(null);
+        })
       )
     })
     .pipe(
@@ -180,7 +196,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       })
     )
     .subscribe({
-      next: ({ transactions, budgets }) => {
+      next: ({ transactions, budgets, balance }) => {
+        this.consolidatedBalance = balance;
         this.calculateSummary(transactions);
         this.calculateBudgetSummary(budgets);
         this.calculateConsolidatedSummary(transactions, budgets);
@@ -191,9 +208,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.summaryData = { ...this.initialSummary };
         this.budgetSummary = { ...this.initialBudgetSummary };
         this.consolidatedSummary = { ...this.initialConsolidatedSummary };
+        this.consolidatedBalance = null;
         this.cdr.detectChanges();
       }
     });
+  }
+
+  /** Verdadeiro quando o "Em Conta" exibido vem da conciliação, e não do cálculo do mês. */
+  get isConsolidatedBalanceActive(): boolean {
+    return !!this.consolidatedBalance?.isConfigured && !this.consolidatedBalance.isHistoricalPeriod;
+  }
+
+  /** Período anterior ao marco zero: o acumulado não se aplica e o valor exibido é só do mês. */
+  get isHistoricalPeriod(): boolean {
+    return !!this.consolidatedBalance?.isConfigured && this.consolidatedBalance.isHistoricalPeriod;
+  }
+
+  get balanceDivergence(): number | null {
+    return this.isConsolidatedBalanceActive ? this.consolidatedBalance!.divergencia : null;
+  }
+
+  get hasBalanceDivergence(): boolean {
+    const divergence = this.balanceDivergence;
+    return divergence !== null && Math.abs(divergence) >= 0.005;
   }
 
   calculateSummary(transactions: FinancialTransaction[]): void {
@@ -222,8 +259,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
     });
 
-    const totalEmConta = totalReceitasRecebidas - totalDespesasPagas;
-    const totalPrevistoEmConta = totalReceitas - totalDespesas;
+    // Com marco zero definido, o "Em Conta" passa a ser o saldo acumulado desde a abertura,
+    // que é o único que fecha com a soma real das contas. Sem conciliação, mantém o cálculo do mês.
+    const totalEmConta = this.isConsolidatedBalanceActive
+      ? this.consolidatedBalance!.emConta
+      : totalReceitasRecebidas - totalDespesasPagas;
+
+    // No modo consolidado, "Previsto" é o saldo acumulado mais o que ainda está em aberto no mês.
+    // Sem conciliação, mantém a fórmula original (resultado do mês, pago ou não).
+    const totalPrevistoEmConta = this.isConsolidatedBalanceActive
+      ? totalEmConta + (totalReceitas - totalReceitasRecebidas) - (totalDespesas - totalDespesasPagas)
+      : totalReceitas - totalDespesas;
 
     this.summaryData = {
       totalDespesas,

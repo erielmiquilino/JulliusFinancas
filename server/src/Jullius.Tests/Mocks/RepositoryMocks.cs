@@ -15,6 +15,8 @@ public class RepositoryMocks
     public Mock<ICategoryRepository> CategoryRepository { get; }
     public Mock<ICardDescriptionMappingRepository> CardDescriptionMappingRepository { get; }
     public Mock<IBudgetRepository> BudgetRepository { get; }
+    public Mock<IBankAccountRepository> BankAccountRepository { get; }
+    public Mock<IReconciliationRepository> ReconciliationRepository { get; }
 
     public RepositoryMocks()
     {
@@ -24,6 +26,8 @@ public class RepositoryMocks
         CategoryRepository = new Mock<ICategoryRepository>();
         CardDescriptionMappingRepository = new Mock<ICardDescriptionMappingRepository>();
         BudgetRepository = new Mock<IBudgetRepository>();
+        BankAccountRepository = new Mock<IBankAccountRepository>();
+        ReconciliationRepository = new Mock<IReconciliationRepository>();
 
         SetupDefaultBehaviors();
     }
@@ -98,6 +102,85 @@ public class RepositoryMocks
         BudgetRepository
             .Setup(r => r.GetUsedAmountAsync(It.IsAny<Guid>()))
             .ReturnsAsync(0m);
+
+        // BankAccount Repository
+        BankAccountRepository
+            .Setup(r => r.CreateAsync(It.IsAny<BankAccount>()))
+            .ReturnsAsync((BankAccount account) => account);
+
+        BankAccountRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<BankAccount>()))
+            .Returns(Task.CompletedTask);
+
+        BankAccountRepository
+            .Setup(r => r.DeleteAsync(It.IsAny<Guid>()))
+            .Returns(Task.CompletedTask);
+
+        BankAccountRepository
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(Array.Empty<BankAccount>());
+
+        BankAccountRepository
+            .Setup(r => r.GetActiveAsync())
+            .ReturnsAsync(Array.Empty<BankAccount>());
+
+        // Reconciliation Repository
+        ReconciliationRepository
+            .Setup(r => r.CreateSessionAsync(It.IsAny<ReconciliationSession>()))
+            .ReturnsAsync((ReconciliationSession session) => session);
+
+        ReconciliationRepository
+            .Setup(r => r.UpdateSessionAsync(It.IsAny<ReconciliationSession>()))
+            .Returns(Task.CompletedTask);
+
+        ReconciliationRepository
+            .Setup(r => r.AddItemsAsync(It.IsAny<IEnumerable<ReconciliationItem>>()))
+            .Returns(Task.CompletedTask);
+
+        ReconciliationRepository
+            .Setup(r => r.UpdateItemAsync(It.IsAny<ReconciliationItem>()))
+            .Returns(Task.CompletedTask);
+
+        ReconciliationRepository
+            .Setup(r => r.UpdateItemsAsync(It.IsAny<IEnumerable<ReconciliationItem>>()))
+            .Returns(Task.CompletedTask);
+
+        ReconciliationRepository
+            .Setup(r => r.GetKnownExternalIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Configura as contas bancárias ativas retornadas na conciliação.
+    /// </summary>
+    public void SetupActiveBankAccounts(IEnumerable<BankAccount> accounts)
+    {
+        var materialized = accounts.ToArray();
+
+        BankAccountRepository
+            .Setup(r => r.GetActiveAsync())
+            .ReturnsAsync(materialized);
+
+        BankAccountRepository
+            .Setup(r => r.GetAllAsync())
+            .ReturnsAsync(materialized);
+
+        foreach (var account in materialized)
+        {
+            BankAccountRepository
+                .Setup(r => r.GetByIdAsync(account.Id))
+                .ReturnsAsync(account);
+        }
+    }
+
+    /// <summary>
+    /// Configura o valor líquido realizado devolvido pelo repositório de transações.
+    /// </summary>
+    public void SetupRealizedNetAmount(decimal netAmount)
+    {
+        FinancialTransactionRepository
+            .Setup(r => r.GetRealizedNetAmountAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(netAmount);
     }
 
     /// <summary>

@@ -103,6 +103,29 @@
                   {{ summaryData.totalPrevistoEmConta | currency:'BRL' }}
                 </span>
               </div>
+
+              @if (isConsolidatedBalanceActive) {
+                @if (hasBalanceDivergence) {
+                  <div class="balance-note balance-note-warn"
+                       matTooltip="O ledger do Jullius não bate com a soma dos saldos das contas. Pode haver lançamento manual sem contrapartida no banco, ou movimento ainda não conciliado.">
+                    <mat-icon>warning</mat-icon>
+                    <span>
+                      Divergência de {{ balanceDivergence | currency:'BRL' }}
+                      frente a {{ consolidatedBalance!.saldoBancos | currency:'BRL' }} nos bancos
+                    </span>
+                  </div>
+                } @else {
+                  <div class="balance-note balance-note-ok">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>Conferido com o saldo das contas</span>
+                  </div>
+                }
+              } @else if (isHistoricalPeriod) {
+                <div class="balance-note balance-note-muted">
+                  <mat-icon>history</mat-icon>
+                  <span>Histórico — período anterior ao marco zero da conciliação</span>
+                </div>
+              }
             </mat-card-content>
           </mat-card>
         </div>

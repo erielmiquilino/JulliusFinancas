@@ -1,0 +1,279 @@
+<div class="review-container">
+  <mat-card class="review-card">
+    <mat-card-header class="card-header-container">
+      <mat-card-title>Revisão da Conciliação</mat-card-title>
+      @if (session(); as current) {
+        <span class="period">
+          {{ current.periodFrom | date:'dd/MM/yyyy':'GMT':'pt-BR' }}
+          até
+          {{ current.periodTo | date:'dd/MM/yyyy':'GMT':'pt-BR' }}
+        </span>
+      }
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Carregando conciliação...</span>
+        </div>
+      }
+
+      @if (!loading() && !session()) {
+        <div class="no-data-message">
+          <span>Nenhuma conciliação aguardando revisão.</span>
+        </div>
+      }
+
+      @if (session(); as current) {
+        <!-- PRECISA DE ATENÇÃO -->
+        @if (needsAttention().length > 0) {
+          <section class="section section-attention">
+            <h3 class="section-title">
+              <mat-icon color="warn">priority_high</mat-icon>
+              Precisa de atenção ({{ needsAttention().length }})
+            </h3>
+
+            @for (item of needsAttention(); track item.id) {
+              <div class="row row-attention">
+                <div class="row-head">
+                  <span class="row-date">{{ item.rawDate | date:'dd/MM':'GMT':'pt-BR' }}</span>
+                  <span class="row-amount"
+                        [class.income]="item.proposedType === TransactionType.ReceivableBill"
+                        [class.expense]="item.proposedType === TransactionType.PayableBill">
+                    {{ item.rawAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  </span>
+                  <span class="row-account">{{ item.bankAccountName }}</span>
+                  <span class="badge badge-warn">{{ flagLabel(item.reviewFlag) }}</span>
+                </div>
+
+                <div class="row-raw">{{ item.rawDescription }}</div>
+
+                @if (item.reviewReason) {
+                  <div class="row-reason">{{ item.reviewReason }}</div>
+                }
+
+                <div class="row-edit">
+                  <mat-form-field appearance="outline" class="field-description">
+                    <mat-label>Descrição</mat-label>
+                    <input matInput
+                           [ngModel]="descriptionOf(item)"
+                           (ngModelChange)="onDescriptionChange(item, $event)">
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="field-category">
+                    <mat-label>Categoria</mat-label>
+                    <mat-select [ngModel]="categoryOf(item)"
+                                (ngModelChange)="onCategoryChange(item, $event)">
+                      @for (category of categories(); track category.id) {
+                        <mat-option [value]="category.id">{{ category.name }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <div class="row-actions">
+                    @if (busyItemId() === item.id) {
+                      <mat-spinner diameter="24"></mat-spinner>
+                    } @else {
+                      <button mat-stroked-button color="primary" (click)="approve(item)">
+                        <mat-icon>check</mat-icon>
+                        Lançar
+                      </button>
+
+                      @if (item.reviewFlag === ReviewFlag.OrphanTransfer) {
+                        <button mat-stroked-button
+                                matTooltip="Anular: o dinheiro só mudou de conta e não deve virar lançamento"
+                                (click)="netManually(item)">
+                          <mat-icon>swap_horiz</mat-icon>
+                          Anular
+                        </button>
+                      }
+
+                      <button mat-icon-button color="warn"
+                              matTooltip="Ignorar para sempre"
+                              (click)="ignore(item)">
+                        <mat-icon>block</mat-icon>
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </section>
+        }
+
+        <!-- PRONTAS -->
+        <mat-expansion-panel class="section" [expanded]="needsAttention().length === 0">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="ok-icon">check_circle</mat-icon>
+              Prontas ({{ ready().length }})
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          @for (item of ready(); track item.id) {
+            <div class="row">
+              <div class="row-head">
+                <span class="row-date">{{ item.rawDate | date:'dd/MM':'GMT':'pt-BR' }}</span>
+                <span class="row-amount"
+                      [class.income]="item.proposedType === TransactionType.ReceivableBill"
+                      [class.expense]="item.proposedType === TransactionType.PayableBill">
+                  {{ item.rawAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </span>
+                <span class="row-account">{{ item.bankAccountName }}</span>
+              </div>
+
+              <div class="row-edit">
+                <mat-form-field appearance="outline" class="field-description">
+                  <mat-label>Descrição</mat-label>
+                  <input matInput
+                         [ngModel]="descriptionOf(item)"
+                         (ngModelChange)="onDescriptionChange(item, $event)">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="field-category">
+                  <mat-label>Categoria</mat-label>
+                  <mat-select [ngModel]="categoryOf(item)"
+                              (ngModelChange)="onCategoryChange(item, $event)">
+                    @for (category of categories(); track category.id) {
+                      <mat-option [value]="category.id">{{ category.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="row-actions">
+                  @if (busyItemId() === item.id) {
+                    <mat-spinner diameter="24"></mat-spinner>
+                  } @else {
+                    <button mat-icon-button color="primary"
+                            matTooltip="Salvar alteração"
+                            (click)="approve(item)">
+                      <mat-icon>save</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn"
+                            matTooltip="Ignorar para sempre"
+                            (click)="ignore(item)">
+                      <mat-icon>block</mat-icon>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="no-data-message"><span>Nenhum lançamento pronto.</span></div>
+          }
+        </mat-expansion-panel>
+
+        <!-- ANULADAS -->
+        @if (netted().length > 0) {
+          <mat-expansion-panel class="section">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="muted-icon">swap_horiz</mat-icon>
+                Transferências anuladas ({{ netted().length }})
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <p class="section-hint">
+              Movimentações entre suas próprias contas. Não viram lançamento porque o dinheiro
+              apenas mudou de bolso — no consolidado elas se anulam.
+            </p>
+
+            @for (item of netted(); track item.id) {
+              <div class="row row-muted">
+                <div class="row-head">
+                  <span class="row-date">{{ item.rawDate | date:'dd/MM':'GMT':'pt-BR' }}</span>
+                  <span class="row-amount">{{ item.rawAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+                  <span class="row-account">{{ item.bankAccountName }}</span>
+                </div>
+                <div class="row-raw">{{ item.rawDescription }}</div>
+                <button mat-button color="primary" (click)="restore(item)">
+                  <mat-icon>undo</mat-icon>
+                  Lançar assim mesmo
+                </button>
+              </div>
+            }
+          </mat-expansion-panel>
+        }
+
+        <!-- IGNORADAS -->
+        @if (ignored().length > 0) {
+          <mat-expansion-panel class="section">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="muted-icon">block</mat-icon>
+                Ignoradas ({{ ignored().length }})
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <p class="section-hint">Estes lançamentos não voltarão a aparecer em sincronizações futuras.</p>
+
+            @for (item of ignored(); track item.id) {
+              <div class="row row-muted">
+                <div class="row-head">
+                  <span class="row-date">{{ item.rawDate | date:'dd/MM':'GMT':'pt-BR' }}</span>
+                  <span class="row-amount">{{ item.rawAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+                </div>
+                <div class="row-raw">{{ item.rawDescription }}</div>
+              </div>
+            }
+          </mat-expansion-panel>
+        }
+
+        <!-- RODAPÉ DE CONFERÊNCIA -->
+        <div class="footer">
+          <div class="totals">
+            <div class="total-item">
+              <span class="total-label">Entradas</span>
+              <span class="total-value income">
+                {{ current.totalIncome | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </span>
+            </div>
+            <div class="total-item">
+              <span class="total-label">Saídas</span>
+              <span class="total-value expense">
+                {{ current.totalExpenses | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </span>
+            </div>
+            <div class="total-item">
+              <span class="total-label">Líquido</span>
+              <span class="total-value">
+                {{ current.netAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="check" [class.check-ok]="balanceMatches()" [class.check-warn]="!balanceMatches()">
+            <mat-icon>{{ balanceMatches() ? 'check_circle' : 'warning' }}</mat-icon>
+            <div class="check-text">
+              <div>
+                Após confirmar:
+                <strong>{{ current.projectedBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              </div>
+              <div>
+                Somado nas contas:
+                <strong>{{ current.bankBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-actions">
+            <button mat-stroked-button color="warn" (click)="discard()" [disabled]="saving()">
+              <mat-icon>delete_sweep</mat-icon>
+              Descartar
+            </button>
+            <button mat-raised-button color="primary"
+                    (click)="confirm()"
+                    [disabled]="!canConfirm() || saving()"
+                    [matTooltip]="needsAttention().length > 0
+                      ? 'Resolva as linhas que precisam de atenção antes de confirmar'
+                      : 'Grava os lançamentos no Jullius'">
+              <mat-icon>done_all</mat-icon>
+              {{ saving() ? 'Gravando...' : 'Confirmar conciliação' }}
+            </button>
+          </div>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

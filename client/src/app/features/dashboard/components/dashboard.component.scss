@@ -415,3 +415,37 @@ mat-card.dashboard-content-card {
     font-size: 1.3rem;
   }
 }
+
+// Conferência do saldo consolidado com o saldo real das contas (conciliação bancária)
+.balance-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.3;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.balance-note-ok {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.balance-note-warn {
+  background-color: #fff8e1;
+  color: #e65100;
+  cursor: help;
+}
+
+.balance-note-muted {
+  background-color: #eceff1;
+  color: #546e7a;
+}

@@ -45,6 +45,12 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'reconciliation',
+    loadChildren: () => import('./features/reconciliation/reconciliation.routes')
+      .then(m => m.reconciliationRoutes),
+    canActivate: [authGuard]
+  },
+  {
     path: 'settings',
     loadChildren: () => import('./features/settings/settings.routes')
       .then(m => m.settingsRoutes),

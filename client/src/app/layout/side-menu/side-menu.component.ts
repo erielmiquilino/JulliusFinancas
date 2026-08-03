@@ -32,6 +32,7 @@ export class SideMenuComponent {
     { label: 'Cartões', path: '/cards', icon: 'credit_card' },
     { label: 'Categorias', path: '/categories', icon: 'category' },
     { label: 'Contas Atrasadas', path: '/overdue-accounts', icon: 'money_off' },
+    { label: 'Conciliação', path: '/reconciliation', icon: 'sync' },
     { label: 'Configurações', path: '/settings', icon: 'settings' }
   ];
 

@@ -1,6 +1,9 @@
+using System.Net.Http.Headers;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.Data.Repositories;
 using Jullius.ServiceApi.Application.Services;
+using Jullius.ServiceApi.Application.Services.Reconciliation;
+using Jullius.ServiceApi.Integrations.Pluggy;
 
 namespace Jullius.ServiceApi.Configuration;
 
@@ -25,6 +28,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IBudgetRepository, BudgetRepository>();
         services.AddScoped<IOverdueAccountRepository, OverdueAccountRepository>();
         services.AddScoped<IBotConfigurationRepository, BotConfigurationRepository>();
+
+        // Repositórios da conciliação bancária
+        services.AddScoped<IBankAccountRepository, BankAccountRepository>();
+        services.AddScoped<IReconciliationRepository, ReconciliationRepository>();
 
         // Repositórios de autenticação
         services.AddScoped<IUserRepository, UserRepository>();
@@ -62,6 +69,32 @@ public static class DependencyInjectionExtensions
     }
 
     /// <summary>
+    /// Registra a integração com a Pluggy (Open Finance) e os serviços de conciliação bancária.
+    /// </summary>
+    public static IServiceCollection AddReconciliationServices(this IServiceCollection services)
+    {
+        services.AddTransient<PluggyRetryHandler>();
+
+        // A apiKey vive só em memória: expira em 2h e nunca deve ser persistida.
+        services.AddSingleton<PluggyApiKeyCache>();
+
+        services.AddHttpClient(PluggyClient.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromMinutes(2);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        })
+        .AddHttpMessageHandler<PluggyRetryHandler>();
+
+        services.AddScoped<PluggyClient>();
+        services.AddScoped<InternalTransferMatcher>();
+        services.AddScoped<ConsolidatedBalanceService>();
+        services.AddScoped<BankAccountService>();
+        services.AddScoped<ReconciliationService>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Registra todas as dependências da aplicação
     /// </summary>
     /// <param name="services">Service collection</param>
@@ -70,6 +103,7 @@ public static class DependencyInjectionExtensions
     {
         return services
             .AddRepositories()
-            .AddApplicationServices();
+            .AddApplicationServices()
+            .AddReconciliationServices();
     }
 } 

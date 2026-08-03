@@ -66,6 +66,30 @@ public class FinancialTransactionRepository(JulliusDbContext context) : IFinanci
         await context.SaveChangesAsync();
     }
 
+    public async Task<IEnumerable<FinancialTransaction>> GetByDueDateRangeAsync(DateTime from, DateTime to)
+    {
+        return await context.Set<FinancialTransaction>()
+            .Include(ft => ft.Category)
+            .Where(ft => ft.DueDate >= from && ft.DueDate <= to)
+            .ToListAsync();
+    }
+
+    public async Task<decimal> GetRealizedNetAmountAsync(DateTime from, DateTime to)
+    {
+        var realized = context.Set<FinancialTransaction>()
+            .Where(ft => ft.IsPaid && ft.DueDate >= from && ft.DueDate <= to);
+
+        var income = await realized
+            .Where(ft => ft.Type == TransactionType.ReceivableBill)
+            .SumAsync(ft => (decimal?)ft.Amount) ?? 0m;
+
+        var expenses = await realized
+            .Where(ft => ft.Type == TransactionType.PayableBill)
+            .SumAsync(ft => (decimal?)ft.Amount) ?? 0m;
+
+        return income - expenses;
+    }
+
     public async Task<IEnumerable<string>> GetDistinctDescriptionsAsync(string searchTerm)
     {
         return await context.Set<FinancialTransaction>()

@@ -1,0 +1,203 @@
+.reconciliation-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 100px);
+  height: calc(100dvh - 100px);
+}
+
+mat-card.reconciliation-card {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  max-height: 100%;
+  background-color: #F5F5F5;
+
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 16px;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+.card-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: rgba(0, 0, 0, .6);
+}
+
+.panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panel-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.panel-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, .6);
+}
+
+.inline-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .grow {
+    flex: 1 1 320px;
+  }
+}
+
+.date-field {
+  max-width: 240px;
+}
+
+.consolidated {
+  font-size: 14px;
+}
+
+.discovered-list,
+.account-item {
+  margin-top: 8px;
+}
+
+.discovered-item,
+.account-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, .08);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+
+  &.disabled {
+    opacity: .6;
+  }
+}
+
+.discovered-info,
+.account-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.discovered-name,
+.account-name {
+  font-weight: 500;
+}
+
+.discovered-meta,
+.account-meta {
+  font-size: 12px;
+  color: rgba(0, 0, 0, .6);
+}
+
+.account-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.account-message {
+  font-size: 12px;
+  color: rgba(0, 0, 0, .5);
+  margin-top: 2px;
+}
+
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.overdraft-hint {
+  font-size: 11px;
+  color: #f57c00;
+  cursor: help;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge-ok {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badge-warn {
+  background-color: #fff8e1;
+  color: #f57c00;
+}
+
+.badge-error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.badge-muted {
+  background-color: #eceff1;
+  color: #546e7a;
+}
+
+.negative {
+  color: #c62828;
+}
+
+.no-data-message {
+  padding: 24px;
+  text-align: center;
+  color: rgba(0, 0, 0, .5);
+}
+
+@media (max-width: 768px) {
+  .card-header-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .discovered-item,
+  .account-item {
+    align-items: flex-start;
+  }
+}

@@ -1,0 +1,181 @@
+<div class="reconciliation-container">
+  <mat-card class="reconciliation-card">
+    <mat-card-header class="card-header-container">
+      <mat-card-title>Conciliação Bancária</mat-card-title>
+      <mat-card-actions align="end">
+        <button mat-raised-button (click)="checkConnections()" [disabled]="loading() || !hasAccounts()">
+          <mat-icon>link</mat-icon>
+          Verificar conexões
+        </button>
+        <button mat-raised-button color="primary"
+                (click)="sync()"
+                [disabled]="syncing() || !hasAccounts() || pendingOpeningBalance() > 0"
+                [matTooltip]="pendingOpeningBalance() > 0
+                  ? 'Defina o marco zero de todas as contas antes de sincronizar'
+                  : 'Puxa o movimento do banco desde a última conciliação'">
+          <mat-icon>sync</mat-icon>
+          {{ syncing() ? 'Sincronizando...' : 'Sincronizar' }}
+        </button>
+      </mat-card-actions>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (loading() || syncing()) {
+        <div class="loading-row">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>{{ syncing() ? 'Consultando o banco...' : 'Carregando...' }}</span>
+        </div>
+      }
+
+      <!-- Cadastro de contas a partir do itemId da Pluggy -->
+      <section class="panel">
+        <h3 class="panel-title">Cadastrar conta</h3>
+        <p class="panel-hint">
+          Copie o <strong>itemId</strong> do item MeuPluggy no dashboard da Pluggy e cole aqui.
+          Se você excluir e reconectar uma conta, o itemId muda e precisa ser atualizado.
+        </p>
+
+        <div class="inline-form">
+          <mat-form-field appearance="outline" class="grow">
+            <mat-label>itemId da Pluggy</mat-label>
+            <input matInput [(ngModel)]="itemIdInput" placeholder="00000000-0000-0000-0000-000000000000">
+          </mat-form-field>
+
+          <button mat-raised-button color="primary" (click)="discoverAccounts()" [disabled]="discovering()">
+            <mat-icon>search</mat-icon>
+            Buscar contas
+          </button>
+        </div>
+
+        @if (discovered().length > 0) {
+          <div class="discovered-list">
+            @for (account of discovered(); track account.pluggyAccountId) {
+              <div class="discovered-item" [class.disabled]="account.isCreditCard">
+                <div class="discovered-info">
+                  <span class="discovered-name">{{ account.name }}</span>
+                  <span class="discovered-meta">
+                    {{ account.subtype }} · nº {{ account.number || '—' }} ·
+                    {{ account.balance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  </span>
+                  @if (account.owner) {
+                    <span class="discovered-meta">Titular: {{ account.owner }}</span>
+                  }
+                </div>
+
+                @if (account.isCreditCard) {
+                  <span class="badge badge-muted">Cartão — previsto para a v2</span>
+                } @else if (account.alreadyRegistered) {
+                  <span class="badge badge-ok">Já cadastrada</span>
+                } @else {
+                  <button mat-stroked-button color="primary" (click)="registerDiscovered(account)">
+                    <mat-icon>add</mat-icon>
+                    Cadastrar
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Marco zero -->
+      <section class="panel">
+        <h3 class="panel-title">Marco zero</h3>
+        <p class="panel-hint">
+          O saldo que existia antes desta data vira um lançamento "Saldo anterior".
+          A partir dela, o "Em Conta" do dashboard passa a acumular e fechar com o saldo real das contas.
+        </p>
+
+        <mat-form-field appearance="outline" class="date-field">
+          <mat-label>Saldo anterior a</mat-label>
+          <input matInput [matDatepicker]="openingPicker" [(ngModel)]="openingBalanceDate">
+          <mat-datepicker-toggle matSuffix [for]="openingPicker"></mat-datepicker-toggle>
+          <mat-datepicker #openingPicker></mat-datepicker>
+        </mat-form-field>
+      </section>
+
+      <!-- Contas cadastradas -->
+      <section class="panel">
+        <div class="panel-header">
+          <h3 class="panel-title">Contas cadastradas</h3>
+          @if (hasAccounts()) {
+            <span class="consolidated">
+              Consolidado: <strong [class.negative]="consolidated() < 0">
+                {{ consolidated() | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+              </strong>
+            </span>
+          }
+        </div>
+
+        @for (account of accounts(); track account.id) {
+          <div class="account-item">
+            <div class="account-main">
+              <div class="account-title">
+                <span class="account-name">{{ account.name }}</span>
+
+                @if (account.isConnectionAlive === false) {
+                  <span class="badge badge-error">Conexão perdida</span>
+                } @else if (account.isConnectionAlive === true) {
+                  <span class="badge badge-ok">Conectada</span>
+                }
+
+                @if (!account.hasOpeningBalance) {
+                  <span class="badge badge-warn">Sem marco zero</span>
+                }
+              </div>
+
+              <div class="account-meta">
+                Saldo
+                <strong [class.negative]="account.lastKnownBalance < 0">
+                  {{ account.lastKnownBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                </strong>
+                @if (account.lastKnownBalance < 0) {
+                  <span class="overdraft-hint" matTooltip="Saldo negativo entra no consolidado como está. O limite do cheque especial é crédito, não dinheiro seu.">
+                    (cheque especial)
+                  </span>
+                }
+                @if (account.hasOpeningBalance) {
+                  · abertura
+                  {{ account.openingBalance | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  em {{ account.openingBalanceDate | date:'dd/MM/yyyy':'GMT':'pt-BR' }}
+                }
+                @if (account.lastSyncedAt) {
+                  · conciliado até {{ account.lastSyncedAt | date:'dd/MM/yyyy':'GMT':'pt-BR' }}
+                }
+              </div>
+
+              @if (account.connectionMessage) {
+                <div class="account-message">{{ account.connectionMessage }}</div>
+              }
+            </div>
+
+            <div class="account-actions">
+              @if (busyAccountId() === account.id) {
+                <mat-spinner diameter="24"></mat-spinner>
+              } @else if (account.hasOpeningBalance) {
+                <button mat-icon-button color="warn"
+                        matTooltip="Remover marco zero"
+                        (click)="clearOpeningBalance(account)">
+                  <mat-icon>restart_alt</mat-icon>
+                </button>
+              } @else {
+                <button mat-stroked-button color="primary" (click)="setOpeningBalance(account)">
+                  <mat-icon>flag</mat-icon>
+                  Definir marco zero
+                </button>
+              }
+
+              <button mat-icon-button color="warn" matTooltip="Excluir conta" (click)="deleteAccount(account)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="no-data-message">
+            <span>Nenhuma conta cadastrada. Cole um itemId acima para começar.</span>
+          </div>
+        }
+      </section>
+    </mat-card-content>
+  </mat-card>
+</div>

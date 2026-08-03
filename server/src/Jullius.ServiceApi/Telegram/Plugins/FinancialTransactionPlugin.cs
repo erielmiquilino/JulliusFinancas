@@ -4,6 +4,7 @@ using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
 using Jullius.ServiceApi.Application.Services;
+using Jullius.ServiceApi.Application.Services.Reconciliation;
 using Microsoft.SemanticKernel;
 
 namespace Jullius.ServiceApi.Telegram.Plugins;
@@ -22,6 +23,7 @@ public sealed class FinancialTransactionPlugin
     private readonly ICategoryRepository _categoryRepository;
     private readonly IFinancialTransactionRepository _transactionRepository;
     private readonly IBudgetRepository _budgetRepository;
+    private readonly ConsolidatedBalanceService _balanceService;
     private readonly ILogger<FinancialTransactionPlugin> _logger;
 
     public FinancialTransactionPlugin(
@@ -31,6 +33,7 @@ public sealed class FinancialTransactionPlugin
         ICategoryRepository categoryRepository,
         IFinancialTransactionRepository transactionRepository,
         IBudgetRepository budgetRepository,
+        ConsolidatedBalanceService balanceService,
         ILogger<FinancialTransactionPlugin> logger)
     {
         _transactionService = transactionService;
@@ -39,6 +42,7 @@ public sealed class FinancialTransactionPlugin
         _categoryRepository = categoryRepository;
         _transactionRepository = transactionRepository;
         _budgetRepository = budgetRepository;
+        _balanceService = balanceService;
         _logger = logger;
     }
 
@@ -105,8 +109,25 @@ public sealed class FinancialTransactionPlugin
             var receivedIncome = income.Where(t => t.IsPaid).Sum(t => t.Amount);
             var pendingIncome = totalIncome - receivedIncome;
 
-            var actualBalance = receivedIncome - paidExpenses;
-            var projectedBalance = totalIncome - totalExpenses;
+            // Com a conciliação bancária configurada, o saldo realizado passa a ser o acumulado
+            // desde o marco zero — o mesmo número do card "Em Conta" do dashboard.
+            var consolidated = await _balanceService.GetBalanceAsync(month, year);
+            var isConsolidated = consolidated.IsConfigured && !consolidated.IsHistoricalPeriod;
+
+            var actualBalance = isConsolidated
+                ? consolidated.EmConta
+                : receivedIncome - paidExpenses;
+
+            var projectedBalance = isConsolidated
+                ? actualBalance + pendingIncome - openExpenses
+                : totalIncome - totalExpenses;
+
+            var balanceNote = isConsolidated
+                ? $"\n- Somado nas contas: R$ {consolidated.SaldoBancos.ToString("N2", PtBrCulture)}" +
+                  (consolidated.Divergencia is { } divergencia && Math.Abs(divergencia) >= 0.005m
+                      ? $"\n- ⚠️ Divergência de R$ {divergencia.ToString("N2", PtBrCulture)} entre o Jullius e os bancos"
+                      : "\n- ✅ Conferido com o saldo das contas")
+                : string.Empty;
 
             var budgetInfo = "";
             foreach (var budget in budgetList)
@@ -134,7 +155,7 @@ public sealed class FinancialTransactionPlugin
 
                 SALDO:
                 - Atual (realizado): R$ {actualBalance.ToString("N2", PtBrCulture)}
-                - Projetado: R$ {projectedBalance.ToString("N2", PtBrCulture)}
+                - Projetado: R$ {projectedBalance.ToString("N2", PtBrCulture)}{balanceNote}
 
                 ORÇAMENTOS:{(budgetList.Count > 0 ? budgetInfo : "\n- Nenhum orçamento definido")}
                 """;

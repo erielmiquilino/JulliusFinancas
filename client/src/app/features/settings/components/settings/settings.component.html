@@ -6,7 +6,7 @@
     </div>
     <div class="header-text">
       <h1>Configurações</h1>
-      <p>Configure a integração com Telegram e Google Gemini</p>
+      <p>Configure a integração com Telegram, Google Gemini e Pluggy (Open Finance)</p>
     </div>
   </header>
 
@@ -103,6 +103,42 @@
         }
         Testar Conexão Gemini
       </button>
+    </div>
+  </mat-card>
+
+  <!-- Pluggy Section -->
+  <mat-card class="config-card">
+    <div class="card-header-row">
+      <div class="section-badge">
+        <mat-icon>account_balance</mat-icon>
+      </div>
+      <div class="section-info">
+        <h2>Pluggy (Open Finance)</h2>
+        <span class="section-subtitle">Credenciais usadas pela conciliação bancária</span>
+      </div>
+      <span class="section-status-chip"
+        [class.all-configured]="pluggyStatus().allConfigured"
+        [class.partial]="pluggyStatus().partial">
+        {{ pluggyStatus().label }}
+      </span>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="card-fields">
+      @for (field of pluggyFields; track field.key) {
+        <app-config-field-row
+          [label]="field.label"
+          [description]="field.description"
+          [icon]="field.icon"
+          [placeholder]="field.placeholder"
+          [control]="getFormControl(field.key)"
+          [isConfigured]="configStatus()[field.key]"
+          [isSaving]="saving()[field.key]"
+          [inputType]="field.type"
+          (save)="saveConfig(field.key, field.description)"
+        />
+      }
     </div>
   </mat-card>
 

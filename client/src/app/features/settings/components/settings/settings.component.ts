@@ -64,6 +64,7 @@ export class SettingsComponent {
   /** Derived state — recomputed only when configStatus signal changes */
   readonly telegramStatus = computed(() => this.computeSectionStatus('telegram'));
   readonly geminiStatus = computed(() => this.computeSectionStatus('gemini'));
+  readonly pluggyStatus = computed(() => this.computeSectionStatus('pluggy'));
 
   readonly telegramFields: ConfigField[] = [
     {
@@ -103,13 +104,32 @@ export class SettingsComponent {
     },
   ];
 
+  readonly pluggyFields: ConfigField[] = [
+    {
+      key: 'PluggyClientId',
+      label: 'Client ID',
+      description: 'Credencial da aplicação criada em dashboard.pluggy.ai',
+      icon: 'badge',
+      placeholder: '00000000-0000-0000-0000-000000000000',
+      type: 'password',
+    },
+    {
+      key: 'PluggyClientSecret',
+      label: 'Client Secret',
+      description: 'Segredo da mesma aplicação. Usado só para gerar a chave temporária de 2h.',
+      icon: 'vpn_key',
+      placeholder: '••••••••',
+      type: 'password',
+    },
+  ];
+
   constructor() {
     // Build form controls and initial signal state
     const controls: Record<string, FormControl> = {};
     const initialSaving: Record<string, boolean> = {};
     const initialStatus: Record<string, boolean> = {};
 
-    [...this.telegramFields, ...this.geminiFields].forEach(field => {
+    [...this.telegramFields, ...this.geminiFields, ...this.pluggyFields].forEach(field => {
       controls[field.key] = this.fb.control('');
       initialSaving[field.key] = false;
       initialStatus[field.key] = false;
@@ -206,8 +226,12 @@ export class SettingsComponent {
       });
   }
 
-  private computeSectionStatus(section: 'telegram' | 'gemini'): SectionStatus {
-    const fields = section === 'telegram' ? this.telegramFields : this.geminiFields;
+  private computeSectionStatus(section: 'telegram' | 'gemini' | 'pluggy'): SectionStatus {
+    const fields = section === 'telegram'
+      ? this.telegramFields
+      : section === 'gemini'
+        ? this.geminiFields
+        : this.pluggyFields;
     const status = this.configStatus();
     const configured = fields.filter(f => status[f.key]).length;
     const total = fields.length;
