@@ -1,3 +1,4 @@
+using System.Globalization;
 using Jullius.Domain.Domain.Entities;
 using Jullius.Domain.Domain.Repositories;
 using Jullius.ServiceApi.Application.DTOs;
@@ -11,6 +12,9 @@ namespace Jullius.ServiceApi.Application.Services.Reconciliation;
 /// </summary>
 public class ReconciliationService
 {
+    /// <summary>O container roda sem cultura definida; sem isto o "C" imprime o símbolo genérico ¤.</summary>
+    private static readonly CultureInfo PtBrCulture = new("pt-BR");
+
     private readonly IReconciliationRepository _repository;
     private readonly IBankAccountRepository _bankAccountRepository;
     private readonly IFinancialTransactionRepository _transactionRepository;
@@ -688,8 +692,8 @@ public class ReconciliationService
         if (dto.ProjectedBalance != dto.BankBalance)
         {
             dto.Warnings.Add(
-                $"Depois de confirmar, o consolidado ficará em {dto.ProjectedBalance:C} " +
-                $"contra {dto.BankBalance:C} somados nas contas.");
+                $"Depois de confirmar, o consolidado ficará em {dto.ProjectedBalance.ToString("C", PtBrCulture)} " +
+                $"contra {dto.BankBalance.ToString("C", PtBrCulture)} somados nas contas.");
         }
 
         return dto;
