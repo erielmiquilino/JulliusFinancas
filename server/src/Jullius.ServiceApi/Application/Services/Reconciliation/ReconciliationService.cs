@@ -630,11 +630,16 @@ public class ReconciliationService
             if (best is null)
                 continue;
 
-            // A sugestão é gravada, mas o vínculo nunca é automático: coincidência de valor
-            // e data acontece entre lançamentos que nada têm a ver um com o outro.
+            // Só candidatos fortes viram sugestão nomeada na tela. Um palpite fraco daria
+            // um botão "Vincular a <lançamento aleatório>", que atrapalha mais do que ajuda —
+            // os demais continuam disponíveis dentro do diálogo, ranqueados.
+            if (!best.IsStrong)
+                continue;
+
+            // Mesmo forte, o vínculo nunca é automático: a decisão fica com o usuário.
             item.SuggestLink(best.Transaction.Id);
 
-            if (best.IsStrong && item.ReviewFlag == ReconciliationReviewFlag.None)
+            if (item.ReviewFlag == ReconciliationReviewFlag.None)
                 item.Flag(ReconciliationReviewFlag.PossibleDuplicate);
         }
     }

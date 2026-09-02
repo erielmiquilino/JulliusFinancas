@@ -17,7 +17,7 @@ public sealed class TransactionMatchFinder
     private static readonly TimeSpan MaxDateDistance = TimeSpan.FromDays(21);
 
     /// <summary>Abaixo disto o candidato não é sequer exibido.</summary>
-    private const decimal MinimumScore = 0.30m;
+    private const decimal MinimumScore = 0.45m;
 
     /// <summary>A partir daqui a tela oferece o vínculo em um clique.</summary>
     public const decimal SuggestionThreshold = 0.80m;
@@ -64,12 +64,26 @@ public sealed class TransactionMatchFinder
         if (textScore >= 0.70m)
             reasons.Add("descrição parecida");
 
-        // Valor domina, data confirma, descrição desempata — é o que separa
-        // um pagamento de verdade de uma coincidência de centavos no mesmo dia.
-        var score = (amountScore * 0.55m) + (dateScore * 0.25m) + (textScore * 0.20m);
+        // A descrição precisa pesar o suficiente para que valor e data coincidentes, sozinhos,
+        // não cheguem ao patamar de sugestão: no extrato real há uma pizzaria de R$ 195,00 no
+        // mesmo dia de um investimento de R$ 195,00, e são coisas distintas.
+        var score = (amountScore * 0.50m) + (dateScore * 0.20m) + (textScore * 0.30m);
 
+        // Uma conta em aberto batendo ao centavo é a projeção esperando exatamente este pagamento
+        // — sinal forte mesmo quando o banco descreve a cobrança com outras palavras
+        // ("LIQUIDO DE VENCIMENTO" para o lançamento "Salário").
         if (!transaction.IsPaid)
+        {
             reasons.Add("ainda não pago");
+
+            if (amountScore == 1m)
+            {
+                score += 0.15m;
+                reasons.Add("conta em aberto com valor exato");
+            }
+        }
+
+        score = Math.Min(score, 1m);
 
         return new TransactionMatch(
             transaction,

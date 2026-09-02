@@ -33,10 +33,11 @@ public class TransactionMatchFinderTests
     {
         // Arrange — caso real: "Pagamento GOOGLE BRASIL" x "Google Drive - Anual - 200GB".
         var item = Item(-149.90m, "Pagamento GOOGLE BRASIL PAGAMENTOS LTDA");
+        var vencimento = BankStatementNormalizer.ToLedgerDate(Dia);
         var ledger = new[]
         {
-            Lancamento("Google Drive - Anual - 200GB", 149.90m, Dia),
-            Lancamento("Aluguel", 1500.00m, Dia.AddDays(4))
+            Lancamento("Google Drive - Anual - 200GB", 149.90m, vencimento),
+            Lancamento("Aluguel", 1500.00m, vencimento.AddDays(4))
         };
 
         // Act
@@ -53,15 +54,55 @@ public class TransactionMatchFinderTests
     public void Find_ShouldNotSuggestStrongly_WhenOnlyAmountAndDateCoincide()
     {
         // Arrange — o falso positivo real: a pizzaria e o investimento custam R$ 195,00
-        // no mesmo dia, mas não têm nada a ver um com o outro.
+        // no MESMO dia (datas alinhadas de propósito, para o teste não passar por acaso
+        // graças ao deslocamento de fuso) e ainda assim não têm relação alguma.
         var item = Item(-195.00m, "Pagamento com QR Pix PIZZARIA DUOS LTDA");
-        var ledger = new[] { Lancamento("Investimento em limite de crédito Inter", 195.00m, Dia) };
+        var vencimento = BankStatementNormalizer.ToLedgerDate(Dia);
+        var ledger = new[] { Lancamento("Investimento em limite de crédito Inter", 195.00m, vencimento) };
 
         // Act
         var result = _finder.Find(item, ledger, new Dictionary<Guid, decimal>());
 
         // Assert — aparece como opção, mas não com força de sugestão automática.
         result.Should().ContainSingle();
+        result[0].Reasons.Should().Contain("mesma data", "as datas foram alinhadas de propósito");
+        result[0].IsStrong.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Find_ShouldSuggestStrongly_WhenAnOpenBillMatchesToTheCent()
+    {
+        // Arrange — "LIQUIDO DE VENCIMENTO" não se parece em nada com "Salário", mas uma conta
+        // em aberto batendo ao centavo é a projeção esperando exatamente este pagamento.
+        var item = Item(10140.69m, "LIQUIDO DE VENCIMENTO CNPJ 046011836000192");
+        var vencimento = BankStatementNormalizer.ToLedgerDate(Dia);
+        var ledger = new[]
+        {
+            Lancamento("Salário", 10140.69m, vencimento, isPaid: false, type: TransactionType.ReceivableBill)
+        };
+
+        // Act
+        var result = _finder.Find(item, ledger, new Dictionary<Guid, decimal>());
+
+        // Assert
+        result.Should().ContainSingle();
+        result[0].IsStrong.Should().BeTrue();
+        result[0].Reasons.Should().Contain("conta em aberto com valor exato");
+    }
+
+    [Fact]
+    public void Find_ShouldNotSuggestStrongly_WhenAPaidEntryMerelyMatchesAmountAndDate()
+    {
+        // Arrange — o mesmo valor exato, mas o lançamento já está pago: sem apoio da descrição,
+        // não é forte o bastante para virar sugestão nomeada na tela.
+        var item = Item(-100.00m, "APLIC. POUPANCA -");
+        var vencimento = BankStatementNormalizer.ToLedgerDate(Dia);
+        var ledger = new[] { Lancamento("Fraldas - Droga Raia", 100.00m, vencimento, isPaid: true) };
+
+        // Act
+        var result = _finder.Find(item, ledger, new Dictionary<Guid, decimal>());
+
+        // Assert
         result[0].IsStrong.Should().BeFalse();
     }
 
@@ -86,7 +127,8 @@ public class TransactionMatchFinderTests
     public void Find_ShouldRecognizeTheSum_WhenAnotherLineAlreadyPointsAtTheSameTransaction()
     {
         // Arrange — as duas cobranças da Juvo (200,23 + 194,48) fecham a parcela de 394,71.
-        var lancamento = Lancamento("Juvo Crédito (09 e 10 de 12)", 394.71m, Dia);
+        var lancamento = Lancamento(
+            "Juvo Crédito (09 e 10 de 12)", 394.71m, BankStatementNormalizer.ToLedgerDate(Dia));
         var item = Item(-194.48m, "PIX ENVIADO Juvo Brasil Tecnologia Ltda");
         var jaVinculado = new Dictionary<Guid, decimal> { [lancamento.Id] = 200.23m };
 
