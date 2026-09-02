@@ -39,6 +39,10 @@ interface TransactionFilterState {
   textFilter?: string;
 }
 
+function isValidDate(value: Date | undefined): value is Date {
+  return value instanceof Date && !isNaN(value.getTime());
+}
+
 @Component({
   selector: 'app-transaction-list',
   templateUrl: './transaction-list.component.html',
@@ -262,18 +266,24 @@ export class TransactionListComponent implements OnInit, OnDestroy, AfterViewIni
 
   onStartDateChange(event: any): void {
     this.startDate = event.value;
-    if (this.startDate && this.endDate && this.selectedDateRangeType === 'Custom') {
-      this.saveFiltersToStorage();
-      this.loadTransactions();
-    }
+    this.reloadCustomRange();
   }
 
   onEndDateChange(event: any): void {
     this.endDate = event.value;
-    if (this.startDate && this.endDate && this.selectedDateRangeType === 'Custom') {
-      this.saveFiltersToStorage();
-      this.loadTransactions();
+    this.reloadCustomRange();
+  }
+
+  /** Só recarrega quando as duas datas do período personalizado são válidas. */
+  private reloadCustomRange(): void {
+    if (this.selectedDateRangeType !== 'Custom') {
+      return;
     }
+    if (!isValidDate(this.startDate) || !isValidDate(this.endDate)) {
+      return;
+    }
+    this.saveFiltersToStorage();
+    this.loadTransactions();
   }
 
   onPaymentStatusChange(status: 'Paid' | 'Pending' | 'All'): void {

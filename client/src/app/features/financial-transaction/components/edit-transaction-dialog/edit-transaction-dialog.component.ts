@@ -70,7 +70,8 @@ export class EditTransactionDialogComponent implements OnInit {
 
     // Observa mudanças na data de vencimento para carregar budgets do período
     this.form.get('dueDate')?.valueChanges.subscribe(newDueDate => {
-      if (newDueDate) {
+      // A digitação emite valores intermediários; ignora datas ainda inválidas.
+      if (newDueDate instanceof Date && !isNaN(newDueDate.getTime())) {
         this.loadBudgetsForDate(newDueDate);
       }
     });

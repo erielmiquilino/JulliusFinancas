@@ -6,21 +6,9 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { authInterceptor } from './core/auth/interceptors/auth.interceptor';
 import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
-import { MAT_DATE_LOCALE, MAT_DATE_FORMATS } from '@angular/material/core';
+import { provideBrazilianDateAdapter } from './shared/date/brazilian-date-adapter';
 
 registerLocaleData(localePt);
-
-const MY_DATE_FORMATS = {
-  parse: {
-    dateInput: 'DD/MM/YYYY',
-  },
-  display: {
-    dateInput: 'DD/MM/YYYY',
-    monthYearLabel: 'MMM YYYY',
-    dateA11yLabel: 'DD/MM/YYYY',
-    monthYearA11yLabel: 'MMMM YYYY',
-  },
-};
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -28,7 +16,6 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideHttpClient(withInterceptors([authInterceptor])),
     { provide: LOCALE_ID, useValue: 'pt-BR' },
-    { provide: MAT_DATE_LOCALE, useValue: 'pt-BR' },
-    { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS }
+    ...provideBrazilianDateAdapter()
   ]
 };

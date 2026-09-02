@@ -9,7 +9,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
@@ -21,6 +20,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+
+import { provideBrazilianDateAdapter } from '../../shared/date/brazilian-date-adapter';
 
 // Components
 import { CreateTransactionDialogComponent } from './components/create-transaction-dialog/create-transaction-dialog.component';
@@ -45,7 +46,6 @@ import { TransactionListComponent } from './components/transaction-list/transact
     MatInputModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -60,7 +60,7 @@ import { TransactionListComponent } from './components/transaction-list/transact
     FinancialTransactionRoutingModule
   ],
   providers: [
-    { provide: MAT_DATE_LOCALE, useValue: 'pt-BR' }
+    ...provideBrazilianDateAdapter()
   ]
 })
 export class FinancialTransactionModule { }

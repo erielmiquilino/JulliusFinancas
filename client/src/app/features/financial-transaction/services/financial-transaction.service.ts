@@ -74,6 +74,32 @@ export interface PayWithCardResponse {
   cardTransactionIds: string[];
 }
 
+/**
+ * O DueDate é persistido como meia-noite UTC (data pura, sem hora).
+ * Por isso os limites do filtro precisam ser montados em UTC a partir do dia
+ * escolhido no calendário local — usar `setHours` local deslocaria o início do
+ * intervalo em 3h (fuso do Brasil) e esconderia os lançamentos do primeiro dia.
+ */
+function startOfDayUtc(date: Date): Date {
+  const local = new Date(date);
+  return new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate(), 0, 0, 0, 0));
+}
+
+function endOfDayUtc(date: Date): Date {
+  const local = new Date(date);
+  return new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate(), 23, 59, 59, 999));
+}
+
+function buildDueDateRangeFilter(from: Date, to: Date): string {
+  return `(DueDate ge ${startOfDayUtc(from).toISOString()} and DueDate le ${endOfDayUtc(to).toISOString()})`;
+}
+
+function buildMonthFilter(month: number, year: number): string {
+  const startDate = new Date(Date.UTC(year, month - 1, 1));
+  const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+  return `(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -102,47 +128,36 @@ export class FinancialTransactionService {
 
       if (filters.dateRangeType) {
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
         switch (filters.dateRangeType) {
           case 'Today':
-            const tomorrow = new Date(today);
-            tomorrow.setDate(today.getDate() + 1);
-            conditions.push(`(DueDate ge ${today.toISOString()} and DueDate lt ${tomorrow.toISOString()})`);
+            conditions.push(buildDueDateRangeFilter(today, today));
             break;
-          case 'ThisWeek':
-            const firstDayOfWeek = new Date(today);
+          case 'ThisWeek': {
             const dayOfWeek = today.getDay();
             const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when day is sunday
+            const firstDayOfWeek = new Date(today);
             firstDayOfWeek.setDate(diff);
 
             const lastDayOfWeek = new Date(firstDayOfWeek);
             lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
-            lastDayOfWeek.setHours(23, 59, 59, 999);
 
-            conditions.push(`(DueDate ge ${firstDayOfWeek.toISOString()} and DueDate le ${lastDayOfWeek.toISOString()})`);
+            conditions.push(buildDueDateRangeFilter(firstDayOfWeek, lastDayOfWeek));
             break;
+          }
           case 'Month':
             if (filters.month && filters.year) {
-              const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
-              const endDate = new Date(Date.UTC(filters.year, filters.month, 0, 23, 59, 59, 999));
-              conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
+              conditions.push(buildMonthFilter(filters.month, filters.year));
             }
             break;
           case 'Custom':
             if (filters.startDate && filters.endDate) {
-              const startDate = new Date(filters.startDate);
-              startDate.setHours(0, 0, 0, 0);
-              const endDate = new Date(filters.endDate);
-              endDate.setHours(23, 59, 59, 999);
-              conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
+              conditions.push(buildDueDateRangeFilter(filters.startDate, filters.endDate));
             }
             break;
         }
       } else if (filters.month && filters.year) { // Fallback to old month/year filter if dateRangeType is not set
-        const startDate = new Date(Date.UTC(filters.year, filters.month - 1, 1));
-        const endDate = new Date(Date.UTC(filters.year, filters.month, 0, 23, 59, 59, 999));
-        conditions.push(`(DueDate ge ${startDate.toISOString()} and DueDate le ${endDate.toISOString()})`);
+        conditions.push(buildMonthFilter(filters.month, filters.year));
       }
 
       if (filters.type !== undefined) {

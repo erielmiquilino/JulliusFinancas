@@ -11,9 +11,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-// O app não provê DateAdapter na raiz: cada feature importa o MatNativeDateModule.
-// Sem ele, o datepicker quebra com "Cannot read properties of null (reading 'localeChanges')".
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 import { ConfirmDeleteDialogComponent } from '../../../../shared/components/confirm-delete-dialog/confirm-delete-dialog.component';
@@ -35,7 +32,6 @@ import {
     MatButtonModule,
     MatCardModule,
     MatDatepickerModule,
-    MatNativeDateModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
