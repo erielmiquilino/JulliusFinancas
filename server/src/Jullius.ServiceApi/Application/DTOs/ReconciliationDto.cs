@@ -15,6 +15,7 @@ public class ReconciliationSessionDto
     public int NeedsAttentionCount { get; set; }
     public int ReadyCount { get; set; }
     public int NettedCount { get; set; }
+    public int LinkedCount { get; set; }
 
     public decimal TotalIncome { get; set; }
     public decimal TotalExpenses { get; set; }
@@ -53,6 +54,19 @@ public class ReconciliationItemDto
     public ReconciliationReviewFlag ReviewFlag { get; set; }
     public Guid? MatchedItemId { get; set; }
 
+    /// <summary>Lançamento existente ao qual esta linha foi vinculada.</summary>
+    public Guid? LinkedTransactionId { get; set; }
+    public string? LinkedTransactionDescription { get; set; }
+    public decimal? LinkedTransactionAmount { get; set; }
+    public DateTime? LinkedTransactionDueDate { get; set; }
+    public bool LinkUpdateAmount { get; set; }
+    public bool LinkUpdateDueDate { get; set; }
+    public bool LinkMarkAsPaid { get; set; }
+
+    /// <summary>Melhor candidato achado no sync, para a tela oferecer o vínculo em um clique.</summary>
+    public Guid? SuggestedTransactionId { get; set; }
+    public string? SuggestedTransactionDescription { get; set; }
+
     /// <summary>Explicação em português do motivo pelo qual a linha exige atenção.</summary>
     public string? ReviewReason { get; set; }
 }
@@ -72,8 +86,41 @@ public class SyncReconciliationResultDto
     public int ImportedCount { get; set; }
     public int SkippedCount { get; set; }
     public int NettedCount { get; set; }
+    public int LinkedCount { get; set; }
     public List<string> Warnings { get; set; } = new();
     public string Message { get; set; } = string.Empty;
+}
+
+public class MatchCandidateDto
+{
+    public Guid TransactionId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public DateTime DueDate { get; set; }
+    public bool IsPaid { get; set; }
+    public string? CategoryName { get; set; }
+
+    /// <summary>0 a 1. Acima de 0,80 a tela destaca como sugestão.</summary>
+    public decimal Score { get; set; }
+    public List<string> Reasons { get; set; } = new();
+
+    /// <summary>Soma das outras linhas do banco já vinculadas a este mesmo lançamento.</summary>
+    public decimal AlreadyLinkedAmount { get; set; }
+
+    /// <summary>Essa soma mais o valor desta linha.</summary>
+    public decimal CombinedAmount { get; set; }
+
+    public bool SuggestUpdateAmount { get; set; }
+    public bool SuggestUpdateDueDate { get; set; }
+    public bool SuggestMarkAsPaid { get; set; }
+}
+
+public class LinkReconciliationItemRequest
+{
+    public Guid TransactionId { get; set; }
+    public bool UpdateAmount { get; set; }
+    public bool UpdateDueDate { get; set; }
+    public bool MarkAsPaid { get; set; }
 }
 
 public class UpdateReconciliationItemRequest
@@ -88,6 +135,7 @@ public class UpdateReconciliationItemRequest
 public class ConfirmReconciliationResultDto
 {
     public int PostedCount { get; set; }
+    public int LinkedCount { get; set; }
     public int IgnoredCount { get; set; }
     public int NettedCount { get; set; }
     public decimal EmConta { get; set; }

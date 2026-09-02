@@ -20,7 +20,9 @@ export enum ReconciliationItemStatus {
   Approved = 1,
   Ignored = 2,
   NettedInternal = 3,
-  Posted = 4
+  Posted = 4,
+  /** Corresponde a um lançamento que já existia; não gera lançamento novo. */
+  Linked = 5
 }
 
 export enum ReconciliationReviewFlag {
@@ -106,7 +108,41 @@ export interface ReconciliationItem {
   status: ReconciliationItemStatus;
   reviewFlag: ReconciliationReviewFlag;
   matchedItemId: string | null;
+  linkedTransactionId: string | null;
+  linkedTransactionDescription: string | null;
+  linkedTransactionAmount: number | null;
+  linkedTransactionDueDate: string | null;
+  linkUpdateAmount: boolean;
+  linkUpdateDueDate: boolean;
+  linkMarkAsPaid: boolean;
+  suggestedTransactionId: string | null;
+  suggestedTransactionDescription: string | null;
   reviewReason: string | null;
+}
+
+export interface MatchCandidate {
+  transactionId: string;
+  description: string;
+  amount: number;
+  dueDate: string;
+  isPaid: boolean;
+  categoryName: string | null;
+  /** 0 a 1. Acima de 0,80 a tela destaca como sugestão. */
+  score: number;
+  reasons: string[];
+  /** Soma das outras linhas do banco já vinculadas a este mesmo lançamento. */
+  alreadyLinkedAmount: number;
+  combinedAmount: number;
+  suggestUpdateAmount: boolean;
+  suggestUpdateDueDate: boolean;
+  suggestMarkAsPaid: boolean;
+}
+
+export interface LinkItemRequest {
+  transactionId: string;
+  updateAmount: boolean;
+  updateDueDate: boolean;
+  markAsPaid: boolean;
 }
 
 export interface ReconciliationSession {
@@ -120,6 +156,7 @@ export interface ReconciliationSession {
   needsAttentionCount: number;
   readyCount: number;
   nettedCount: number;
+  linkedCount: number;
   totalIncome: number;
   totalExpenses: number;
   netAmount: number;
@@ -146,6 +183,7 @@ export interface UpdateReconciliationItemRequest {
 
 export interface ConfirmResult {
   postedCount: number;
+  linkedCount: number;
   ignoredCount: number;
   nettedCount: number;
   emConta: number;
@@ -229,6 +267,23 @@ export class ReconciliationService {
 
   updateItem(id: string, request: UpdateReconciliationItemRequest): Observable<ReconciliationItem> {
     return this.http.put<ReconciliationItem>(`${this.reconciliationUrl}/items/${id}`, request);
+  }
+
+  getMatchCandidates(itemId: string, search?: string): Observable<MatchCandidate[]> {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.http.get<MatchCandidate[]>(
+      `${this.reconciliationUrl}/items/${itemId}/match-candidates${query}`
+    );
+  }
+
+  linkItem(itemId: string, request: LinkItemRequest): Observable<ReconciliationItem> {
+    return this.http.post<ReconciliationItem>(
+      `${this.reconciliationUrl}/items/${itemId}/link`, request
+    );
+  }
+
+  unlinkItem(itemId: string): Observable<ReconciliationItem> {
+    return this.http.delete<ReconciliationItem>(`${this.reconciliationUrl}/items/${itemId}/link`);
   }
 
   confirmSession(id: string): Observable<ConfirmResult> {

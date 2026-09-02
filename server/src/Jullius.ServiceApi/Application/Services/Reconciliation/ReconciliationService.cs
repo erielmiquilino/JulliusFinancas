@@ -11,11 +11,6 @@ namespace Jullius.ServiceApi.Application.Services.Reconciliation;
 /// </summary>
 public class ReconciliationService
 {
-    /// <summary>Janela usada para desconfiar de duplicata contra lançamentos já existentes.</summary>
-    private static readonly TimeSpan DuplicateWindow = TimeSpan.FromDays(2);
-
-    private const decimal DuplicateSimilarityThreshold = 0.75m;
-
     private readonly IReconciliationRepository _repository;
     private readonly IBankAccountRepository _bankAccountRepository;
     private readonly IFinancialTransactionRepository _transactionRepository;
@@ -23,6 +18,7 @@ public class ReconciliationService
     private readonly CategoryResolutionService _categoryResolutionService;
     private readonly ConsolidatedBalanceService _balanceService;
     private readonly InternalTransferMatcher _transferMatcher;
+    private readonly TransactionMatchFinder _matchFinder;
     private readonly PluggyClient _pluggyClient;
     private readonly ILogger<ReconciliationService> _logger;
 
@@ -34,6 +30,7 @@ public class ReconciliationService
         CategoryResolutionService categoryResolutionService,
         ConsolidatedBalanceService balanceService,
         InternalTransferMatcher transferMatcher,
+        TransactionMatchFinder matchFinder,
         PluggyClient pluggyClient,
         ILogger<ReconciliationService> logger)
     {
@@ -44,6 +41,7 @@ public class ReconciliationService
         _categoryResolutionService = categoryResolutionService;
         _balanceService = balanceService;
         _transferMatcher = transferMatcher;
+        _matchFinder = matchFinder;
         _pluggyClient = pluggyClient;
         _logger = logger;
     }
@@ -219,8 +217,139 @@ public class ReconciliationService
 
         await _repository.UpdateItemAsync(item);
 
+        return await BuildItemDtoAsync(item);
+    }
+
+    /// <summary>
+    /// Lançamentos do ledger que podem ser o mesmo evento desta linha do extrato.
+    /// </summary>
+    public async Task<IEnumerable<MatchCandidateDto>> GetMatchCandidatesAsync(Guid itemId, string? search)
+    {
+        var item = await _repository.GetItemByIdAsync(itemId)
+            ?? throw new ArgumentException("Item de conciliação não encontrado.");
+
+        var ledgerDate = BankStatementNormalizer.ToLedgerDate(item.RawDate);
+        var ledger = (await _transactionRepository.GetByDueDateRangeAsync(
+            ledgerDate.AddDays(-40), ledgerDate.AddDays(40))).ToList();
+
+        var linkedAmounts = await GetLinkedAmountsAsync(item.SessionId, exceptItemId: itemId);
         var categories = (await _categoryRepository.GetAllAsync()).ToList();
-        return MapItemToDto(item, categories);
+
+        // Busca livre permite alcançar um lançamento fora da janela de sugestão.
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            return ledger
+                .Where(t => TextSearchNormalizer.Normalize(t.Description)
+                    .Contains(TextSearchNormalizer.Normalize(search), StringComparison.Ordinal))
+                .OrderBy(t => (t.DueDate - ledgerDate).Duration())
+                .Take(20)
+                .Select(t => MapCandidate(new TransactionMatch(
+                    t, 0m, Array.Empty<string>(),
+                    linkedAmounts.GetValueOrDefault(t.Id),
+                    linkedAmounts.GetValueOrDefault(t.Id) + item.AbsoluteAmount,
+                    t.Amount != item.AbsoluteAmount,
+                    t.DueDate.Date != ledgerDate.Date,
+                    !t.IsPaid), categories))
+                .ToArray();
+        }
+
+        return _matchFinder.Find(item, ledger, linkedAmounts)
+            .Select(match => MapCandidate(match, categories))
+            .ToArray();
+    }
+
+    public async Task<ReconciliationItemDto?> LinkItemAsync(Guid itemId, LinkReconciliationItemRequest request)
+    {
+        var item = await _repository.GetItemByIdAsync(itemId);
+        if (item is null)
+            return null;
+
+        var transaction = await _transactionRepository.GetByIdAsync(request.TransactionId)
+            ?? throw new ArgumentException("O lançamento informado não existe.");
+
+        if (transaction.Type != item.ProposedType)
+            throw new ArgumentException(
+                "O lançamento é de tipo diferente (entrada x saída) e não pode ser vinculado a esta linha.");
+
+        item.LinkTo(request.TransactionId, request.UpdateAmount, request.UpdateDueDate, request.MarkAsPaid);
+        await _repository.UpdateItemAsync(item);
+
+        _logger.LogInformation(
+            "Item vinculado a lançamento existente. ItemId: {ItemId}, LancamentoId: {LancamentoId}, corrige valor: {CorrigeValor}",
+            itemId, request.TransactionId, request.UpdateAmount);
+
+        return await BuildItemDtoAsync(item);
+    }
+
+    public async Task<ReconciliationItemDto?> UnlinkItemAsync(Guid itemId)
+    {
+        var item = await _repository.GetItemByIdAsync(itemId);
+        if (item is null)
+            return null;
+
+        item.Unlink();
+        await _repository.UpdateItemAsync(item);
+
+        return await BuildItemDtoAsync(item);
+    }
+
+    /// <summary>Soma, por lançamento, das linhas já vinculadas — base do caso N:1.</summary>
+    private async Task<Dictionary<Guid, decimal>> GetLinkedAmountsAsync(Guid sessionId, Guid? exceptItemId = null)
+    {
+        var items = await _repository.GetItemsBySessionAsync(sessionId);
+
+        return items
+            .Where(i => i.LinkedTransactionId.HasValue)
+            .Where(i => exceptItemId is null || i.Id != exceptItemId)
+            .GroupBy(i => i.LinkedTransactionId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.AbsoluteAmount));
+    }
+
+    private static MatchCandidateDto MapCandidate(TransactionMatch match, List<Category> categories) => new()
+    {
+        TransactionId = match.Transaction.Id,
+        Description = match.Transaction.Description,
+        Amount = match.Transaction.Amount,
+        DueDate = match.Transaction.DueDate,
+        IsPaid = match.Transaction.IsPaid,
+        CategoryName = match.Transaction.Category?.Name
+            ?? categories.FirstOrDefault(c => c.Id == match.Transaction.CategoryId)?.Name,
+        Score = match.Score,
+        Reasons = match.Reasons.ToList(),
+        AlreadyLinkedAmount = match.AlreadyLinkedAmount,
+        CombinedAmount = match.CombinedAmount,
+        SuggestUpdateAmount = match.SuggestUpdateAmount,
+        SuggestUpdateDueDate = match.SuggestUpdateDueDate,
+        SuggestMarkAsPaid = match.SuggestMarkAsPaid
+    };
+
+    private async Task<ReconciliationItemDto> BuildItemDtoAsync(ReconciliationItem item)
+    {
+        var categories = (await _categoryRepository.GetAllAsync()).ToList();
+        var referenced = await LoadReferencedTransactionsAsync(new[] { item });
+        return MapItemToDto(item, categories, referenced);
+    }
+
+    /// <summary>Carrega os lançamentos citados por vínculo ou sugestão, para a tela mostrar o nome deles.</summary>
+    private async Task<Dictionary<Guid, FinancialTransaction>> LoadReferencedTransactionsAsync(
+        IEnumerable<ReconciliationItem> items)
+    {
+        var ids = items
+            .SelectMany(i => new[] { i.LinkedTransactionId, i.SuggestedTransactionId })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var map = new Dictionary<Guid, FinancialTransaction>();
+        foreach (var id in ids)
+        {
+            var transaction = await _transactionRepository.GetByIdAsync(id);
+            if (transaction is not null)
+                map[id] = transaction;
+        }
+
+        return map;
     }
 
     /// <summary>
@@ -237,6 +366,7 @@ public class ReconciliationService
 
         var items = (await _repository.GetItemsBySessionAsync(sessionId)).ToList();
 
+        // Vinculados não precisam de categoria: quem manda é o lançamento existente.
         var blocked = items
             .Where(item => item.Status == ReconciliationItemStatus.Pending && item.ProposedCategoryId is null)
             .ToList();
@@ -244,6 +374,50 @@ public class ReconciliationService
         if (blocked.Count > 0)
             throw new ArgumentException(
                 $"{blocked.Count} lançamento(s) ainda estão sem categoria. Revise ou ignore antes de confirmar.");
+
+        // Itens vinculados corrigem um lançamento que já existe, em vez de criar outro.
+        // Quando várias linhas do banco apontam para o mesmo lançamento (duas cobranças da Juvo
+        // para uma única parcela, por exemplo), o valor correto é a soma delas.
+        var linked = items.Where(item => item.Status == ReconciliationItemStatus.Linked).ToList();
+
+        foreach (var group in linked.GroupBy(item => item.LinkedTransactionId!.Value))
+        {
+            var transaction = await _transactionRepository.GetByIdAsync(group.Key);
+            if (transaction is null)
+            {
+                _logger.LogWarning(
+                    "Lançamento vinculado não existe mais e foi ignorado. LancamentoId: {LancamentoId}", group.Key);
+                continue;
+            }
+
+            var amount = group.Any(item => item.LinkUpdateAmount)
+                ? group.Sum(item => item.AbsoluteAmount)
+                : transaction.Amount;
+
+            var dueDate = group.Any(item => item.LinkUpdateDueDate)
+                ? BankStatementNormalizer.ToLedgerDate(group.Min(item => item.RawDate))
+                : transaction.DueDate;
+
+            var isPaid = transaction.IsPaid || group.Any(item => item.LinkMarkAsPaid);
+
+            transaction.UpdateDetails(
+                transaction.Description,
+                amount,
+                dueDate,
+                transaction.Type,
+                transaction.CategoryId,
+                isPaid,
+                budgetId: transaction.BudgetId);
+
+            await _transactionRepository.UpdateAsync(transaction);
+
+            foreach (var item in group)
+                item.MarkAsPosted(transaction.Id);
+
+            _logger.LogInformation(
+                "Lançamento existente atualizado pela conciliação. LancamentoId: {LancamentoId}, valor: {Valor}, pago: {Pago}, linhas: {Linhas}",
+                transaction.Id, amount, isPaid, group.Count());
+        }
 
         var toPost = items
             .Where(item => item.Status is ReconciliationItemStatus.Approved or ReconciliationItemStatus.Pending)
@@ -288,6 +462,7 @@ public class ReconciliationService
         return new ConfirmReconciliationResultDto
         {
             PostedCount = toPost.Count,
+            LinkedCount = linked.Count,
             IgnoredCount = items.Count(item => item.Status == ReconciliationItemStatus.Ignored),
             NettedCount = items.Count(item => item.Status == ReconciliationItemStatus.NettedInternal),
             EmConta = balance.EmConta,
@@ -318,9 +493,10 @@ public class ReconciliationService
 
     public async Task<IEnumerable<ReconciliationItemDto>> GetIgnoredItemsAsync()
     {
-        var items = await _repository.GetIgnoredItemsAsync();
+        var items = (await _repository.GetIgnoredItemsAsync()).ToList();
         var categories = (await _categoryRepository.GetAllAsync()).ToList();
-        return items.Select(item => MapItemToDto(item, categories));
+        var referenced = await LoadReferencedTransactionsAsync(items);
+        return items.Select(item => MapItemToDto(item, categories, referenced));
     }
 
     internal static DateTime ResolveStartDate(BankAccount account, DateTime? requestedFrom)
@@ -436,25 +612,29 @@ public class ReconciliationService
         if (candidates.Count == 0)
             return;
 
-        var from = candidates.Min(item => item.RawDate) - DuplicateWindow;
-        var to = candidates.Max(item => item.RawDate) + DuplicateWindow;
+        var from = candidates.Min(item => item.RawDate).AddDays(-40);
+        var to = candidates.Max(item => item.RawDate).AddDays(40);
         var existing = (await _transactionRepository.GetByDueDateRangeAsync(from, to)).ToList();
 
         if (existing.Count == 0)
             return;
 
+        var noLinksYet = new Dictionary<Guid, decimal>();
+
         foreach (var item in candidates)
         {
-            var ledgerDate = BankStatementNormalizer.ToLedgerDate(item.RawDate);
+            // O ranqueamento pesa valor, data e descrição — assim "GOOGLE BRASIL" encontra
+            // "Google Drive - Anual" e não confunde "PIZZARIA DUOS" com um investimento de
+            // mesmo valor no mesmo dia.
+            var best = _matchFinder.Find(item, existing, noLinksYet).FirstOrDefault();
+            if (best is null)
+                continue;
 
-            var duplicate = existing.Any(transaction =>
-                transaction.Amount == item.AbsoluteAmount &&
-                transaction.Type == item.ProposedType &&
-                (transaction.DueDate - ledgerDate).Duration() <= DuplicateWindow &&
-                TextSearchNormalizer.CalculateSimilarity(transaction.Description, item.ProposedDescription)
-                    >= DuplicateSimilarityThreshold);
+            // A sugestão é gravada, mas o vínculo nunca é automático: coincidência de valor
+            // e data acontece entre lançamentos que nada têm a ver um com o outro.
+            item.SuggestLink(best.Transaction.Id);
 
-            if (duplicate && item.ReviewFlag == ReconciliationReviewFlag.None)
+            if (best.IsStrong && item.ReviewFlag == ReconciliationReviewFlag.None)
                 item.Flag(ReconciliationReviewFlag.PossibleDuplicate);
         }
     }
@@ -464,6 +644,7 @@ public class ReconciliationService
         List<ReconciliationItem> items)
     {
         var categories = (await _categoryRepository.GetAllAsync()).ToList();
+        var referenced = await LoadReferencedTransactionsAsync(items);
         var balance = await _balanceService.GetCurrentBalanceAsync();
 
         var postable = items
@@ -496,7 +677,7 @@ public class ReconciliationService
             TotalExpenses = expenses,
             BankBalance = balance.SaldoBancos,
             ProjectedBalance = balance.EmConta + income - expenses,
-            Items = items.Select(item => MapItemToDto(item, categories)).ToList()
+            Items = items.Select(item => MapItemToDto(item, categories, referenced)).ToList()
         };
 
         if (dto.ProjectedBalance != dto.BankBalance)
@@ -509,7 +690,10 @@ public class ReconciliationService
         return dto;
     }
 
-    private static ReconciliationItemDto MapItemToDto(ReconciliationItem item, List<Category> categories) => new()
+    private static ReconciliationItemDto MapItemToDto(
+        ReconciliationItem item,
+        List<Category> categories,
+        IReadOnlyDictionary<Guid, FinancialTransaction> referenced) => new()
     {
         Id = item.Id,
         BankAccountId = item.BankAccountId,
@@ -528,8 +712,24 @@ public class ReconciliationService
         Status = item.Status,
         ReviewFlag = item.ReviewFlag,
         MatchedItemId = item.MatchedItemId,
+        LinkedTransactionId = item.LinkedTransactionId,
+        LinkedTransactionDescription = Lookup(referenced, item.LinkedTransactionId)?.Description,
+        LinkedTransactionAmount = Lookup(referenced, item.LinkedTransactionId)?.Amount,
+        LinkedTransactionDueDate = Lookup(referenced, item.LinkedTransactionId)?.DueDate,
+        LinkUpdateAmount = item.LinkUpdateAmount,
+        LinkUpdateDueDate = item.LinkUpdateDueDate,
+        LinkMarkAsPaid = item.LinkMarkAsPaid,
+        SuggestedTransactionId = item.SuggestedTransactionId,
+        SuggestedTransactionDescription = Lookup(referenced, item.SuggestedTransactionId)?.Description,
         ReviewReason = DescribeReviewFlag(item.ReviewFlag)
     };
+
+    private static FinancialTransaction? Lookup(
+        IReadOnlyDictionary<Guid, FinancialTransaction> referenced,
+        Guid? id)
+    {
+        return id.HasValue && referenced.TryGetValue(id.Value, out var transaction) ? transaction : null;
+    }
 
     private static string? DescribeReviewFlag(ReconciliationReviewFlag flag) => flag switch
     {
@@ -538,7 +738,8 @@ public class ReconciliationService
             "Parece transferência entre suas contas, mas o outro lado não apareceu neste período. " +
             "Anule só se tiver certeza; caso contrário, lance normalmente.",
         ReconciliationReviewFlag.PossibleDuplicate =>
-            "Existe um lançamento parecido no mesmo período — pode já ter sido registrado à mão ou pelo bot.",
+            "Parece já existir um lançamento equivalente. Vincule para corrigir o que existe " +
+            "em vez de criar um duplicado.",
         _ => null
     };
 

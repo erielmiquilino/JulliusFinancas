@@ -87,6 +87,7 @@ public static class DependencyInjectionExtensions
 
         services.AddScoped<PluggyClient>();
         services.AddScoped<InternalTransferMatcher>();
+        services.AddScoped<TransactionMatchFinder>();
         services.AddScoped<ConsolidatedBalanceService>();
         services.AddScoped<BankAccountService>();
         services.AddScoped<ReconciliationService>();

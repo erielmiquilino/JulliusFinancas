@@ -1,0 +1,130 @@
+<h2 mat-dialog-title>Vincular a lançamento existente</h2>
+
+<mat-dialog-content>
+  <!-- A linha do extrato, para comparar lado a lado -->
+  <div class="bank-line">
+    <span class="bank-date">{{ data.item.rawDate | date:'dd/MM/yyyy':'GMT':'pt-BR' }}</span>
+    <span class="bank-amount">{{ data.item.rawAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+    <span class="bank-account">{{ data.item.bankAccountName }}</span>
+    <div class="bank-raw">{{ data.item.rawDescription }}</div>
+  </div>
+
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Buscar outro lançamento</mat-label>
+    <input matInput
+           type="text"
+           name="busca-lancamento"
+           autocomplete="off"
+           data-form-type="other"
+           data-lpignore="true"
+           data-1p-ignore
+           [(ngModel)]="searchTerm"
+           (ngModelChange)="onSearch($event)"
+           placeholder="Ex.: Digio, Escola, Aluguel">
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <mat-spinner diameter="24"></mat-spinner>
+      <span>Procurando lançamentos...</span>
+    </div>
+  }
+
+  @if (!loading() && candidates().length === 0) {
+    <div class="no-data-message">
+      <span>Nenhum lançamento parecido encontrado. Use a busca acima.</span>
+    </div>
+  }
+
+  <div class="candidates">
+    @for (candidate of candidates(); track candidate.transactionId) {
+      <div class="candidate"
+           [class.candidate-strong]="isStrong(candidate)"
+           [class.candidate-selected]="selectedId() === candidate.transactionId"
+           (click)="select(candidate)">
+        <mat-radio-button [checked]="selectedId() === candidate.transactionId"
+                          (click)="$event.stopPropagation(); select(candidate)">
+        </mat-radio-button>
+
+        <div class="candidate-body">
+          <div class="candidate-head">
+            <span class="candidate-name">{{ candidate.description }}</span>
+            @if (isStrong(candidate)) {
+              <span class="badge badge-ok">sugestão</span>
+            }
+            @if (!candidate.isPaid) {
+              <span class="badge badge-warn">não pago</span>
+            }
+          </div>
+
+          <div class="candidate-meta">
+            {{ candidate.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+            · vence {{ candidate.dueDate | date:'dd/MM/yyyy':'GMT':'pt-BR' }}
+            @if (candidate.categoryName) {
+              <span>· {{ candidate.categoryName }}</span>
+            }
+          </div>
+
+          @if (candidate.reasons.length > 0) {
+            <div class="candidate-reasons">{{ candidate.reasons.join(' · ') }}</div>
+          }
+
+          <!-- Caso N:1: outras linhas do banco já apontam para este mesmo lançamento -->
+          @if (candidate.alreadyLinkedAmount > 0) {
+            <div class="combined-box">
+              <div>
+                Já vinculado a este lançamento:
+                <strong>{{ candidate.alreadyLinkedAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+              </div>
+              <div>
+                Somando com esta linha:
+                <strong>{{ candidate.combinedAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                @if (candidate.combinedAmount === candidate.amount) {
+                  <span class="match-ok">✓ fecha com o valor lançado</span>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Correções aplicáveis, só no candidato selecionado e só o que de fato difere -->
+          @if (selectedId() === candidate.transactionId) {
+            <div class="adjustments" (click)="$event.stopPropagation()">
+              @if (!candidate.isPaid) {
+                <mat-checkbox [(ngModel)]="markAsPaid">Marcar como pago</mat-checkbox>
+              }
+
+              @if (candidate.amount !== targetAmount(candidate)) {
+                <mat-checkbox [(ngModel)]="updateAmount">
+                  Atualizar valor:
+                  {{ candidate.amount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                  →
+                  <strong>{{ targetAmount(candidate) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+                </mat-checkbox>
+              }
+
+              @if (candidate.suggestUpdateDueDate) {
+                <mat-checkbox [(ngModel)]="updateDueDate">
+                  Atualizar data:
+                  {{ candidate.dueDate | date:'dd/MM':'GMT':'pt-BR' }}
+                  →
+                  <strong>{{ data.item.rawDate | date:'dd/MM':'GMT':'pt-BR' }}</strong>
+                </mat-checkbox>
+              }
+
+              <p class="keep-note">A descrição e a categoria do seu lançamento são mantidas.</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="!selected()" (click)="onConfirm()">
+    <mat-icon>link</mat-icon>
+    Vincular
+  </button>
+</mat-dialog-actions>

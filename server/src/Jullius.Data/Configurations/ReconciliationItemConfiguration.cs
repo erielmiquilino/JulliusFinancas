@@ -49,6 +49,18 @@ public class ReconciliationItemConfiguration : IEntityTypeConfiguration<Reconcil
         builder.Property(x => x.MatchedItemId).IsRequired(false);
         builder.Property(x => x.CreatedTransactionId).IsRequired(false);
 
+        // Vínculo com lançamento pré-existente. Sem FK: o lançamento pode ser excluído
+        // pela tela de Transações sem que isso precise invalidar o histórico da conciliação.
+        builder.Property(x => x.LinkedTransactionId).IsRequired(false);
+        builder.Property(x => x.SuggestedTransactionId).IsRequired(false);
+
+        builder.Property(x => x.LinkUpdateAmount).IsRequired().HasDefaultValue(false);
+        builder.Property(x => x.LinkUpdateDueDate).IsRequired().HasDefaultValue(false);
+        builder.Property(x => x.LinkMarkAsPaid).IsRequired().HasDefaultValue(false);
+
+        builder.HasIndex(x => x.LinkedTransactionId)
+            .HasDatabaseName("IX_ReconciliationItems_LinkedTransactionId");
+
         builder.Property(x => x.CreatedAt)
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");

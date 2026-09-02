@@ -17,6 +17,7 @@ import { finalize } from 'rxjs/operators';
 import { CanComponentDeactivate } from '../../../cards/guards/unsaved-changes.guard';
 import { Category, CategoryService } from '../../../categories/services/category.service';
 import { ConfirmActionDialogComponent } from '../confirm-action-dialog/confirm-action-dialog.component';
+import { LinkTransactionDialogComponent } from '../link-transaction-dialog/link-transaction-dialog.component';
 import { extractApiError } from '../../services/api-error';
 import {
   ReconciliationItem,
@@ -26,6 +27,7 @@ import {
   ReconciliationSession,
   TransactionType
 } from '../../services/reconciliation.service';
+import { LinkItemRequest } from '../../services/reconciliation.service';
 
 interface RowEdit {
   description: string;
@@ -96,6 +98,12 @@ export class ReconciliationReviewComponent implements OnInit, CanComponentDeacti
     )
   );
 
+  readonly linked = computed(() =>
+    (this.session()?.items ?? []).filter(
+      item => item.status === ReconciliationItemStatus.Linked
+    )
+  );
+
   readonly netted = computed(() =>
     (this.session()?.items ?? []).filter(
       item => item.status === ReconciliationItemStatus.NettedInternal
@@ -108,7 +116,9 @@ export class ReconciliationReviewComponent implements OnInit, CanComponentDeacti
     )
   );
 
-  readonly canConfirm = computed(() => this.needsAttention().length === 0 && this.ready().length > 0);
+  readonly canConfirm = computed(() =>
+    this.needsAttention().length === 0 && (this.ready().length > 0 || this.linked().length > 0)
+  );
 
   readonly balanceMatches = computed(() => {
     const current = this.session();
@@ -204,6 +214,48 @@ export class ReconciliationReviewComponent implements OnInit, CanComponentDeacti
     this.persist(item, ReconciliationItemStatus.Pending);
   }
 
+  /** Aponta a linha para um lançamento existente em vez de criar outro. */
+  openLinkDialog(item: ReconciliationItem): void {
+    const dialogRef = this.dialog.open(LinkTransactionDialogComponent, {
+      width: '640px',
+      data: { item }
+    });
+
+    dialogRef.afterClosed().subscribe((request: LinkItemRequest | null) => {
+      if (!request) {
+        return;
+      }
+
+      this.busyItemId.set(item.id);
+      this.service
+        .linkItem(item.id, request)
+        .pipe(finalize(() => this.busyItemId.set(null)))
+        .subscribe({
+          next: updated => {
+            this.edits.delete(item.id);
+            this.dirtyCount.set(this.edits.size);
+            this.replaceItem(updated);
+            this.snackBar.open('Vinculado ao lançamento existente.', 'Fechar', {
+              duration: 4000,
+              panelClass: 'success-snackbar'
+            });
+          },
+          error: error => this.showError('Erro ao vincular', error)
+        });
+    });
+  }
+
+  unlink(item: ReconciliationItem): void {
+    this.busyItemId.set(item.id);
+    this.service
+      .unlinkItem(item.id)
+      .pipe(finalize(() => this.busyItemId.set(null)))
+      .subscribe({
+        next: updated => this.replaceItem(updated),
+        error: error => this.showError('Erro ao desvincular', error)
+      });
+  }
+
   confirm(): void {
     const current = this.session();
     if (!current) {
@@ -214,7 +266,10 @@ export class ReconciliationReviewComponent implements OnInit, CanComponentDeacti
       width: '480px',
       data: {
         title: 'Confirmar conciliação',
-        message: `${this.ready().length} lançamento(s) serão gravados no Jullius.`,
+        message: this.linked().length > 0
+          ? `${this.ready().length} lançamento(s) serão gravados e ` +
+            `${this.linked().length} lançamento(s) existentes serão atualizados.`
+          : `${this.ready().length} lançamento(s) serão gravados no Jullius.`,
         details: [
           { label: 'Entradas', value: this.formatCurrency(current.totalIncome) },
           { label: 'Saídas', value: this.formatCurrency(current.totalExpenses) },
@@ -243,8 +298,12 @@ export class ReconciliationReviewComponent implements OnInit, CanComponentDeacti
           next: result => {
             this.edits.clear();
             this.dirtyCount.set(0);
+            const linkedNote = result.linkedCount > 0
+              ? ` ${result.linkedCount} existente(s) atualizados.`
+              : '';
             this.snackBar.open(
-              `${result.postedCount} lançamento(s) gravados. Em Conta: ${this.formatCurrency(result.emConta)} ` +
+              `${result.postedCount} lançamento(s) gravados.${linkedNote} ` +
+                `Em Conta: ${this.formatCurrency(result.emConta)} ` +
                 `(divergência ${this.formatCurrency(result.divergencia)}).`,
               'Fechar',
               { duration: 10000, panelClass: 'success-snackbar' }

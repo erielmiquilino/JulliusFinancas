@@ -85,6 +85,21 @@
                     @if (busyItemId() === item.id) {
                       <mat-spinner diameter="24"></mat-spinner>
                     } @else {
+                      @if (item.suggestedTransactionDescription) {
+                        <button mat-flat-button color="primary"
+                                matTooltip="Corrige o lançamento que já existe em vez de criar outro"
+                                (click)="openLinkDialog(item)">
+                          <mat-icon>link</mat-icon>
+                          Vincular a "{{ item.suggestedTransactionDescription }}"
+                        </button>
+                      } @else {
+                        <button mat-stroked-button (click)="openLinkDialog(item)"
+                                matTooltip="Apontar para um lançamento que já existe">
+                          <mat-icon>link</mat-icon>
+                          Vincular
+                        </button>
+                      }
+
                       <button mat-stroked-button color="primary" (click)="approve(item)">
                         <mat-icon>check</mat-icon>
                         Lançar
@@ -165,6 +180,11 @@
                   @if (busyItemId() === item.id) {
                     <mat-spinner diameter="24"></mat-spinner>
                   } @else {
+                    <button mat-icon-button
+                            matTooltip="Vincular a um lançamento existente"
+                            (click)="openLinkDialog(item)">
+                      <mat-icon>link</mat-icon>
+                    </button>
                     <button mat-icon-button color="primary"
                             matTooltip="Salvar alteração"
                             (click)="approve(item)">
@@ -183,6 +203,58 @@
             <div class="no-data-message"><span>Nenhum lançamento pronto.</span></div>
           }
         </mat-expansion-panel>
+
+        <!-- VINCULADOS A LANÇAMENTOS EXISTENTES -->
+        @if (linked().length > 0) {
+          <mat-expansion-panel class="section" [expanded]="true">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="link-icon">link</mat-icon>
+                Vinculados a lançamentos existentes ({{ linked().length }})
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <p class="section-hint">
+              Estas linhas correspondem a lançamentos que você já tinha registrado. Nenhum lançamento
+              novo será criado — só as correções marcadas serão aplicadas ao que já existe.
+            </p>
+
+            @for (item of linked(); track item.id) {
+              <div class="row row-linked">
+                <div class="row-head">
+                  <span class="row-date">{{ item.rawDate | date:'dd/MM':'GMT':'pt-BR' }}</span>
+                  <span class="row-amount">{{ item.rawAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+                  <span class="row-account">{{ item.bankAccountName }}</span>
+                </div>
+                <div class="row-raw">{{ item.rawDescription }}</div>
+
+                <div class="link-target">
+                  <mat-icon>subdirectory_arrow_right</mat-icon>
+                  <div>
+                    <strong>{{ item.linkedTransactionDescription }}</strong>
+                    <span class="link-meta">
+                      {{ item.linkedTransactionAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                      · {{ item.linkedTransactionDueDate | date:'dd/MM/yyyy':'GMT':'pt-BR' }}
+                    </span>
+                    <div class="link-changes">
+                      @if (item.linkMarkAsPaid) { <span class="chip">marcar como pago</span> }
+                      @if (item.linkUpdateAmount) { <span class="chip">corrigir valor</span> }
+                      @if (item.linkUpdateDueDate) { <span class="chip">corrigir data</span> }
+                      @if (!item.linkMarkAsPaid && !item.linkUpdateAmount && !item.linkUpdateDueDate) {
+                        <span class="chip chip-muted">sem alterações</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <button mat-button color="warn" (click)="unlink(item)">
+                  <mat-icon>link_off</mat-icon>
+                  Desvincular
+                </button>
+              </div>
+            }
+          </mat-expansion-panel>
+        }
 
         <!-- ANULADAS -->
         @if (netted().length > 0) {

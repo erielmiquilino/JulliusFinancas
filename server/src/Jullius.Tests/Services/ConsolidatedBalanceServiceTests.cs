@@ -64,8 +64,10 @@ public class ConsolidatedBalanceServiceTests
         ]);
         _mocks.SetupRealizedNetAmount(6035.57m);
 
-        // Act
-        var result = await _service.GetBalanceAsync(8, 2026);
+        // Act — o mês corrente, porque a divergência só é comparável quando o período
+        // alcança o presente; fixar um mês tornaria o teste dependente da data de execução.
+        var hoje = DateTime.UtcNow;
+        var result = await _service.GetBalanceAsync(hoje.Month, hoje.Year);
 
         // Assert
         result.IsConfigured.Should().BeTrue();
@@ -86,7 +88,8 @@ public class ConsolidatedBalanceServiceTests
         _mocks.SetupRealizedNetAmount(5935.57m);
 
         // Act
-        var result = await _service.GetBalanceAsync(8, 2026);
+        var hoje = DateTime.UtcNow;
+        var result = await _service.GetBalanceAsync(hoje.Month, hoje.Year);
 
         // Assert
         result.Divergencia.Should().Be(-100m);
@@ -134,7 +137,8 @@ public class ConsolidatedBalanceServiceTests
         _mocks.SetupRealizedNetAmount(6035.57m);
 
         // Act
-        var result = await _service.GetBalanceAsync(8, 2026);
+        var hoje = DateTime.UtcNow;
+        var result = await _service.GetBalanceAsync(hoje.Month, hoje.Year);
 
         // Assert
         result.Contas.Should().HaveCount(2);

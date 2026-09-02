@@ -101,6 +101,73 @@ public class ReconciliationController : ODataController
         }
     }
 
+    /// <summary>Lançamentos existentes que podem ser o mesmo evento desta linha do extrato.</summary>
+    [HttpGet("items/{id}/match-candidates")]
+    public async Task<IActionResult> GetMatchCandidates(Guid id, [FromQuery] string? search)
+    {
+        try
+        {
+            var candidates = await _service.GetMatchCandidatesAsync(id, search);
+            return Ok(candidates);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Falha ao buscar candidatos. ItemId: {ItemId}, Erro: {Erro}", id, ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>Aponta a linha para um lançamento existente, em vez de criar um novo.</summary>
+    [HttpPost("items/{id}/link")]
+    public async Task<IActionResult> LinkItem(Guid id, [FromBody] LinkReconciliationItemRequest request)
+    {
+        _logger.LogInformation(
+            "Iniciando vínculo de item com lançamento existente. ItemId: {ItemId}, LancamentoId: {LancamentoId}",
+            id, request.TransactionId);
+
+        try
+        {
+            var item = await _service.LinkItemAsync(id, request);
+
+            if (item == null)
+            {
+                _logger.LogWarning("Item de conciliação não encontrado. ID: {ItemId}", id);
+                return NotFound();
+            }
+
+            return Ok(item);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning("Falha ao vincular item. ItemId: {ItemId}, Erro: {Erro}", id, ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Falha ao vincular item. ItemId: {ItemId}, Erro: {Erro}", id, ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("items/{id}/link")]
+    public async Task<IActionResult> UnlinkItem(Guid id)
+    {
+        try
+        {
+            var item = await _service.UnlinkItemAsync(id);
+
+            if (item == null)
+                return NotFound();
+
+            _logger.LogInformation("Vínculo removido. ItemId: {ItemId}", id);
+            return Ok(item);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("sessions/{id}/confirm")]
     public async Task<IActionResult> Confirm(Guid id)
     {

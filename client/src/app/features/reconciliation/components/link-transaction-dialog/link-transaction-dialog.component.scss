@@ -1,0 +1,99 @@
+mat-dialog-content { max-height: 62vh; }
+
+.bank-line {
+  background-color: #f5f5f5;
+  border-left: 4px solid var(--primary-color, #2e7d32);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.bank-amount { font-weight: 600; }
+.bank-date, .bank-account { font-size: 12px; color: rgba(0, 0, 0, .6); }
+
+.bank-raw {
+  flex-basis: 100%;
+  font-family: monospace;
+  font-size: 12px;
+  color: rgba(0, 0, 0, .55);
+  word-break: break-word;
+}
+
+.search-field { width: 100%; }
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(0, 0, 0, .6);
+  padding: 8px 0;
+}
+
+.candidates { display: flex; flex-direction: column; gap: 8px; }
+
+.candidate {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, .12);
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover { background-color: rgba(0, 0, 0, .02); }
+  &.candidate-strong { border-color: #2e7d32; }
+
+  &.candidate-selected {
+    background-color: rgba(46, 125, 50, .06);
+    border-color: #2e7d32;
+  }
+}
+
+.candidate-body { flex: 1; min-width: 0; }
+.candidate-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.candidate-name { font-weight: 500; }
+.candidate-meta { font-size: 12px; color: rgba(0, 0, 0, .6); }
+.candidate-reasons { font-size: 11px; color: #2e7d32; margin-top: 2px; }
+
+.combined-box {
+  background-color: #fff8e1;
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.match-ok { color: #2e7d32; font-weight: 600; margin-left: 6px; }
+
+.adjustments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(0, 0, 0, .12);
+}
+
+.keep-note { font-size: 11px; color: rgba(0, 0, 0, .55); margin: 4px 0 0; }
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-ok { background-color: #e8f5e9; color: #2e7d32; }
+.badge-warn { background-color: #fff8e1; color: #f57c00; }
+
+.no-data-message {
+  padding: 16px;
+  text-align: center;
+  color: rgba(0, 0, 0, .5);
+  font-size: 13px;
+}
